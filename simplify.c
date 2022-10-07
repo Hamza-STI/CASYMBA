@@ -126,14 +126,15 @@ Tree* constant(Tree* u)
 	if (isconstant(u))
 		return u;
 	map Li = map_create_prod(u);
-	if (isconstant(Li->begin->tr))
+	mapCell* tmp_Li = Li->begin;
+	Tree* s = NULL;
+	while (isconstant(tmp_Li->tr))
 	{
-		Tree* s = clone(Li->begin->tr);
-		Li = clear_map(Li);
-		return s;
+		s = (s == NULL) ? clone(tmp_Li->tr) : join(s, clone(tmp_Li->tr), fnc[PROD].ex);
+		tmp_Li = tmp_Li->next;
 	}
 	Li = clear_map(Li);
-	return new_tree("1");
+	return (s != NULL) ? s : new_tree("1");
 }
 
 Tree* term(Tree* u)
@@ -144,14 +145,9 @@ Tree* term(Tree* u)
 	if (isconstant(u))
 		return NULL;
 	map Li = map_create_prod(u);
-	if (isconstant(Li->begin->tr))
-	{
+	while (isconstant(Li->begin->tr))
 		Li = pop_front_map(Li);
-		Tree* s = construct(fnc[PROD].ex, Li);
-		return s;
-	}
-	Li = clear_map(Li);
-	return clone(u);
+	return (Li == NULL)? NULL: construct(fnc[PROD].ex, Li);
 }
 
 double factoriel(double a)
