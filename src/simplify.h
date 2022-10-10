@@ -5,6 +5,11 @@
 
 	#define iquot(a, b) ((double)(int)( a / b))
 
+	extern bool ALG_EXPAND;
+	extern bool LN_EXP_EXPAND;
+	extern bool TRIG_EXPAND;
+	extern bool RT_SIMP;
+
 	int free_of(Tree* u, Tree* t);
 	int ispoly(Tree* u, const char* vr);
 	int is_int(Tree* u);
