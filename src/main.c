@@ -13,8 +13,7 @@ int main(int argc, char const* argv[])
 	string expr = Post2in(simp);
 	print_tree_prefix(simp);
 	clean_tree(simp);
-	printf("\nla forme simplifiée : %s\n", expr);
-	
+	printf("\nla forme simplifiee : %s\n", expr);
 
 	return 0;
 }

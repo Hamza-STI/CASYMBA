@@ -97,7 +97,7 @@ int prior(const char* s) // priorit� des calculs
 int isfn(const char* s)
 {
 	char fch = s[0], lch = s[strlen(s) - 1];
-	if ((('A' <= fch && fch <= 'Z') || ('a' <= fch && fch <= 'z')) && lch == '(' || fch == '!')
+	if (((('A' <= fch && fch <= 'Z') || ('a' <= fch && fch <= 'z')) && lch == '(') || fch == '!')
 		return 1;
 	return 0;
 }
@@ -126,8 +126,8 @@ DList In2post(const char* ex)
 	DList result = NULL;
 	char ch, tch;
 	char temp[TAILLE_MAX] = { 0 }, op[2] = { 0 };
-	int i = 0, sl = 0, p = 0;
-	for (i = 0; i < strlen(ex); ++i)
+    int sl = 0, p = 0;
+	for (unsigned int i = 0; i < strlen(ex); ++i)
 	{
 		ch = ex[i];
 		if (ch == ' ')
@@ -140,7 +140,7 @@ DList In2post(const char* ex)
 		}
 		else if (!cisop(ch))
 		{
-			if (sl && (isvar(ch) && isnumeric(temp[sl - 1])) || (isnumeric(ch) && isvar(temp[sl - 1])))
+			if (sl && ((isvar(ch) && isnumeric(temp[sl - 1])) || (isnumeric(ch) && isvar(temp[sl - 1]))))
 			{
 				result = push_back_dlist(result, temp);
 				result = push_back_dlist(result, fnc[PROD].ex);
@@ -197,7 +197,7 @@ DList In2post(const char* ex)
 	DList rlt = NULL;
 	DList opstack = NULL;
 	DListCell* tmp = result->begin;
-	for (i = 0; i < n; ++i)
+	for (int i = 0; i < n; ++i)
 	{
 		if (!(isop(tmp->value) || isfn(tmp->value)))
 		{
@@ -387,7 +387,7 @@ Tree* to_tree(DList list)
 
 int found_element(Tree* tr, const char* elt)
 {
-	if (tr == NULL || strcmp(tr->value, elt) && tr->tleft == NULL)
+	if (tr == NULL || (strcmp(tr->value, elt) && tr->tleft == NULL))
 		return 0;
 	if (!strcmp(tr->value, elt))
 		return 1;
