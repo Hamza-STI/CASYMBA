@@ -422,10 +422,9 @@ Tree* system_rmp(Tree* tr, DList v, map L)
 	return tr;
 }
 
-map solve_system(map L, map R, DList v)
+map solve_system(map L, map R)
 {
 	mapCell* tmp_L = L->begin, * tmp_R = R->begin;
-	DListCell* tmp = v->begin;
 	DList vrs = NULL, v_ps = NULL;
 	map rt = NULL;
 	Tree* z = new_tree("0"), * o = new_tree("1");
@@ -450,7 +449,6 @@ map solve_system(map L, map R, DList v)
 		vrs = clear_dlist(vrs);
 		tmp_L = tmp_L->next;
 		tmp_R = tmp_R->next;
-		tmp = tmp->next;
 	}
 	v_ps = clear_dlist(v_ps);
 	clean_tree(z); clean_tree(o);
@@ -521,7 +519,7 @@ Tree* poly_solution_2(Tree* a, Tree* b, Tree* c, Tree* part, const char* x, Tree
 		dg = simplify(join(dg, new_tree("1"), fnc[SUB].ex));
 	}
 	clean_tree(dg); clean_tree(a); clean_tree(b); clean_tree(c); clean_tree(d); clean_tree(part);
-	sol = solve_system(cpl, cf, vr);
+	sol = solve_system(cpl, cf);
 	cpl = clear_map(cpl); cf = clear_map(cf);
 	tmp = sol->begin;
 	cel_vr = vr->begin;
