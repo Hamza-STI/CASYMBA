@@ -2,6 +2,9 @@
 
 int main(int argc, char const* argv[])
 {
+	(void)argc;
+	(void)argv;
+
 	DList rpn = In2post("3.1415926535898"); // 
 	Tree* tr = to_tree(rpn);
 	
