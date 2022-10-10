@@ -1038,7 +1038,7 @@ Tree* trigo_simplify(Tree* u, token tk)
 					if (n->tok_type == NEGATIF)
 						c = join(c, NULL, fnc[NEGATIF].ex);
 					tmp = join(clone(c), new_tree(fnc[PI].ex), fnc[PROD].ex);
-					for (int k = 1; k < fabs(z); k++)
+					for (int k = 1; k < abs(z); k++)
 						tmp = join(tmp, join(clone(c), new_tree(fnc[PI].ex), fnc[PROD].ex), fnc[ADD].ex);
 					clean_tree(n); clean_tree(d); clean_tree(c);
 					u = texpand(tmp, tk);
