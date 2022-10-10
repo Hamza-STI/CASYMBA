@@ -805,8 +805,8 @@ string variable(Tree* u)
 			k = w;
 			if (t)
 				free(vr);
-			vr = malloc((strlen(vrs->begin->value) + 1) * sizeof(string));
-			memcpy(vr, vrs->begin->value, strlen(vrs->begin->value) + 1);
+			vr = malloc((strlen(tmp->value) + 1) * sizeof(string));
+			memcpy(vr, tmp->value, strlen(tmp->value) + 1);
 			t = true;
 		}
 		tmp = tmp->next;
