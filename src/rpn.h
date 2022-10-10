@@ -37,7 +37,7 @@
 		token tok;
 	}table_token;
 
-	static table_token fnc[AMOUNT_TOKEN] =
+	static const table_token fnc[AMOUNT_TOKEN] =
 	{
 		{ "\0", NUMBER}, { "\0", VARIABLE}, { "undef", UNDEF}, {"@i", IMAGE}, {"PI", PI},
 		/* OPÉRATEUR */
@@ -81,17 +81,7 @@
 		token tok_type;
 	}Tree;
 
-	typedef struct Trigo_value
-	{
-		string angle;
-		string cos_value;
-		string sin_value;
-		string tan_value;
-	}Trigo_value;
-	
-	extern struct Trigo_value Exact_Values[AMONT_VALUE_TRIG];
-
-	/* Prototypes des fonctions */
+	/* public functions */
 	Tree* new_tree(const char* x);
 	void clean_tree(Tree* tr);
 	void clean_noeud(Tree* tr);
@@ -101,14 +91,8 @@
 	Tree* to_tree(DList list);
 	int found_element(Tree* tr, const char* elt);
 
-	int isfn(const char* s);
-	int tokens(const char* s);
 	int isop(const char* s);
-	int opless(const char* a, const char* b);
-	int prior(const char* s);
-	int nparts(DList rpn);
 	DList In2post(const char* ex);
-	DList Parts(DList rpn, int nb);
 	string Post2in(Tree* tr);
 	double Eval(Tree* tr);
 

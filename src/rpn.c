@@ -1,37 +1,17 @@
 #include "rpn.h"
 
-/*
-https://fr.wikipedia.org/wiki/Table_de_lignes_trigonom%C3%A9triques_exactes
-https://fr.wikipedia.org/wiki/Fonction_trigonom%C3%A9trique
-http://tibasicdev.wikidot.com/one-byte-tokens
-*/
-
-struct Trigo_value Exact_Values[AMONT_VALUE_TRIG] =
-{
-	/* remarquables */
-	{ "0", "1", "0", "0"},
-	{ "1/6*PI", "sqrt(3)/2", "1/2", "sqrt(3)/3" },
-	{ "1/4*PI", "sqrt(2)/2", "sqrt(2)/2", "1" },
-	{ "1/3*PI", "1/2", "sqrt(3)/2", "sqrt(3)" },
-	{ "1/2*PI", "1", "0", "undef" },
-	{ "2/3*PI", "~1/2", "sqrt(3)/2", "~sqrt(3)"},
-	{ "3/4*PI", "~sqrt(2)/2", "sqrt(2)/2", "~1" },
-	{ "5/6*PI", "~sqrt(3)/2", "1/2", "~sqrt(3)/3" },
-	{ "PI", "~1", "0", "0" },
-
-	/* moins-remarquables */
-	{ "1/12*PI", "sqrt(2+sqrt(3))/2", "sqrt(2-sqrt(3))/2", "2-sqrt(3)" },
-	{ "1/10*PI", "sqrt(~2*(sqrt(5)-5))/4", "(sqrt(5)-1)/4", "sqrt(1-2*sqrt(5)/5)" },
-	{ "1/8*PI", "sqrt(2+sqrt(2))/2", "sqrt(2-sqrt(2))/2", "sqrt(2)-1" },
-	{ "1/5*PI", "(sqrt(5)+1)/4", "sqrt(~2*(sqrt(5)-5))/4",	"sqrt(1-2*sqrt(5))" },
-	{ "3/8*PI", "sqrt(2-sqrt(2))/2", "sqrt(2+sqrt(2))/2", "sqrt(2)+1" },
-	{ "5/12*PI", "sqrt(2-sqrt(3))/2", "sqrt(2+sqrt(3))/2", "2+sqrt(3)" }
-};
-
 #define isnumeric(b) ('0' <= b && b <= '9' || b == '.')
 #define isvar(b) (('A' <= b && b <= 'Z') || ('a' <= b && b <= 'z'))
 
-DList Parts(DList rpn, int nb)
+/* private functions */
+static int isfn(const char* s);
+static int tokens(const char* s);
+static int opless(const char* a, const char* b);
+static int prior(const char* s);
+static int nparts(DList rpn);
+static DList Parts(DList rpn, int nb);
+
+static DList Parts(DList rpn, int nb)
 {
 	int i = 1, n = dlist_length(rpn);
 	int k = n;
@@ -55,7 +35,7 @@ DList Parts(DList rpn, int nb)
 	return dlist_sub(rpn, k, n - k);
 }
 
-int nparts(DList rpn)
+static int nparts(DList rpn)
 {
 	string chr = dlist_last(rpn);
 	if (!strcmp(chr, "and") || !strcmp(chr, "or"))
@@ -68,7 +48,7 @@ int nparts(DList rpn)
 	return 0;
 }
 
-int prior(const char* s) // priorit� des calculs
+static int prior(const char* s) // priorit� des calculs
 {
 	char ch = s[0];
 	if (isfn(s) || ch == '!')
@@ -94,7 +74,7 @@ int prior(const char* s) // priorit� des calculs
 	return 0;
 }
 
-int isfn(const char* s)
+static int isfn(const char* s)
 {
 	char fch = s[0], lch = s[strlen(s) - 1];
 	if (((('A' <= fch && fch <= 'Z') || ('a' <= fch && fch <= 'z')) && lch == '(') || fch == '!')
@@ -102,7 +82,7 @@ int isfn(const char* s)
 	return 0;
 }
 
-int cisop(char ch)
+static int cisop(char ch)
 {
 	return ch == '+' || ch == '-' || ch == '/' || ch == '*' || ch == '^' || ch == '=' || ch == '>' || ch == '<' || ch == '(' || ch == ')' || ch == '~' || ch == ',' || ch == '!';
 }
@@ -114,7 +94,7 @@ int isop(const char* s)
 	return cisop(s[0]);
 }
 
-int opless(const char* a, const char* b)
+static int opless(const char* a, const char* b)
 {
 	if (a[0] != '~' && a[0] != '^')
 		return prior(a) <= prior(b);
@@ -243,11 +223,10 @@ DList In2post(const char* ex)
 	return rlt;
 }
 
-int tokens(const char* s)
+static int tokens(const char* s)
 {
-	table_token* element;
 	int k = 0;
-	for (element = fnc; element != element + AMOUNT_TOKEN; element++)
+	for (const table_token* element = fnc; element != element + AMOUNT_TOKEN; element++)
 	{
 		if (!strcmp(element->ex, s))
 			return element->tok;
