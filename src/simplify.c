@@ -1,5 +1,10 @@
 #include "simplify.h"
 
+bool ALG_EXPAND = false;
+bool LN_EXP_EXPAND = false;
+bool TRIG_EXPAND = false;
+bool RT_SIMP = false;
+
 int free_of(Tree* u, Tree* t)
 {
 	if (tree_compare(u, t))

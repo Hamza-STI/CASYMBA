@@ -4,12 +4,7 @@
 	#include "dlist.h"
 	#include <math.h>
 
-	bool TRIG_EXPAND;
-	bool LN_EXP_EXPAND;
-	bool RT_SIMP;
-	bool ALG_EXPAND;
 	#define AMONT_VALUE_TRIG 15
-	int ipp_loop;
 
 	typedef enum token
 	{

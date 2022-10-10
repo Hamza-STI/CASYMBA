@@ -1,5 +1,7 @@
 #include "calculs.h"
 
+int ipp_loop;
+
 Tree* diff(Tree* tr, const char* vr)
 {
 	if (!found_element(tr, vr))
