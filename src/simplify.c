@@ -5,7 +5,73 @@ bool LN_EXP_EXPAND = false;
 bool TRIG_EXPAND = false;
 bool RT_SIMP = false;
 
-int free_of(Tree* u, Tree* t)
+/*
+https://fr.wikipedia.org/wiki/Table_de_lignes_trigonom%C3%A9triques_exactes
+https://fr.wikipedia.org/wiki/Fonction_trigonom%C3%A9trique
+http://tibasicdev.wikidot.com/one-byte-tokens
+*/
+static const struct Trigo_value Exact_Values[AMONT_VALUE_TRIG] =
+{
+    /* remarquables */
+    { "0", "1", "0", "0"},
+    { "1/6*PI", "sqrt(3)/2", "1/2", "sqrt(3)/3" },
+    { "1/4*PI", "sqrt(2)/2", "sqrt(2)/2", "1" },
+    { "1/3*PI", "1/2", "sqrt(3)/2", "sqrt(3)" },
+    { "1/2*PI", "1", "0", "undef" },
+    { "2/3*PI", "~1/2", "sqrt(3)/2", "~sqrt(3)"},
+    { "3/4*PI", "~sqrt(2)/2", "sqrt(2)/2", "~1" },
+    { "5/6*PI", "~sqrt(3)/2", "1/2", "~sqrt(3)/3" },
+    { "PI", "~1", "0", "0" },
+
+    /* moins-remarquables */
+    { "1/12*PI", "sqrt(2+sqrt(3))/2", "sqrt(2-sqrt(3))/2", "2-sqrt(3)" },
+    { "1/10*PI", "sqrt(~2*(sqrt(5)-5))/4", "(sqrt(5)-1)/4", "sqrt(1-2*sqrt(5)/5)" },
+    { "1/8*PI", "sqrt(2+sqrt(2))/2", "sqrt(2-sqrt(2))/2", "sqrt(2)-1" },
+    { "1/5*PI", "(sqrt(5)+1)/4", "sqrt(~2*(sqrt(5)-5))/4",	"sqrt(1-2*sqrt(5))" },
+    { "3/8*PI", "sqrt(2-sqrt(2))/2", "sqrt(2+sqrt(2))/2", "sqrt(2)+1" },
+    { "5/12*PI", "sqrt(2-sqrt(3))/2", "sqrt(2+sqrt(3))/2", "2+sqrt(3)" }
+};
+
+static Tree* fracOp(const char* numerator, const char* denominator);
+static Tree* sumOp(const char* left, const char* right);
+static Tree* diffOp(const char* left, const char* right);
+static Tree* prodOp(const char* left, const char* right);
+static Tree* factOp(const char* left);
+static Tree* factorn(double val);
+
+static Tree* simplify_RNE(Tree* u);
+static Tree* simplify_RNE_rec(Tree* u);
+static Tree* simplify_rational_number(Tree* u);
+static Tree* simplify_power(Tree* u);
+static Tree* simplify_product(map L);
+static Tree* simplify_sum(map L);
+static Tree* simplify_ln(Tree* u);
+static Tree* simplify_exp(Tree* u);
+static Tree* trigo_simplify(Tree* u, token tk);
+static map simplify_product_rec(map L);
+static map simplify_sum_rec(map L);
+
+static Tree* evaluate_power(Tree* bases, Tree* expon);
+static Tree* evaluate_add(Tree* left, Tree* right);
+static Tree* evaluate_diff(Tree* left, Tree* right);
+static Tree* evaluate_prod(Tree* left, Tree* right);
+static Tree* evaluate_quotient(Tree* left, Tree* right);
+
+static Tree* construct(const char* op, map li);
+static Tree* rationalize_sum(Tree* u, Tree* v, const char* op);
+static Tree* contract_exp(Tree* u);
+static Tree* contract_ln_rules(Tree* u);
+static Tree* contract_ln(Tree* u);
+static Tree* expand_exp(Tree* u);
+static Tree* expand_ln(Tree* u);
+
+static int free_of(Tree* u, Tree* t);
+static map merge_products(map p, map q);
+static map adjoin(Tree* s, map p);
+static map merge_sums(map p, map q);
+static Tree* absolute_value(Tree* u);
+
+static int free_of(Tree* u, Tree* t)
 {
 	if (tree_compare(u, t))
 		return 0;
@@ -458,37 +524,35 @@ map map_sort(map li)
 
 Tree* trigo_identify(const char* s, token tk)
 {
-	Trigo_value* element;
 	int k = 0;
-	for (element = Exact_Values; element != element + AMONT_VALUE_TRIG; element++)
+	for (const Trigo_value* element = Exact_Values; element != element + AMONT_VALUE_TRIG; element++)
 	{
 		if (tk == COS_F)
 		{
 			if (!strcmp(element->angle, s))
 				return to_tree(In2post(element->cos_value));
 		}
-		if (tk == SIN_F)
+		else if (tk == SIN_F)
 		{
 			if (!strcmp(element->angle, s))
 				return to_tree(In2post(element->sin_value));
 		}
-		if (tk == TAN_F)
+        else if (tk == TAN_F)
 		{
 			if (!strcmp(element->angle, s))
 				return to_tree(In2post(element->tan_value));
 		}
-		if (tk == ACOS_F)
+        else if (tk == ACOS_F)
 		{
 			if (!strcmp(element->cos_value, s))
 				return to_tree(In2post(element->angle));
 		}
-		if (tk == ASIN_F)
+        else if (tk == ASIN_F)
 		{
 			if (!strcmp(element->sin_value, s))
 				return to_tree(In2post(element->angle));
 		}
-
-		if (tk == ATAN_F)
+        else if (tk == ATAN_F)
 		{
 			if (!strcmp(element->tan_value, s))
 				return to_tree(In2post(element->angle));
@@ -542,7 +606,7 @@ Tree* Zfrac(double x)
 	return join(new_tree(tostr(w)), new_tree(tostr(i)), fnc[DIVID].ex);
 }
 
-Tree* simplify_rational_number(Tree* u)
+static Tree* simplify_rational_number(Tree* u)
 {
 	if (count_tree_nodes(u) == 3 && u->tok_type == DIVID)
 	{
@@ -565,7 +629,7 @@ Tree* simplify_rational_number(Tree* u)
 	return clone(u);
 }
 
-Tree* simplify_RNE(Tree* u)
+static Tree* simplify_RNE(Tree* u)
 {
 	Tree* v = simplify_RNE_rec(u);
 	if (v->tok_type == UNDEF)
@@ -575,7 +639,7 @@ Tree* simplify_RNE(Tree* u)
 	return tr;
 }
 
-Tree* simplify_RNE_rec(Tree* u)
+static Tree* simplify_RNE_rec(Tree* u)
 {
 	if (u->gtype < VAR)
 	{
@@ -674,7 +738,7 @@ Tree* simplify_RNE_rec(Tree* u)
 	}
 }
 
-Tree* evaluate_quotient(Tree* left, Tree* right)
+static Tree* evaluate_quotient(Tree* left, Tree* right)
 {
 	Tree* t = numerator_fun(right);
 	if (!strcmp(t->value, "0"))
@@ -702,7 +766,7 @@ Tree* evaluate_quotient(Tree* left, Tree* right)
 	return tr;
 }
 
-Tree* evaluate_power(Tree* bases, Tree* expon)
+static Tree* evaluate_power(Tree* bases, Tree* expon)
 {
 	double e = Eval(expon);
 	Tree* tr = numerator_fun(bases);
@@ -764,7 +828,7 @@ Tree* evaluate_power(Tree* bases, Tree* expon)
 	}
 }
 
-Tree* evaluate_add(Tree* left, Tree* right)
+static Tree* evaluate_add(Tree* left, Tree* right)
 {
 	if (!strcmp(left->value, "0"))
 		return clone(right);
@@ -791,7 +855,7 @@ Tree* evaluate_add(Tree* left, Tree* right)
 	}
 }
 
-Tree* evaluate_diff(Tree* left, Tree* right)
+static Tree* evaluate_diff(Tree* left, Tree* right)
 {
 	if (!strcmp(left->value, "0"))
 		return clone(right);
@@ -829,7 +893,7 @@ Tree* evaluate_diff(Tree* left, Tree* right)
 	}
 }
 
-Tree* evaluate_prod(Tree* left, Tree* right)
+static Tree* evaluate_prod(Tree* left, Tree* right)
 {
 	if (!strcmp(left->value, "0") || !strcmp(right->value, "0"))
 		return new_tree("0");
@@ -854,7 +918,7 @@ Tree* evaluate_prod(Tree* left, Tree* right)
 	}
 }
 
-Tree* fracOp(const char* numerator, const char* denominator)
+static Tree* fracOp(const char* numerator, const char* denominator)
 {
 	double num = tonumber(numerator);
 	double denom = tonumber(denominator);
@@ -872,12 +936,12 @@ Tree* fracOp(const char* numerator, const char* denominator)
 	return new_tree(tostr(num / denom));
 }
 
-Tree* sumOp(const char* left, const char* right)
+static Tree* sumOp(const char* left, const char* right)
 {
 	return new_tree(tostr(tonumber(left) + tonumber(right)));
 }
 
-Tree* diffOp(const char* left, const char* right)
+static Tree* diffOp(const char* left, const char* right)
 {
 	double t = tonumber(left) - tonumber(right);
 	if (t < 0)
@@ -887,12 +951,12 @@ Tree* diffOp(const char* left, const char* right)
 	return new_tree(tostr(t));
 }
 
-Tree* prodOp(const char* left, const char* right)
+static Tree* prodOp(const char* left, const char* right)
 {
 	return new_tree(tostr(tonumber(left) * tonumber(right)));
 }
 
-Tree* factOp(const char* left)
+static Tree* factOp(const char* left)
 {
 	double n = tonumber(left);
 	string in = strchr(left, '.');
@@ -916,7 +980,7 @@ double integer_gcd(double a, double b)
 	return b;
 }
 
-Tree* factorn(double val)
+static Tree* factorn(double val)
 {
 	Tree* tr = NULL;
 	int f = 2, e = 0;
@@ -970,7 +1034,7 @@ Tree* texpand(Tree* f, token tk)
 	return trigo_simplify(clone(f), tk);
 }
 
-Tree* trigo_simplify(Tree* u, token tk)
+static Tree* trigo_simplify(Tree* u, token tk)
 {
 	if (tk == COS_F && is_negation(u))
 	{
@@ -1373,7 +1437,7 @@ Tree* simplify_integer_power(Tree* v, Tree* w)
 	return join(v, w, fnc[POW].ex);
 }
 
-Tree* simplify_power(Tree* u)
+static Tree* simplify_power(Tree* u)
 {
 	Tree* v = simplify(u->tleft);
 	Tree* w = simplify(u->tright);
@@ -1571,13 +1635,13 @@ Tree* simplify_power(Tree* u)
 	return join(v, w, fnc[POW].ex);
 }
 
-map adjoin(Tree* s, map p)
+static map adjoin(Tree* s, map p)
 {
 	p = push_front_map(p, s);
 	return p;
 }
 
-map merge_products(map p, map q)
+static map merge_products(map p, map q)
 {
 	if (q == NULL)
 		return p;
@@ -1618,7 +1682,7 @@ map merge_products(map p, map q)
 	return L;
 }
 
-map simplify_product_rec(map L)
+static map simplify_product_rec(map L)
 {
 	Tree* u1 = (L->begin->tr);
 	Tree* u2 = (L->end->tr);
@@ -1687,7 +1751,7 @@ map simplify_product_rec(map L)
 	return s;
 }
 
-Tree* simplify_product(map L)
+static Tree* simplify_product(map L)
 {
 	int z = 0;
 	mapCell* tmp = L->begin;
@@ -1725,7 +1789,7 @@ Tree* simplify_product(map L)
 	return construct(fnc[PROD].ex, v);
 }
 
-Tree* construct(const char* op, map L)
+static Tree* construct(const char* op, map L)
 {
 	if (!isop(op))
 	{
@@ -1744,7 +1808,7 @@ Tree* construct(const char* op, map L)
 	return tr;
 }
 
-map merge_sums(map p, map q)
+static map merge_sums(map p, map q)
 {
 	if (!q)
 		return p;
@@ -1785,7 +1849,7 @@ map merge_sums(map p, map q)
 	return L;
 }
 
-map simplify_sum_rec(map L)
+static map simplify_sum_rec(map L)
 {
 	Tree* u1 = (L->begin->tr);
 	Tree* u2 = (L->end->tr);
@@ -1915,7 +1979,7 @@ map simplify_sum_rec(map L)
 	return merge_sums(p, w);
 }
 
-Tree* simplify_sum(map L)
+static Tree* simplify_sum(map L)
 {
 	mapCell* tmp = L->begin;
 	while (tmp != NULL)
@@ -1945,7 +2009,7 @@ Tree* simplify_sum(map L)
 	return construct(fnc[ADD].ex, v);
 }
 
-Tree* rationalize_sum(Tree* u, Tree* v, const char* op)
+static Tree* rationalize_sum(Tree* u, Tree* v, const char* op)
 {
 	Tree* m = numerator_fun(u), * r = denominator_fun(u);
 	Tree* n = numerator_fun(v), * s = denominator_fun(v);
@@ -2081,7 +2145,7 @@ Tree* contract_exp_rules(Tree* u)
 	return v;
 }
 
-Tree* contract_exp(Tree* u)
+static Tree* contract_exp(Tree* u)
 {
 	if (u->gtype <= VAR || isconstant(u))
 		return clone(u);
@@ -2111,14 +2175,14 @@ Tree* expand_exp_rules(Tree* u)
 	return join(clone(u), NULL, fnc[EXP_F].ex);
 }
 
-Tree* expand_exp(Tree* u)
+static Tree* expand_exp(Tree* u)
 {
 	if (u->tok_type == EXP_F)
 		return expand_exp_rules(u->tleft);
 	return clone(u);
 }
 
-Tree* simplify_exp(Tree* u)
+static Tree* simplify_exp(Tree* u)
 {
 	Tree* p = expand_exp(u);
 	Tree* s = contract_exp(p);
@@ -2126,7 +2190,7 @@ Tree* simplify_exp(Tree* u)
 	return s;
 }
 
-Tree* contract_ln_rules(Tree* u)
+static Tree* contract_ln_rules(Tree* u)
 {
 	Tree* v = clone(u);
 	if (v->tok_type == ADD || v->tok_type == SUB)
@@ -2173,7 +2237,7 @@ Tree* contract_ln_rules(Tree* u)
 	return v;
 }
 
-Tree* contract_ln(Tree* u)
+static Tree* contract_ln(Tree* u)
 {
 	if (u->gtype <= VAR || isconstant(u))
 		return clone(u);
@@ -2218,14 +2282,14 @@ Tree* expand_ln_rules(Tree* u)
 	return join(clone(u), NULL, fnc[LN_F].ex);
 }
 
-Tree* expand_ln(Tree* u)
+static Tree* expand_ln(Tree* u)
 {
 	if (u->tok_type == LN_F)
 		return expand_ln_rules(u->tleft);
 	return clone(u);
 }
 
-Tree* simplify_ln(Tree* u)
+static Tree* simplify_ln(Tree* u)
 {
 	Tree* p = expand_ln(u);
 	Tree* s = contract_ln(p);
@@ -2233,7 +2297,7 @@ Tree* simplify_ln(Tree* u)
 	return s;
 }
 
-Tree* absolute_value(Tree* u)
+static Tree* absolute_value(Tree* u)
 {
 	if (u->gtype < VAR)
 		return u;

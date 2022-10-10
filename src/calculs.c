@@ -1,8 +1,17 @@
 #include "calculs.h"
 
+static Tree* diff(Tree* tr, const char* vr);
+static Tree* diff_n(Tree* tr, const char* vr, int k);
+static Tree* diff_partial(Tree* tr, const char* vr, const char* vr1);
+static Tree* tangline(Tree* tr, const char* vr, Tree* point);
+static Tree* taylor(Tree* u, Tree* vr, Tree* point, Tree* ordre);
+static Tree* integrals_by_part(Tree* f, const char* x);
+static Tree* integral(Tree* tr, const char* x);
+static Tree* pow_transform(Tree* u);
+
 int ipp_loop;
 
-Tree* diff(Tree* tr, const char* vr)
+static Tree* diff(Tree* tr, const char* vr)
 {
 	if (!found_element(tr, vr))
 		return new_tree("0");
@@ -116,7 +125,7 @@ Tree* diff(Tree* tr, const char* vr)
 	return join(join(clone(tr), new_tree(vr), fnc[SEPARATEUR].ex), NULL, fnc[DERIV_F].ex);
 }
 
-Tree* diff_n(Tree* tr, const char* vr, int k)
+static Tree* diff_n(Tree* tr, const char* vr, int k)
 {
     Tree* res = clone(tr);
     int i;
@@ -129,12 +138,12 @@ Tree* diff_n(Tree* tr, const char* vr, int k)
     return res;
 }
 
-Tree* diff_partial(Tree* tr, const char* vr, const char* vr1)
+static Tree* diff_partial(Tree* tr, const char* vr, const char* vr1)
 {
     return simplify(join(diff(tr, vr), diff(tr, vr1), fnc[ADD].ex));
 }
 
-Tree* tangline(Tree* tr, const char* vr, Tree* point)
+static Tree* tangline(Tree* tr, const char* vr, Tree* point)
 {
     Tree* dtr = diff(tr, vr);
     Tree* dtrc = remplace_tree(dtr, vr, point);
@@ -145,7 +154,7 @@ Tree* tangline(Tree* tr, const char* vr, Tree* point)
 
 /* développements limités : Taylor */
 
-Tree* taylor_usuelle(Tree* u, const char* vr, Tree* ordre, Tree* point)
+static Tree* taylor_usuelle(Tree* u, const char* vr, Tree* ordre, Tree* point)
 {
 	Tree* dtr = clone(u);
 	Tree* s = clone(u);
@@ -177,12 +186,12 @@ Tree* taylor_usuelle(Tree* u, const char* vr, Tree* ordre, Tree* point)
 	return s;
 }
 
-bool usuelle_forme(token a)
+static bool usuelle_forme(token a)
 {
 	return a == COS_F || a == SIN_F || a == LN_F || a == COSH_F || a == SINH_F || a == EXP_F;
 }
 
-Tree* taylor(Tree* u, Tree* vr, Tree* ordre, Tree* point)
+static Tree* taylor(Tree* u, Tree* vr, Tree* ordre, Tree* point)
 {
 	if (u->tok_type == LN_F || u->tok_type == SQRT_F || u->tok_type == POW)
 	{
@@ -314,7 +323,7 @@ Tree* taylor(Tree* u, Tree* vr, Tree* ordre, Tree* point)
 
 /* équations differentielles linéaires */
 
-Tree* trig_separe(Tree* f, const char* x, Tree** part)
+static Tree* trig_separe(Tree* f, const char* x, Tree** part)
 {
 	map M = map_create_prod(f);
 	Tree* part_trig = NULL;
@@ -333,7 +342,7 @@ Tree* trig_separe(Tree* f, const char* x, Tree** part)
 	return part_trig;
 }
 
-map homogenious_2(Tree* a, Tree* b, Tree* c, const char* x, map* S)
+static map homogenious_2(Tree* a, Tree* b, Tree* c, const char* x, map* S)
 {
 	map L = NULL;
 	if (!strcmp(a->value, "1") && !strcmp(b->value, "0"))
@@ -404,7 +413,7 @@ map homogenious_2(Tree* a, Tree* b, Tree* c, const char* x, map* S)
 	return L;
 }
 
-Tree* system_rmp(Tree* tr, DList v, map L)
+static Tree* system_rmp(Tree* tr, DList v, map L)
 {
 	DListCell* tmp = v->begin;
 	mapCell* tmp_L = L->begin;
@@ -417,7 +426,7 @@ Tree* system_rmp(Tree* tr, DList v, map L)
 	return tr;
 }
 
-map solve_system(map L, map R)
+static map solve_system(map L, map R)
 {
 	mapCell* tmp_L = L->begin, * tmp_R = R->begin;
 	DList vrs = NULL, v_ps = NULL;
@@ -450,7 +459,8 @@ map solve_system(map L, map R)
 	return rt;
 }
 
-map map_remplace(map L, int pos, Tree* tr) 
+// TODO: put in map file?
+map map_remplace(map L, int pos, Tree* tr)
 {
 	int i = L->length;
 	mapCell* tmp = L->end;
@@ -476,7 +486,7 @@ map map_remplace(map L, int pos, Tree* tr)
 	return L;
 }
 
-Tree* create_poly(const char* cf, int i, Tree* dg, const char* x)
+static Tree* create_poly(const char* cf, int i, Tree* dg, const char* x)
 {
 	if (i > 1)
 		return join(new_tree(cf), join(new_tree(x), clone(dg), fnc[POW].ex), fnc[PROD].ex);
@@ -485,7 +495,7 @@ Tree* create_poly(const char* cf, int i, Tree* dg, const char* x)
 	return new_tree(cf);
 }
 
-Tree* poly_solution_2(Tree* a, Tree* b, Tree* c, Tree* part, const char* x, Tree* dg)
+static Tree* poly_solution_2(Tree* a, Tree* b, Tree* c, Tree* part, const char* x, Tree* dg)
 {
 	Tree* Pl = NULL, * d = clone(dg), * z = new_tree("0");
 	int w = (int)tonumber(dg->value);
@@ -529,7 +539,7 @@ Tree* poly_solution_2(Tree* a, Tree* b, Tree* c, Tree* part, const char* x, Tree
 	return simplify(Pl);
 }
 
-Tree* exp_solution_2(Tree* a, Tree* b, Tree* c, const char* x, Tree* dg, Tree* part, Tree* part_exp, Tree* r)
+static Tree* exp_solution_2(Tree* a, Tree* b, Tree* c, const char* x, Tree* dg, Tree* part, Tree* part_exp, Tree* r)
 {
 	Tree* u = NULL, * v = NULL, * Pl = NULL;
 	if (!strcmp(a->value, "0"))
@@ -546,7 +556,7 @@ Tree* exp_solution_2(Tree* a, Tree* b, Tree* c, const char* x, Tree* dg, Tree* p
 	return join(Pl, part_exp, fnc[PROD].ex);
 }
 
-Tree* trig_solution_2(Tree* a, Tree* b, Tree* c, const char* x, Tree* dg, Tree* part, Tree* part1, Tree* trig, Tree* trig1)
+static Tree* trig_solution_2(Tree* a, Tree* b, Tree* c, const char* x, Tree* dg, Tree* part, Tree* part1, Tree* trig, Tree* trig1)
 {
 	if (!strcmp(dg->value, "0"))
 	{
@@ -615,7 +625,7 @@ Tree* trig_solution_2(Tree* a, Tree* b, Tree* c, const char* x, Tree* dg, Tree* 
 	return NULL; // erreur cas non géré
 }
 
-Tree* solve_exact_2(Tree* a, Tree* b, Tree* c, Tree* f, map S, const char* x)
+static Tree* solve_exact_2(Tree* a, Tree* b, Tree* c, Tree* f, map S, const char* x)
 {
 	if (!found_element(f, x))
 	{
@@ -734,7 +744,7 @@ Tree* solve_exact_2(Tree* a, Tree* b, Tree* c, Tree* f, map S, const char* x)
 	return NULL;
 }
 
-Tree* solve_ode_2(Tree* a, Tree* b, Tree* c, Tree* f, const char* x, const char* y, Tree* cond1, Tree* cond2)
+static Tree* solve_ode_2(Tree* a, Tree* b, Tree* c, Tree* f, const char* x, const char* y, Tree* cond1, Tree* cond2)
 {
 	map S = NULL;
 	map L = homogenious_2(a, b, c, x, &S);
@@ -793,7 +803,7 @@ Tree* solve_ode_2(Tree* a, Tree* b, Tree* c, Tree* f, const char* x, const char*
 	return join(new_tree(y), simplify(yh), fnc[EGAL].ex);
 }
 
-Tree* solve_ode(Tree* M, Tree* N, Tree* f, const char* x, const char* y, Tree* cond)
+static Tree* solve_ode(Tree* M, Tree* N, Tree* f, const char* x, const char* y, Tree* cond)
 {
 	map S = NULL;
 	Tree* r = simplify(join(join(clone(M), clone(N), fnc[DIVID].ex), NULL, fnc[NEGATIF].ex));
@@ -848,7 +858,7 @@ Tree* solve_ode(Tree* M, Tree* N, Tree* f, const char* x, const char* y, Tree* c
 
 /* integrals */
 
-int priority_int(token a)
+static int priority_int(token a)
 {
 	switch (a)
 	{
@@ -877,7 +887,7 @@ int priority_int(token a)
 	}
 }
 
-int order_int(Tree* u, Tree* v)
+static int order_int(Tree* u, Tree* v)
 {
 	int a = priority_int(u->tok_type), b = priority_int(v->tok_type);
 	if (a != 7 && b != 7)
@@ -889,7 +899,7 @@ int order_int(Tree* u, Tree* v)
 	return ordre_tree(u->tright, v->tright);
 }
 
-Tree* integrals_by_part(Tree* f, const char* x)
+static Tree* integrals_by_part(Tree* f, const char* x)
 {
 	if (f->tok_type == PROD)
 	{
@@ -942,7 +952,7 @@ Tree* integrals_by_part(Tree* f, const char* x)
 	return NULL;
 }
 
-Tree* integrals_prod_trigo_monomiale(Tree* f, const char* x)
+static Tree* integrals_prod_trigo_monomiale(Tree* f, const char* x)
 {
 	if (f->tok_type == PROD)
 	{
@@ -1014,7 +1024,7 @@ Tree* integrals_prod_trigo_monomiale(Tree* f, const char* x)
 	return NULL;
 }
 
-map trial_substitutions(Tree* f, map L)
+static map trial_substitutions(Tree* f, map L)
 {
 	if (f->tok_type == POW || f->gtype == FUNCTION)
 	{
@@ -1031,7 +1041,7 @@ map trial_substitutions(Tree* f, map L)
 	return L;
 }
 
-Tree* integral_table(Tree* f, const char* x)
+static Tree* integral_table(Tree* f, const char* x)
 {
 	if (f->tok_type == DERIV_F)
 	{
@@ -1877,7 +1887,7 @@ Tree* integral_table(Tree* f, const char* x)
 	return NULL;
 }
 
-Tree* linear_priorities(Tree* f, const char* x)
+static Tree* linear_priorities(Tree* f, const char* x)
 {
 	if (f->tok_type == PROD)
 	{
@@ -1915,7 +1925,7 @@ Tree* linear_priorities(Tree* f, const char* x)
 	return NULL;
 }
 
-Tree* sustitution_method(Tree* f, const char* x)
+static Tree* sustitution_method(Tree* f, const char* x)
 {
 	map P = NULL;
 	P = trial_substitutions(f, P);
@@ -1944,7 +1954,7 @@ Tree* sustitution_method(Tree* f, const char* x)
 	return F;
 }
 
-Tree* integral(Tree* f, const char* x)
+static Tree* integral(Tree* f, const char* x)
 {
 	Tree* F = integral_table(f, x);
 	if (!F)
@@ -1965,7 +1975,7 @@ Tree* integral(Tree* f, const char* x)
 
 /* analyse */
 
-Tree* pow_transform(Tree* u)
+static Tree* pow_transform(Tree* u)
 {
 	if (u->tok_type == POW)
 	{
