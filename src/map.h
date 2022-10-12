@@ -30,6 +30,7 @@
 	map map_create_add(Tree* tr);
 	map map_create_prod(Tree* tr);
 	map map_sort(map li);
+	map map_remplace(map L, int pos, Tree* tr);
 
 #endif
 

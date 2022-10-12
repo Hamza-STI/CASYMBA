@@ -283,3 +283,29 @@ map map_create_add(Tree* tr)
 	li = push_front_map(li, tmp);
 	return map_sort(li);
 }
+
+map map_remplace(map L, int pos, Tree* tr)
+{
+	int i = L->length;
+	mapCell* tmp = L->end;
+	while (tmp != NULL)
+	{
+		if (i == pos + 1)
+		{
+			if (!strcmp(tmp->tr->value, "0"))
+			{
+				clean_tree(tmp->tr);
+				tmp->tr = tr;
+				return L;
+			}
+			else
+			{
+				tmp->tr = join(tmp->tr, tr, fnc[ADD].ex);
+				return L;
+			}
+		}
+		i--;
+		tmp = tmp->back;
+	}
+	return L;
+}

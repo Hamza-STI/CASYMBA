@@ -459,33 +459,6 @@ static map solve_system(map L, map R)
 	return rt;
 }
 
-// TODO: put in map file?
-map map_remplace(map L, int pos, Tree* tr)
-{
-	int i = L->length;
-	mapCell* tmp = L->end;
-	while (tmp != NULL)
-	{
-		if (i == pos + 1)
-		{
-			if (!strcmp(tmp->tr->value, "0"))
-			{
-				clean_tree(tmp->tr);
-				tmp->tr = tr;
-				return L;
-			}
-			else
-			{
-				tmp->tr = join(tmp->tr, tr, fnc[ADD].ex);
-				return L;
-			}
-		}
-		i--;
-		tmp = tmp->back;
-	}
-	return L;
-}
-
 static Tree* create_poly(const char* cf, int i, Tree* dg, const char* x)
 {
 	if (i > 1)
