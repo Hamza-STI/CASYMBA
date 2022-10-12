@@ -182,7 +182,7 @@ bool usuelle_forme(token a)
 
 Tree* taylor(Tree* u, Tree* vr, Tree* ordre, Tree* point)
 {
-	if ((u->tok_type == LN_F || u->tok_type == SQRT_F))
+	if (u->tok_type == LN_F || u->tok_type == SQRT_F || u->tok_type == POW)
 	{
 		Tree* z = new_tree("0");
 		Tree* R = substitute(u->tleft, vr, z);
@@ -217,13 +217,6 @@ Tree* taylor(Tree* u, Tree* vr, Tree* ordre, Tree* point)
 	}
 	else if (u->tok_type == SQRT_F || u->tok_type == POW)
 	{
-		Tree* z = new_tree("0");
-		Tree* R = substitute(u->tleft, vr, z);
-		R = simplify(R);
-		bool k = !strcmp(R->value, "0");
-		clean_tree(z); clean_tree(R);
-		if (k)
-			return NULL;
 		return taylor_usuelle(u, vr->value, ordre, point);
 	}
 	else if (u->tok_type == PROD)
