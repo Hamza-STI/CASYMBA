@@ -1180,7 +1180,7 @@ static Tree* integral_table(Tree* f, const char* x)
 		Tree* cst = constant(f);
 		if (strcmp(cst->value, "1"))
 		{
-			Tree* T = term(f);
+			Tree* T = pow_transform(term(f));
 			Tree* s = integral(T, x);
 			clean_tree(T);
 			if (s == NULL)
