@@ -1846,7 +1846,10 @@ static Tree* integral_table(Tree* f, const char* x)
 				Tree* r = join(new_tree(x), clone(f), fnc[PROD].ex);
 				Tree* s = NULL;
 				if (!strcmp(c->value, "1"))
+				{
+					clean_tree(c);
 					s = integral_table(u, x);
+				}
 				else
 				{
 					Tree* q = join(clone(u), c, fnc[POW].ex);
