@@ -836,7 +836,6 @@ static int priority_int(token a)
 	switch (a)
 	{
 	case POW:
-	case SQRT_F:
 		return 7;
 	case LN_F:
 		return 6;
@@ -845,6 +844,7 @@ static int priority_int(token a)
 	case ATAN_F:
 		return 5;
 	case VARIABLE:
+	case SQRT_F:
 		return 4;
 	case SIN_F:
 	case COS_F:
