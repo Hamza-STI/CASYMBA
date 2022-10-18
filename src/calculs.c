@@ -8,8 +8,6 @@ static Tree* taylor(Tree* u, Tree* vr, Tree* point, Tree* ordre);
 static Tree* integral(Tree* tr, const char* x);
 static Tree* pow_transform(Tree* u);
 
-int ipp_loop;
-
 static Tree* diff(Tree* tr, const char* vr)
 {
 	if (!found_element(tr, vr))
@@ -2081,7 +2079,6 @@ Tree* analyse(Tree* tr)
 			t = t->tleft;
 		ALG_EXPAND = false;
 		t->tleft = pow_transform(Contract_pow(simplify(t->tleft)));
-		ipp_loop = 10;
 		Tree* res = integral(t->tleft, t->tright->value);
 		if (res == NULL)
 			return tr;
