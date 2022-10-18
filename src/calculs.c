@@ -5,7 +5,6 @@ static Tree* diff_n(Tree* tr, const char* vr, int k);
 static Tree* diff_partial(Tree* tr, const char* vr, const char* vr1);
 static Tree* tangline(Tree* tr, const char* vr, Tree* point);
 static Tree* taylor(Tree* u, Tree* vr, Tree* point, Tree* ordre);
-static Tree* integrals_by_part(Tree* f, const char* x);
 static Tree* integral(Tree* tr, const char* x);
 static Tree* pow_transform(Tree* u);
 
@@ -831,100 +830,6 @@ static Tree* solve_ode(Tree* M, Tree* N, Tree* f, const char* x, const char* y, 
 
 /* integrals */
 
-static int priority_int(token a)
-{
-	switch (a)
-	{
-	case POW:
-		return 7;
-	case LN_F:
-		return 6;
-	case ASIN_F:
-	case ACOS_F:
-	case ATAN_F:
-		return 5;
-	case VARIABLE:
-	case SQRT_F:
-		return 4;
-	case SIN_F:
-	case COS_F:
-		return 3;
-	case COSH_F:
-	case SINH_F:
-	case TANH_F:
-		return 2;
-	case EXP_F:
-		return 1;
-	default:
-		return 0;
-	}
-}
-
-static int order_int(Tree* u, Tree* v)
-{
-	int a = priority_int(u->tok_type), b = priority_int(v->tok_type);
-	if (a != 7 && b != 7)
-		return a > b;
-	if (a == 7 && b != 7)
-		return order_int(u->tleft, v);
-	if (a != 7 && b == 7)
-		return order_int(u, v->tleft);
-	return ordre_tree(u->tright, v->tright);
-}
-
-static Tree* integrals_by_part(Tree* f, const char* x)
-{
-	if (f->tok_type == PROD)
-	{
-		Tree* u = f->tleft, * dv = f->tright;
-		if (!found_element(u, x))
-		{
-			Tree* v = integral(dv, x);
-			if (v != NULL)
-				return join(clone(u), v, fnc[PROD].ex);
-		}
-		if (!found_element(dv, x))
-		{
-			Tree* i_u = integral(u, x);
-			if (i_u != NULL)
-				return join(clone(dv), i_u, fnc[PROD].ex);
-		}
-		if (!order_int(u, dv))
-		{
-			u = f->tright;
-			dv = f->tleft;
-		}
-		ipp_loop--;
-		if (ipp_loop > 0)
-		{
-			Tree* v = integral(dv, x);
-			if (v != NULL)
-			{
-				Tree* du = simplify(diff(u, x));
-				Tree* s = join(clone(v), du, fnc[PROD].ex);
-				s = pow_transform(Contract_pow(simplify(s)));
-				Tree* ipp = integral(s, x);
-				clean_tree(s);
-				if (ipp != NULL)
-					return join(join(clone(u), v, fnc[PROD].ex), ipp, fnc[SUB].ex);
-				clean_tree(v);
-			}
-		}
-	}
-	else if (f->gtype == FUNCTION)
-	{
-		token tk = f->tok_type;
-		if (tk == LN_F || tk == SIN_F || tk == COS_F || tk == COSH_F || tk == SINH_F || tk == EXP_F || tk == ACOS_F || tk == ASIN_F || tk == ATAN_F)
-		{
-			Tree* s = join(clone(f), new_tree("1"), fnc[PROD].ex);
-			Tree* q = integrals_by_part(s, x);
-			clean_tree(s);
-			return q;
-		}
-	}
-	return NULL;
-}
-
 static Tree* integrals_prod_trigo_monomiale(Tree* f, const char* x)
 {
 	if (f->tok_type == PROD)
@@ -1069,6 +974,33 @@ static Tree* integral_table(Tree* f, const char* x)
 			Tree* a = coefficient_gpe(f->tleft, x, d);
 			clean_tree(d);
 			return join(join(clone(f->tleft), NULL, fnc[SIN_F].ex), a, fnc[DIVID].ex);
+		}
+		clean_tree(d);
+	}
+	
+	else if (f->tok_type == ACOS_F)
+	{
+		Tree* d = degree_sv(f->tleft, x);
+		if (!strcmp(d->value, "1"))
+		{
+			Tree* a = coefficient_gpe(f->tleft, x, d);
+			clean_tree(d);
+			d = join(new_tree("1"), join(join(clone(a), new_tree(x), fnc[PROD].ex), new_tree("2"), fnc[POW].ex), fnc[SUB].ex);
+			d = join(join(d, NULL, fnc[SQRT_F].ex), a, fnc[DIVID].ex);
+			return join(join(new_tree(x), clone(f), fnc[PROD].ex), d, fnc[SUB].ex);
+		}
+		clean_tree(d);
+	}
+	else if (f->tok_type == ASIN_F)
+	{
+		Tree* d = degree_sv(f->tleft, x);
+		if (!strcmp(d->value, "1"))
+		{
+			Tree* a = coefficient_gpe(f->tleft, x, d);
+			clean_tree(d);
+			d = join(new_tree("1"), join(join(clone(a), new_tree(x), fnc[PROD].ex), new_tree("2"), fnc[POW].ex), fnc[SUB].ex);
+			d = join(join(d, NULL, fnc[SQRT_F].ex), a, fnc[DIVID].ex);
+			return join(join(new_tree(x), clone(f), fnc[PROD].ex), d, fnc[ADD].ex);
 		}
 		clean_tree(d);
 	}
@@ -1944,8 +1876,6 @@ static Tree* integral(Tree* f, const char* x)
 			F = integral(g, x);
 		clean_tree(g);
 	}
-	if (!F)
-		F = integrals_by_part(f, x);
 	return F;
 }
 
