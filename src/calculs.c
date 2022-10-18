@@ -921,7 +921,8 @@ static map trial_substitutions(Tree* f, map L)
 
 static Tree* integral_table(Tree* f, const char* x)
 {
-	if (f->tok_type == DERIV_F)
+	token tk = f->tok_type;
+	if (tk == DERIV_F)
 	{
 		Tree* t = f;
 		while (t->tleft->tok_type == SEPARATEUR)
@@ -932,7 +933,7 @@ static Tree* integral_table(Tree* f, const char* x)
 		return join(clone(f), new_tree(x), fnc[PROD].ex);
 	else if (!strcmp(f->value, x))
 		return join(join(clone(f), new_tree("2"), fnc[POW].ex), new_tree("2"), fnc[DIVID].ex);
-	if (f->tok_type == SINH_F)
+	if (tk == SINH_F && ismonomial(f->tleft, x))
 	{
 		Tree* d = degree_sv(f->tleft, x);
 		if (!strcmp(d->value, "1"))
@@ -943,7 +944,7 @@ static Tree* integral_table(Tree* f, const char* x)
 		}
 		clean_tree(d);
 	}
-	else if (f->tok_type == COSH_F)
+	else if (tk == COSH_F)
 	{
 		Tree* d = degree_sv(f->tleft, x);
 		if (!strcmp(d->value, "1"))
@@ -954,7 +955,7 @@ static Tree* integral_table(Tree* f, const char* x)
 		}
 		clean_tree(d);
 	}
-	else if (f->tok_type == SIN_F)
+	else if (tk == SIN_F)
 	{
 		Tree* d = degree_sv(f->tleft, x);
 		if (!strcmp(d->value, "1"))
@@ -966,7 +967,7 @@ static Tree* integral_table(Tree* f, const char* x)
 		}
 		clean_tree(d);
 	}
-	else if (f->tok_type == COS_F)
+	else if (tk == COS_F)
 	{
 		Tree* d = degree_sv(f->tleft, x);
 		if (!strcmp(d->value, "1"))
@@ -977,8 +978,7 @@ static Tree* integral_table(Tree* f, const char* x)
 		}
 		clean_tree(d);
 	}
-	
-	else if (f->tok_type == ACOS_F)
+	else if (tk == ACOS_F)
 	{
 		Tree* d = degree_sv(f->tleft, x);
 		if (!strcmp(d->value, "1"))
@@ -991,7 +991,7 @@ static Tree* integral_table(Tree* f, const char* x)
 		}
 		clean_tree(d);
 	}
-	else if (f->tok_type == ASIN_F)
+	else if (tk == ASIN_F)
 	{
 		Tree* d = degree_sv(f->tleft, x);
 		if (!strcmp(d->value, "1"))
@@ -1004,7 +1004,7 @@ static Tree* integral_table(Tree* f, const char* x)
 		}
 		clean_tree(d);
 	}
-	else if (f->tok_type == EXP_F)
+	else if (tk == EXP_F)
 	{
 		Tree* d = degree_sv(f->tleft, x);
 		if (!strcmp(d->value, "1"))
@@ -1015,7 +1015,7 @@ static Tree* integral_table(Tree* f, const char* x)
 		}
 		clean_tree(d);
 	}
-	else if (f->tok_type == LN_F)
+	else if (tk == LN_F)
 	{
 		Tree* d = degree_sv(f->tleft, x);
 		if (ismonomial(f->tleft, x))
@@ -1061,7 +1061,7 @@ static Tree* integral_table(Tree* f, const char* x)
 		
 		clean_tree(d);
 	}
-	else if (f->tok_type == SQRT_F)
+	else if (tk == SQRT_F)
 	{
 		Tree* u = f->tleft;
 		if (ispoly(u, x))
@@ -1107,7 +1107,7 @@ static Tree* integral_table(Tree* f, const char* x)
 			clean_tree(d);
 		}
 	}
-	else if (f->tok_type == PROD)
+	else if (tk == PROD)
 	{
 		Tree* cst = constant(f);
 		if (strcmp(cst->value, "1"))
@@ -1125,9 +1125,10 @@ static Tree* integral_table(Tree* f, const char* x)
 		Tree* u = f->tleft;
 		Tree* v = f->tright;
 		clean_tree(cst);
+		token utok = u->tok_type, vtok = v->tok_type;
 		if (ispoly(u, x))
 		{
-			if (v->tok_type == EXP_F)
+			if (vtok == EXP_F)
 			{
 				Tree* du = degree_sv(u, x), * dv = degree_sv(v->tleft, x);
 				if (!strcmp(dv->value, "1"))
@@ -1155,11 +1156,11 @@ static Tree* integral_table(Tree* f, const char* x)
 				clean_tree(du);
 				clean_tree(dv);
 			}
-			else if (v->tok_type == COS_F || v->tok_type == SIN_F)
+			else if (vtok == COS_F || vtok == SIN_F)
 			{
 				return integrals_prod_trigo_monomiale(f, x);
 			}
-			else if (((v->tok_type == POW && isdemi(v->tright)) || v->tok_type == SQRT_F) && ispoly(v->tleft, x) && !strcmp(u->value, x))
+			else if (((vtok == POW && isdemi(v->tright)) || vtok == SQRT_F) && ispoly(v->tleft, x) && !strcmp(u->value, x))
 			{
 				Tree* dv = degree_sv(v->tleft, x);
 				if (!strcmp(dv->value, "1"))
@@ -1176,12 +1177,12 @@ static Tree* integral_table(Tree* f, const char* x)
 				}
 				clean_tree(dv);
 			}
-			else if (v->tok_type == LN_F)
+			else if (vtok == LN_F)
 			{
 				Tree* d = degree_sv(v->tleft, x);
 				if (ismonomial(v->tleft, x))
 				{
-					if (u->tok_type == POW && u->tright->gtype == ENT && !strcmp(d->value, "1"))
+					if (utok == POW && u->tright->gtype == ENT && !strcmp(d->value, "1"))
 					{
 						Tree* m = join(clone(u->tright), new_tree("1"), fnc[ADD].ex);
 						Tree* r = join(join(new_tree(x), clone(m), fnc[POW].ex), clone(m), fnc[DIVID].ex);
@@ -1226,7 +1227,7 @@ static Tree* integral_table(Tree* f, const char* x)
 				}
 				clean_tree(d);
 			}
-			else if (v->tok_type == POW)
+			else if (vtok == POW)
 			{
 				if (v->tleft->tok_type == LN_F)
 				{
@@ -1244,7 +1245,7 @@ static Tree* integral_table(Tree* f, const char* x)
 				}
 			}
 		}
-		if (u->tok_type == COS_F && v->tok_type == SIN_F)
+		if (utok == COS_F && vtok == SIN_F)
 		{
 			Tree* du = degree_sv(u->tleft, x), * dv = degree_sv(v->tleft, x);
 			if (tree_compare(u->tleft, v->tleft) && !strcmp(du->value, "1"))
@@ -1267,7 +1268,7 @@ static Tree* integral_table(Tree* f, const char* x)
 			}
 			clean_tree(du); clean_tree(dv);
 		}
-		else if (v->tok_type == EXP_F && u->tok_type == COS_F)
+		else if (vtok == EXP_F && utok == COS_F)
 		{
 			Tree* c = degree_sv(u->tleft, x), * d = degree_sv(v->tleft, x);
 			if (!strcmp(c->value, "1") && !strcmp(d->value, "1"))
@@ -1282,7 +1283,7 @@ static Tree* integral_table(Tree* f, const char* x)
 				return join(z, p, fnc[PROD].ex);
 			}
 		}
-		else if (u->tok_type == EXP_F && v->tok_type == SIN_F)
+		else if (utok == EXP_F && vtok == SIN_F)
 		{
 			Tree* c = degree_sv(u->tleft, x), * d = degree_sv(v->tleft, x);
 			if (!strcmp(c->value, "1") && !strcmp(d->value, "1"))
@@ -1297,7 +1298,7 @@ static Tree* integral_table(Tree* f, const char* x)
 				return join(z, p, fnc[PROD].ex);
 			}
 		}
-		else if (u->tok_type == COSH_F && v->tok_type == EXP_F)
+		else if (utok == COSH_F && vtok == EXP_F)
 		{
 			Tree* c = degree_sv(u->tleft, x), * d = degree_sv(v->tleft, x);
 			if (!strcmp(c->value, "1") && !strcmp(d->value, "1"))
@@ -1322,7 +1323,7 @@ static Tree* integral_table(Tree* f, const char* x)
 			}
 			clean_tree(c); clean_tree(d);
 		}
-		else if (u->tok_type == EXP_F && v->tok_type == SINH_F)
+		else if (utok == EXP_F && vtok == SINH_F)
 		{
 			Tree* c = degree_sv(u->tleft, x), * d = degree_sv(v->tleft, x);
 			if (!strcmp(c->value, "1") && !strcmp(d->value, "1"))
@@ -1347,7 +1348,7 @@ static Tree* integral_table(Tree* f, const char* x)
 			}
 			clean_tree(c); clean_tree(d);
 		}
-		else if (u->tok_type == COS_F && v->tok_type == COSH_F)
+		else if (utok == COS_F && vtok == COSH_F)
 		{
 			Tree* c = degree_sv(u->tleft, x), * d = degree_sv(v->tleft, x);
 			if (!strcmp(c->value, "1") && !strcmp(d->value, "1"))
@@ -1362,7 +1363,7 @@ static Tree* integral_table(Tree* f, const char* x)
 			}
 			clean_tree(c); clean_tree(d);
 		}
-		else if (u->tok_type == COS_F && v->tok_type == SINH_F)
+		else if (utok == COS_F && vtok == SINH_F)
 		{
 			Tree* c = degree_sv(u->tleft, x), * d = degree_sv(v->tleft, x);
 			if (!strcmp(c->value, "1") && !strcmp(d->value, "1"))
@@ -1377,7 +1378,7 @@ static Tree* integral_table(Tree* f, const char* x)
 			}
 			clean_tree(c); clean_tree(d);
 		}
-		else if (u->tok_type == COSH_F && v->tok_type == SIN_F)
+		else if (utok == COSH_F && vtok == SIN_F)
 		{
 			Tree* c = degree_sv(u->tleft, x), * d = degree_sv(v->tleft, x);
 			if (!strcmp(c->value, "1") && !strcmp(d->value, "1"))
@@ -1392,7 +1393,7 @@ static Tree* integral_table(Tree* f, const char* x)
 			}
 			clean_tree(c); clean_tree(d);
 		}
-		else if (u->tok_type == SIN_F && v->tok_type == SINH_F)
+		else if (utok == SIN_F && vtok == SINH_F)
 		{
 			Tree* c = degree_sv(u->tleft, x), * d = degree_sv(v->tleft, x);
 			if (!strcmp(c->value, "1") && !strcmp(d->value, "1"))
@@ -1407,7 +1408,7 @@ static Tree* integral_table(Tree* f, const char* x)
 			}
 			clean_tree(c); clean_tree(d);
 		}
-		else if (u->tok_type == COSH_F && v->tok_type == SINH_F)
+		else if (utok == COSH_F && vtok == SINH_F)
 		{
 			Tree* c = degree_sv(u->tleft, x), * d = degree_sv(v->tleft, x);
 			if (!strcmp(c->value, "1") && !strcmp(d->value, "1"))
@@ -1434,7 +1435,7 @@ static Tree* integral_table(Tree* f, const char* x)
 			}
 			clean_tree(c); clean_tree(d);
 		}
-		else if (u->tok_type == COS_F && v->tok_type == COS_F)
+		else if (utok == COS_F && vtok == COS_F)
 		{
 			if (ismonomial(u->tleft, x) && ismonomial(v->tleft, x))
 			{
@@ -1455,7 +1456,7 @@ static Tree* integral_table(Tree* f, const char* x)
 				clean_tree(deg_u); clean_tree(deg_v);
 			}
 		}
-		else if (u->tok_type == SIN_F && v->tok_type == SIN_F)
+		else if (utok == SIN_F && vtok == SIN_F)
 		{
 			if (ismonomial(u->tleft, x) && ismonomial(v->tleft, x))
 			{
@@ -1477,10 +1478,11 @@ static Tree* integral_table(Tree* f, const char* x)
 			}
 		}
 	}
-	else if (f->tok_type == DIVID)
+	else if (tk == DIVID)
 	{
 		Tree* u = f->tleft;
 		Tree* v = f->tright;
+		token utok = u->tok_type, vtok = v->tok_type;
 		if (!found_element(v, x))
 		{
 			Tree* t = integral_table(u, x);
@@ -1493,7 +1495,7 @@ static Tree* integral_table(Tree* f, const char* x)
 		if (!found_element(s, x))
 			return join(s, join(join(clone(v), NULL, fnc[ABS_F].ex), NULL, fnc[LN_F].ex), fnc[PROD].ex);
 		clean_tree(s);
-		if (u->tok_type == LN_F && ismonomial(u->tleft, x) && ismonomial(v, x))
+		if (utok == LN_F && ismonomial(u->tleft, x) && ismonomial(v, x))
 		{
 			Tree* du = degree_sv(u->tleft, x), * dv = degree_sv(v, x);
 			if (!strcmp(du->value, "1") && !strcmp(dv->value, "1"))
@@ -1509,7 +1511,7 @@ static Tree* integral_table(Tree* f, const char* x)
 			Tree* q = join(join(du, s, fnc[PROD].ex), simplify(join(n, new_tree("2"), fnc[POW].ex)), fnc[DIVID].ex);
 			return join(r, q, fnc[SUB].ex);
 		}
-		if (v->tok_type == POW)
+		if (vtok == POW)
 		{
 			if (v->tleft->tok_type == COS_F && ismonomial(v->tleft->tleft, x))
 			{
@@ -1589,7 +1591,7 @@ static Tree* integral_table(Tree* f, const char* x)
 				return join(s, join(join(new_tree("1"), b, fnc[DIVID].ex), NULL, fnc[NEGATIF].ex), fnc[PROD].ex);
 			clean_tree(s); clean_tree(b);
 		}
-		else if (v->tok_type == SQRT_F || (v->tok_type == POW && isdemi(v->tright)))
+		else if (vtok == SQRT_F || (vtok == POW && isdemi(v->tright)))
 		{
 			Tree* b = v->tleft;
 			Tree* db = simplify(diff(b, x));
@@ -1598,7 +1600,7 @@ static Tree* integral_table(Tree* f, const char* x)
 				return join(simplify(join(s, new_tree("2"), fnc[PROD].ex)), clone(v), fnc[PROD].ex);
 			clean_tree(s);
 		}
-		else if (v->tok_type == COS_F && ismonomial(v->tleft, x))
+		else if (vtok == COS_F && ismonomial(v->tleft, x))
 		{
 			Tree* deg = degree_sv(v->tleft, x);
 			if (!strcmp(deg->value, "1") && !found_element(u, x))
@@ -1610,7 +1612,7 @@ static Tree* integral_table(Tree* f, const char* x)
 			}
 			clean_tree(deg);
 		}
-		else if (v->tok_type == SIN_F && ismonomial(v->tleft, x))
+		else if (vtok == SIN_F && ismonomial(v->tleft, x))
 		{
 			Tree* deg = degree_sv(v->tleft, x);
 			if (!strcmp(deg->value, "1") && !found_element(u, x))
@@ -1622,10 +1624,23 @@ static Tree* integral_table(Tree* f, const char* x)
 			}
 			clean_tree(deg);
 		}
-		else if ((v->tok_type == ADD || v->tok_type == SUB) && ispoly(v, x))
+		else if ((vtok == ADD || vtok == SUB) && ispoly(v, x))
 		{
 			Tree* deg = degree_sv(v, x);
-			if (!strcmp(deg->value, "2"))
+			if (!strcmp(deg->value, "1"))
+			{
+				if (!strcmp(u->value, x))
+				{
+					Tree* a = coefficient_gpe(v, x, deg);
+					deg = simplify(join(deg, new_tree("1"), fnc[SUB].ex));
+					Tree* b = coefficient_gpe(v, x, deg);
+					clean_tree(deg);
+					deg = join(join(b, join(clone(a), new_tree("2"), fnc[POW].ex), fnc[DIVID].ex), join(clone(v), NULL, fnc[LN_F].ex), fnc[PROD].ex);
+					return join(join(clone(u), a, fnc[DIVID].ex), deg, fnc[SUB].ex);
+				}
+				clean_tree(deg);
+			}
+			else if (!strcmp(deg->value, "2"))
 			{
 				map Li = NULL;
 				for (int i = 0; i < 3; i++)
@@ -1678,7 +1693,7 @@ static Tree* integral_table(Tree* f, const char* x)
 							return join(s, join(join(num, dnm, fnc[DIVID].ex), NULL, fnc[LN_F].ex), fnc[PROD].ex);
 						}
 					}
-					else if (u->tok_type == POW && !strcmp(u->tleft->value, x) && u->tright->gtype == ENT)
+					else if (utok == POW && !strcmp(u->tleft->value, x) && u->tright->gtype == ENT)
 					{
 						Tree* m = exponent(u);
 						Tree* n = simplify(join(clone(m), new_tree("2"), fnc[SUB].ex));
@@ -1701,20 +1716,31 @@ static Tree* integral_table(Tree* f, const char* x)
 				}
 				Li = clear_map(Li);
 			}
+			else
+				clean_tree(deg);
 		}
 	}
-	else if (f->tok_type == POW)
+	else if (tk == POW)
 	{
 		Tree* u = f->tleft;
 		Tree* v = f->tright;
+		token utok = u->tok_type, vtok = v->tok_type;
 		if (ispoly(u, x) && !found_element(v, x))
 		{
 			Tree* w = simplify(join(clone(v), new_tree("1"), fnc[ADD].ex));
-			return join(join(clone(u), clone(w), fnc[POW].ex), w, fnc[DIVID].ex);
+			if (!strcmp(w->value, "0"))
+			{
+				Tree* c = join(new_tree("1"), clone(u), fnc[DIVID].ex);
+				Tree* r = integral_table(c, x);
+				clean_tree(c);clean_tree(w);
+				return r;
+			}
+			if (ismonomial(u, x))
+				return join(join(clone(u), clone(w), fnc[POW].ex), w, fnc[DIVID].ex);
 		}
 		else if (v->gtype == ENT)
 		{
-			if (u->tok_type == SIN_F)
+			if (utok == SIN_F)
 			{
 				Tree* d = degree_sv(u->tleft, x);
 				if (!strcmp(d->value, "1"))
@@ -1743,7 +1769,7 @@ static Tree* integral_table(Tree* f, const char* x)
 				}
 				clean_tree(d);
 			}
-			else if (u->tok_type == COS_F)
+			else if (utok == COS_F)
 			{
 				Tree* d = degree_sv(u->tleft, x);
 				if (!strcmp(d->value, "1"))
@@ -1772,7 +1798,7 @@ static Tree* integral_table(Tree* f, const char* x)
 				}
 				clean_tree(d);
 			}
-			else if (u->tok_type == LN_F)
+			else if (utok == LN_F)
 			{
 				Tree* c = simplify(join(clone(v), new_tree("1"), fnc[SUB].ex));
 				Tree* r = join(new_tree(x), clone(f), fnc[PROD].ex);
