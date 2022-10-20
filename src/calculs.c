@@ -144,8 +144,8 @@ static Tree* tangline(Tree* tr, const char* vr, Tree* point)
 {
     Tree* dtr = diff(tr, vr);
     Tree* dtrc = remplace_tree(dtr, vr, point);
-    Tree* trc = remplace_tree(tr, vr, point);
-    Tree* tantr = join(join(dtrc, join(new_tree(vr), point, fnc[SUB].ex), fnc[PROD].ex), trc, fnc[ADD].ex);
+    Tree* trc = remplace_tree(clone(tr), vr, point);
+    Tree* tantr = join(join(dtrc, join(new_tree(vr), clone(point), fnc[SUB].ex), fnc[PROD].ex), trc, fnc[ADD].ex);
     return simplify(tantr);
 }
 
@@ -1993,6 +1993,8 @@ Tree* analyse(Tree* tr)
 			Tree* res = NULL;
 			if (b->gtype == ENT)
 				res = simplify(diff_n(r, a->value, (int)tonumber(b->value)));
+			else if (b->gtype == VAR && !strcmp(a->value, b->value))
+				res = simplify(diff(r, a->value));
 			else
 				res = simplify(diff_partial(r, a->value, b->value));
 			clean_tree(tr);
@@ -2042,7 +2044,7 @@ Tree* analyse(Tree* tr)
 			return tr;
 		Tree* b = t->tright;
 		t = t->tleft;
-		if (t->tok_type != SEPARATEUR)
+		if (t->tok_type != SEPARATEUR || b->gtype == VAR)
 			return tr;
 		Tree* a = t->tright;
 		t = t->tleft;
