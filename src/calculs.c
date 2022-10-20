@@ -1986,9 +1986,9 @@ Tree* analyse(Tree* tr)
 		if (t->tleft->tok_type == SEPARATEUR)
 		{
 			Tree* r = t->tleft->tleft;
-			Tree* a = t->tright;
-			Tree* b = t->tleft->tright;
-			if (r->tok_type != SEPARATEUR || (b->gtype != ENT && b->gtype != VAR) || a->gtype != VAR)
+			Tree* a = t->tleft->tright;
+			Tree* b = t->tright;
+			if (r->tok_type == SEPARATEUR || (b->gtype != ENT && b->gtype != VAR) || a->gtype != VAR)
 				return tr;
 			Tree* res = NULL;
 			if (b->gtype == ENT)
