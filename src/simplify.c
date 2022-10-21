@@ -2694,9 +2694,8 @@ map polynomial_division(Tree* u, Tree* v, const char* x) // page 116
 	{
 		Tree* lcr = coefficient_gpe(r, x, dr);
 		Tree* s = simplify(join(lcr, clone(lcv), fnc[DIVID].ex));
-		Tree* p = join(s, join(new_tree(x), join(dr, clone(dv), fnc[SUB].ex), fnc[POW].ex), fnc[PROD].ex);
-		q = join(q, clone(p), fnc[ADD].ex);
-		q = simplify(q);
+		Tree* p = simplify(join(s, join(new_tree(x), join(dr, clone(dv), fnc[SUB].ex), fnc[POW].ex), fnc[PROD].ex));
+		q = simplify(join(q, clone(p), fnc[ADD].ex));
 		r = simplify(join(r, join(clone(v), p, fnc[PROD].ex), fnc[SUB].ex));
 		dr = degree_sv(r, x);
 		m = (int)Eval(dr);
