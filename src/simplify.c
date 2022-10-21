@@ -2693,15 +2693,11 @@ map polynomial_division(Tree* u, Tree* v, const char* x) // page 116
 	while (m >= n)
 	{
 		Tree* lcr = coefficient_gpe(r, x, dr);
-		Tree* s = simplify(join(clone(lcr), clone(lcv), fnc[DIVID].ex));
-		q = join(q, join(clone(s), join(new_tree(x), join(clone(dr), clone(dv), fnc[SUB].ex), fnc[POW].ex), fnc[PROD].ex), fnc[ADD].ex);
+		Tree* s = simplify(join(lcr, clone(lcv), fnc[DIVID].ex));
+		Tree* p = join(s, join(new_tree(x), join(dr, clone(dv), fnc[SUB].ex), fnc[POW].ex), fnc[PROD].ex);
+		q = join(q, clone(p), fnc[ADD].ex);
 		q = simplify(q);
-		Tree* p1 = join(r, join(lcr, join(new_tree(x), clone(dr), fnc[POW].ex), fnc[PROD].ex), fnc[SUB].ex);
-		p1 = simplify(p1);
-
-		Tree* p2 = simplify(join(clone(v), join(clone(lcv), join(new_tree(x), clone(dv), fnc[POW].ex), fnc[PROD].ex), fnc[SUB].ex));
-		Tree* p3 = join(s, join(new_tree(x), join(dr, clone(dv), fnc[SUB].ex), fnc[POW].ex), fnc[PROD].ex);
-		r = simplify(join(p1, join(p2, p3, fnc[PROD].ex), fnc[SUB].ex));
+		r = simplify(join(r, join(clone(v), p, fnc[PROD].ex), fnc[SUB].ex));
 		dr = degree_sv(r, x);
 		m = (int)Eval(dr);
 	}
