@@ -1944,6 +1944,18 @@ static Tree* pow_transform(Tree* u)
 			u->tright = pow_transform(u->tright);
 			if (u->tok_type == PROD)
 			{
+				if (!strcmp(u->tleft->value, "1"))
+				{
+					Tree* w = clone(u->tright);
+					clean_tree(u);
+					return w;
+				}
+				if (!strcmp(u->tright->value, "1"))
+				{
+					Tree* w = clone(u->tleft);
+					clean_tree(u);
+					return w;
+				}
 				if (u->tleft->tok_type == DIVID && !strcmp(u->tleft->tleft->value, "1") && u->tright->tok_type != DIVID)
 				{
 					Tree* v = clone(u->tleft->tright);
