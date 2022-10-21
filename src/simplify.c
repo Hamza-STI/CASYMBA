@@ -2733,23 +2733,20 @@ Tree* poly_gcd(Tree* u, Tree* v, const char* x)
 {
 	if (!strcmp(u->value, "0") && !strcmp(v->value, "0"))
 		return new_tree("1");
-	Tree* U = clone(u), * V = clone(v), * r = clone(v);
+	Tree* U = clone(u), * V = clone(v);
 	while (strcmp(V->value, "0"))
 	{
-		map L = polynomial_division(U, V, x);
+		Tree* R = poly_remainder(polynomial_division(U, V, x));
 		clean_tree(U);
-		U = numerator_fun(L->begin->tr);
-		clean_tree(r);
-		r = clone(V);
+		U = clone(V);
 		clean_tree(V);
-		V = numerator_fun(L->end->tr);
-		if (isconstant(V) && V->tok_type == NEGATIF)
-			clean_noeud(V);
-		L = clear_map(L);
+		V = R;
 	}
-	clean_tree(U);
 	clean_tree(V);
-	return r;
+	Tree* dr = degree_sv(U, x);
+	Tree* lcr = coefficient_gpe(U, x, dr);
+	clean_tree(dr);
+	return simplify(join(join(new_tree("1"), lcr, fnc[DIVID].ex), U, fnc[PROD].ex));
 }
 
 Tree* poly_simp(Tree* u, Tree* v, const char* x)
