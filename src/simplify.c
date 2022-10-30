@@ -649,7 +649,7 @@ static Tree* simplify_RNE_rec(Tree* u)
 	}
 	else if (count_tree_nodes(u) == 3 && u->tok_type == DIVID)
 	{
-		if (!strcmp(u->value, "0"))
+		if (!strcmp(u->tleft->value, "0"))
 		{
 			clean_tree(u);
 			return new_tree(fnc[UNDEF].ex);
