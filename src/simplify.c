@@ -674,6 +674,12 @@ static Tree* simplify_RNE_rec(Tree* u)
 			clean_tree(u);
 			return r;
 		}
+		if (u->tleft->tok_type == NEGATIF)
+		{
+			Tree* r = clone(u->tleft->tleft);
+			clean_tree(u);
+			return simplify_RNE_rec(r);
+		}
 		Tree* t = join(new_tree("1"), NULL, fnc[NEGATIF].ex);
 		Tree* tr = simplify_RNE_rec(join(t, simplify_RNE_rec(u->tleft), fnc[PROD].ex));
 		clean_noeud(u);
