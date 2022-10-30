@@ -355,13 +355,14 @@ static map homogenious_2(Tree* a, Tree* b, Tree* c, const char* x, map* S)
 		clean_tree(d);
 		return L;
 	}
-	Tree* D = simplify(join(clone(b), new_tree("2"), fnc[POW].ex));
+	Tree* D = simplify(join(clone((b->tok_type == NEGATIF)? b->tleft : b), new_tree("2"), fnc[POW].ex));
 	Tree* e = simplify(join(join(new_tree("4"), clone(a), fnc[PROD].ex), clone(c), fnc[PROD].ex));
 	D = simplify(join(D, e, fnc[SUB].ex));
 	double d = Eval(D);
 	if (d > 0)
 	{
-		Tree* P = simplify(join(clone(b), NULL, fnc[NEGATIF].ex));
+		e = (b->tok_type == NEGATIF)? clone(b->tleft) : join(clone(b), NULL, fnc[NEGATIF].ex);
+		Tree* P = simplify(e);
 		Tree* O = simplify(join(D, NULL, fnc[SQRT_F].ex));
 		Tree* Z = simplify(join(new_tree("2"), clone(a), fnc[PROD].ex));
 		Tree* r1 = join(join(clone(P), clone(O), fnc[ADD].ex), clone(Z), fnc[DIVID].ex);
@@ -392,7 +393,8 @@ static map homogenious_2(Tree* a, Tree* b, Tree* c, const char* x, map* S)
 	}
 	else if (d < 0)
 	{
-		Tree* com = join(join(clone(b), NULL, fnc[NEGATIF].ex), join(new_tree("2"), clone(a), fnc[PROD].ex), fnc[DIVID].ex);
+		e = (b->tok_type == NEGATIF)? clone(b->tleft) : join(clone(b), NULL, fnc[NEGATIF].ex);
+		Tree* com = join(e, join(new_tree("2"), clone(a), fnc[PROD].ex), fnc[DIVID].ex);
 		com = simplify(com);
 		*S = push_back_map(*S, com);
 		com = join(join(com, new_tree(x), fnc[PROD].ex), NULL, fnc[EXP_F].ex);
