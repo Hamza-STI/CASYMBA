@@ -25,7 +25,6 @@
 	map pop_back_map(map li);
 	map pop_front_map(map li);
 	map clear_map(map li);
-	void print_map(map li);
 	map map_create(Tree* tr);
 	map map_create_add(Tree* tr);
 	map map_create_prod(Tree* tr);

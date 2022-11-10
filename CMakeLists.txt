@@ -10,7 +10,7 @@ if(is_ipo_supported)
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_Debug OFF)
 endif()
 
-set(GLOBAL_COMPILER_FLAGS "-W -Wall -Wextra -Werror -march=native -Wunused-function -Werror=write-strings -Werror=redundant-decls -Werror=format -Werror=format-security -Werror=implicit-function-declaration -Werror=return-type -Werror=pointer-arith -Winit-self -Wimplicit-fallthrough")
+set(GLOBAL_COMPILER_FLAGS "-W -Wall -Wextra -march=native -Wunused-function -Werror=write-strings -Werror=redundant-decls -Werror=format -Werror=format-security -Werror=implicit-function-declaration -Werror=return-type -Werror=pointer-arith -Winit-self -Wimplicit-fallthrough")
 set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} ${GLOBAL_COMPILER_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GLOBAL_COMPILER_FLAGS}")
 

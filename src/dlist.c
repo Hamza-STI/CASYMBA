@@ -3,9 +3,8 @@
 
 DList push_back_dlist(DList li, const char* x)
 {
-	DListCell *element = malloc(sizeof(*element));
-	element->value = malloc(strlen(x) + 1);
-	memcpy(element->value, x, strlen(x) + 1);
+	DListCell *element = malloc(sizeof(DListCell));
+    element->value = strdup(x);
 	element->next = NULL;
 	element->back = NULL;
 
@@ -36,7 +35,7 @@ DList pop_back_dlist(DList li)
 	if(li->length == 1 && li->begin == li->end)
 	{
 		free(li->begin->value);
-		free(li->begin);	
+		free(li->begin);
 		free(li);
 		return NULL;
 	}
@@ -70,7 +69,7 @@ string dlist_last(DList li)
 		static char r[2] = "\0";
 		return r;
 	}
-	
+
 	return li->end->value;
 }
 
@@ -173,4 +172,27 @@ DList dlist_remove_id(DList p_list, int position)
 		}
 	}
 	return p_list;
+}
+
+DList dlist_sortD(DList li)
+{
+    DListCell* tmp = li->begin;
+	while (tmp != NULL)
+	{
+		DListCell* tmp1 = li->begin;
+		while (tmp1 != NULL)
+		{
+			int p = strlen(tmp1->value), q = strlen(tmp->value);
+			if (p < q)
+			{
+				string cp1 = strdup(tmp1->value), cp2 = strdup(tmp->value);
+				free(tmp->value); free(tmp1->value);
+				tmp1->value = cp2;
+				tmp->value = cp1;
+			}
+			tmp1 = tmp1->next;
+		}
+		tmp = tmp->next;
+	}
+	return li;
 }

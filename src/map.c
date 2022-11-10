@@ -144,26 +144,6 @@ map clear_map(map li)
 	return NULL;
 }
 
-void print_map(map li)
-{
-	if(li == NULL)
-	{
-		printf("Rien a afficher, la map est vide.\n");
-		return;
-	}
-
-	mapCell *temp = li->begin;
-
-	while(temp != NULL)
-	{
-		printf("nouvel arbre\n");
-		print_tree_prefix(temp->tr);
-		temp = temp->next;
-	}
-
-	printf("\n");
-}
-
 map map_create(Tree *tr)
 {
 	token tk = tr->tok_type;
@@ -202,7 +182,7 @@ map map_create_prod(Tree* tr)
 			T = clear_map(T);
 		}
 		else if (tmp->tok_type == DIVID)
-		{	
+		{
 			Tree *r =  join(new_tree("1"), NULL, "~" );
 			Tree *s = join( clone(tmp->tright), r, "^" );
 			li = push_front_map(li, s);
@@ -258,7 +238,7 @@ map map_create_add(Tree* tr)
 			T = clear_map(T);
 		}
 		else if (tmp->tok_type == SUB)
-		{	
+		{
 			if (isconstant(tmp->tright))
 			{
 				if (strcmp(tmp->tright->value, "0"))
