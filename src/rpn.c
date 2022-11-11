@@ -313,6 +313,20 @@ DList In2post(const uint8_t* ex, unsigned k)
 				if (t == PAR_FERMANT)
 					result = push_back_dlist(result, fnc[PROD].ex);
 			}
+			if (result == NULL && (ADD <= tk && tk <= LOGIC_OR) && tk != PAR_OUVRANT)
+			{
+				result = clear_dlist(result);
+				return NULL;
+			}
+			if (result != NULL && (ADD <= tk && tk <= LOGIC_OR))
+			{
+				token t = tokens(result->end->value);
+				if ((ADD <= t && t <= NEGATIF) && t != PAR_FERMANT)
+				{
+				    result = clear_dlist(result);
+				    return NULL;
+				}
+			}
 			result = push_back_dlist(result, fnc[tk].ex);
 			if ((EXP_F <= tk && tk < AMOUNT_TOKEN) && tk != FACTORIEL_F)
 				result = push_back_dlist(result, fnc[PAR_OUVRANT].ex);
