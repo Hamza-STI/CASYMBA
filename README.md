@@ -56,21 +56,26 @@ utilisez la fonction `nDeriv(` ***calculatrice en anglais*** ou `nbreDérivé(` 
 
 La fonction prend 3 arguments : `nDeriv(EXPRESSION,VARIABLE,VARIABLE)` ou `nDeriv(EXPRESSION,VARIABLE1,VARIABLE2)` ou `nDeriv(EXPRESSION,VARIABLE,ENTIER_POSITIF)`
 
-### Derivée
+### Derivée <img src="https://i.imgur.com/VZp2Tg8.png" align="right">
 
 ```
 "nDeriv(X*sin(2*X),X,X)"
 prgmCASYMBA
 ```
 
-### Dérivée n-ième
+
+
+
+
+
+### Dérivée n-ième <img src="https://i.imgur.com/7zlKCTm.png" align="right">
 
 ```
 "nDeriv(X*sin(2*X),X,2)"
 prgmCASYMBA
 ```
 
-### Dérivée partielle à 2 variables
+### Dérivée partielle à 2 variables <img src="https://i.imgur.com/NpmRtW0.png" align="right">
 
 ```
 "nDeriv(Y*sin(2*X),X,Y)"
@@ -78,7 +83,7 @@ prgmCASYMBA
 ```
 
 
-## calcul de primitive (***certaines primitives***)
+## calcul de primitive (***certaines primitives***) <img src="https://i.imgur.com/dClTOJc.png" align="right">
 
 ***c'est un trop gros programme qui demande de la patiencce et de la connaissance, je n'ai pas encore les moyens de créer quelque chose de complet pour ces modèles***
 
@@ -93,7 +98,7 @@ prgmCASYMBA
 
 
 
-## Tangente en un point
+## Tangente en un point <img src="https://i.imgur.com/xiVhNgc.png" align="right">
 
 utilisez la fonction `Tangent(` ***calculatrice en anglais*** ou `Tangente(` ***calculatrice en Français***
 
@@ -105,7 +110,7 @@ prgmCASYMBA
 ```
 
 
-## Développment limité / Taylor
+## Développment limité / Taylor <img src="https://i.imgur.com/nBTwGN6.png" align="right">
 
 ***(il n'y a pas de fonction se rapprochant niveau nom)***
 
@@ -119,7 +124,7 @@ prgmCASYMBA
 ```
 
 
-## équation différentielle
+## équation différentielle <img src="https://i.imgur.com/I7RHeL8.png" align="right">
 
 utilisez la fonction `solve(` ***calculatrice en anglais*** ou `résoudre(` ***calculatrice en Français***
 
@@ -127,16 +132,22 @@ La fonction prend 3 arguments : `solve(EXPRESSION,VARIABLE,VARIABLE1)`
 
 **remarques : les équations doivent être sous la forme suivante AY'+BY=f(X) ou AY''+BY'+CY=f(X)**
 
+
+
 ```
 "solve(Y'+2Y=2*e^(-2X) and Y(0)=1,X,Y)"
 prgmCASYMBA
 ```
 
+
+<img src="https://i.imgur.com/M0v07uv.png" align="right">
+
 ```
 "solve(Y''+2Y'+Y=2*e^(-X),X,Y)"
 prgmCASYMBA
 ```
-
+ 
+<img src="https://i.imgur.com/ynDPIK7.png" align="right">
 
 ```
 "solve(Y''+2Y'+Y=2*e^(-X) and Y(0)=-1 and Y'(0)=1,X,Y)"
@@ -148,7 +159,7 @@ prgmCASYMBA
 
 quelques fonctions pour la division de 2 polynômes
 
-### reste de 2 polynômes
+### reste de 2 polynômes <img src="https://i.imgur.com/Y8suYn5.png" align="right">
 
 utilisez la fonction `remainder(` ***calculatrice en anglais*** ou `reste(` ***calculatrice en Français***
 
@@ -159,7 +170,7 @@ La fonction prend 3 arguments : `remainder(POLY1,POLY2,VARIABLE)`
 prgmCASYMBA
 ```
 
-### PGCD de 2 polynômes
+### PGCD de 2 polynômes <img src="https://i.imgur.com/IW6qkV1.png" align="right">
 
 utilisez la fonction `gcd(` ***calculatrice en anglais*** ou `pgcd(` ***calculatrice en Français***
 
@@ -170,7 +181,7 @@ La fonction prend 3 arguments : `gcd(POLY1,POLY2,VARIABLE)`
 prgmCASYMBA
 ```
 
-### Quotient de 2 polynômes
+### Quotient de 2 polynômes <img src="https://i.imgur.com/uHbSZvr.png" align="right">
 
 utilisez la fonction `int(` ***calculatrice en anglais*** ou `ent(` ***calculatrice en Français***
 
@@ -181,7 +192,7 @@ La fonction prend 3 arguments : `int(POLY1,POLY2,VARIABLE)`
 prgmCASYMBA
 ```
 
-### simplification d'une division de 2 polynômes
+### simplification d'une division de 2 polynômes <img src="https://i.imgur.com/Y8suYn5.png" align="right">
 
 utilisez la fonction `expr(`
 
@@ -193,7 +204,7 @@ prgmCASYMBA
 ```
 
 
-## Développement
+## Développement <img src="https://i.imgur.com/h0Us6sQ.png" align="right">
 
 utilisez la fonction `stdDev(` ***calculatrice en anglais*** ou `écart-type(` ***calculatrice en Français***
 
