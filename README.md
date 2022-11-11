@@ -56,19 +56,22 @@ utilisez la fonction `nDeriv(` ***calculatrice en anglais*** ou `nbreDérivé(` 
 
 La fonction prend 3 arguments : `nDeriv(EXPRESSION,VARIABLE,VARIABLE)` ou `nDeriv(EXPRESSION,VARIABLE1,VARIABLE2)` ou `nDeriv(EXPRESSION,VARIABLE,ENTIER_POSITIF)`
 
-### Derivée <img src="https://i.imgur.com/VZp2Tg8.png" align="right">
+### Derivée <img src="https://i.imgur.com/VZp2Tg8.png" align="right"> 
+
+pour calculer la dérivée de `x*sin(2*x)` : 
+
+il faut saisir :
 
 ```
 "nDeriv(X*sin(2*X),X,X)"
 prgmCASYMBA
 ```
 
+### Dérivée n-ième <img src="https://i.imgur.com/7zlKCTm.png" align="left">
 
+pour calculer la dérivée seconde de `x*sin(2*x)` : 
 
-
-
-
-### Dérivée n-ième <img src="https://i.imgur.com/7zlKCTm.png" align="right">
+saisir : 
 
 ```
 "nDeriv(X*sin(2*X),X,2)"
@@ -76,6 +79,10 @@ prgmCASYMBA
 ```
 
 ### Dérivée partielle à 2 variables <img src="https://i.imgur.com/NpmRtW0.png" align="right">
+
+pour calculer la dérivée partielle de `y*sin(2*x)` : 
+
+saisir :
 
 ```
 "nDeriv(Y*sin(2*X),X,Y)"
@@ -91,18 +98,24 @@ utilisez la fonction `fnInt(` ***calculatrice en anglais*** ou `intégrFonct(` *
 
 La fonction prend 4 arguments  : `fnInt(EXPRESSION,VARIABLE,VARIABLE,VARIABLE)`
 
+pour calculer la primitive de `x*exp(x)` : 
+
+saisir : 
+
 ```
 "fnInt(X*e^(X),X,X,X)"
 prgmCASYMBA
 ```
-
-
 
 ## Tangente en un point <img src="https://i.imgur.com/xiVhNgc.png" align="right">
 
 utilisez la fonction `Tangent(` ***calculatrice en anglais*** ou `Tangente(` ***calculatrice en Français***
 
 La fonction prend 3 arguments : `Tangent(EXPRESSION,VARIABLE,POINT)`
+
+pour calculer la tangente de `ln(x)` au point 1 : 
+
+saisir :
 
 ```
 "Tangent(ln(X),X,1)"
@@ -118,13 +131,19 @@ utilisez la fonction `det(` ***calculatrice en anglais*** ou `dét(` ***calculat
 
 La fonction prend 4 arguments : `det(EXPRESSION,VARIABLE,ORDRE,POINT)`
 
+pour calculer le dévéloppement limité de `sin(x)` d'ordre 3 au point 0
+
+saisir :
+
 ```
-"det(sin(X),X,3,1)"
+"det(sin(X),X,3,0)"
 prgmCASYMBA
 ```
 
 
-## équation différentielle <img src="https://i.imgur.com/I7RHeL8.png" align="right">
+## équation différentielle 
+
+La résolution d'équation différentielle linéaire d'ordre 1 et 2.
 
 utilisez la fonction `solve(` ***calculatrice en anglais*** ou `résoudre(` ***calculatrice en Français***
 
@@ -132,38 +151,64 @@ La fonction prend 3 arguments : `solve(EXPRESSION,VARIABLE,VARIABLE1)`
 
 **remarques : les équations doivent être sous la forme suivante AY'+BY=f(X) ou AY''+BY'+CY=f(X)**
 
+<img src="https://i.imgur.com/M0v07uv.png" align="left">
 
+pour résoudre l'équation différentielle d'ordre 2 de `Y''+2Y'+Y=2*e^(-X)` sans les conditions : 
 
-```
-"solve(Y'+2Y=2*e^(-2X) and Y(0)=1,X,Y)"
-prgmCASYMBA
-```
-
-
-<img src="https://i.imgur.com/M0v07uv.png" align="right">
+saisir :
 
 ```
 "solve(Y''+2Y'+Y=2*e^(-X),X,Y)"
 prgmCASYMBA
 ```
- 
-<img src="https://i.imgur.com/ynDPIK7.png" align="right">
+**remarque : il est possible de faire `Y''+2Y'+Y=0` puis `Y''+2Y'+Y=2*e^(-X)`**
+
+pour résoudre l'équation différentielle d'ordre 2 de `Y''+2Y'+Y=2*e^(-X)` avec les conditions suivantes  : 
+
+`f(0) = -1` et `f'(0) = 1` <img src="https://i.imgur.com/ynDPIK7.png" align="right">
+
+saisir :
 
 ```
 "solve(Y''+2Y'+Y=2*e^(-X) and Y(0)=-1 and Y'(0)=1,X,Y)"
 prgmCASYMBA
 ```
 
+pour résoudre l'équation différentielle d'ordre 1 de `Y'+2Y=2*e^(-2X)` sans condition : ***(pas d'image d'illustration)***
+
+saisir :
+
+```
+"solve(Y'+2Y=2*e^(-2X),X,Y)"
+prgmCASYMBA
+```
+
+<img src="https://i.imgur.com/I7RHeL8.png" align="right">
+
+pour résoudre l'équation différentielle d'ordre 1 de `Y'+2Y=2*e^(-2X)` sans condition : 
+
+saisir :
+
+```
+"solve(Y'+2Y=2*e^(-2X) and Y(0)=1,X,Y)"
+prgmCASYMBA
+```
 
 ## Polynômes
 
 quelques fonctions pour la division de 2 polynômes
 
-### reste de 2 polynômes <img src="https://i.imgur.com/Y8suYn5.png" align="right">
+pour l'exemple par fonction : poly1 = `X^3-6X^2+11X-6` et poly2 = `X^2-6X+8`
+
+### reste de 2 polynômes <img src="https://i.imgur.com/HuFX6JR.png" align="right">
 
 utilisez la fonction `remainder(` ***calculatrice en anglais*** ou `reste(` ***calculatrice en Français***
 
 La fonction prend 3 arguments : `remainder(POLY1,POLY2,VARIABLE)`
+
+pour calculer le reste d'une division euclidienne de 2 polynômes poly1 et poly2 : 
+
+saisir : 
 
 ```
 "remainder(X^3-6X^2+11X-6,X^2-6X+8,X)"
@@ -176,6 +221,10 @@ utilisez la fonction `gcd(` ***calculatrice en anglais*** ou `pgcd(` ***calculat
 
 La fonction prend 3 arguments : `gcd(POLY1,POLY2,VARIABLE)`
 
+pour calculer le pgcd d'une division euclidienne de 2 polynômes poly1 et poly2 : 
+
+saisir : 
+
 ```
 "gcd(X^3-6X^2+11X-6,X^2-6X+8,X)"
 prgmCASYMBA
@@ -187,6 +236,10 @@ utilisez la fonction `int(` ***calculatrice en anglais*** ou `ent(` ***calculatr
 
 La fonction prend 3 arguments : `int(POLY1,POLY2,VARIABLE)`
 
+pour calculer le quotient d'une division euclidienne de 2 polynômes poly1 et poly2 : 
+
+saisir : 
+
 ```
 "int(X^3-6X^2+11X-6,X^2-6X+8,X)"
 prgmCASYMBA
@@ -197,6 +250,11 @@ prgmCASYMBA
 utilisez la fonction `expr(`
 
 La fonction prend 3 arguments : `expr(POLY1,POLY2,VARIABLE)`
+
+
+pour simplifier la division des polynômes poly1 et poly2 : 
+
+saisir : 
 
 ```
 "expr(X^3-6X^2+11X-6,X^2-6X+8,X)"
