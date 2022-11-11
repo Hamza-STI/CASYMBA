@@ -116,6 +116,16 @@ int main(void)
         return 0;
     }
     DList rpn = In2post(str_in, ans_len);
+    if (rpn == NULL)
+    {
+        os_ClrHome();
+        os_PutStrFull("Erreur syntaxe");
+        os_NewLine();
+        os_NewLine();
+        os_PutStrFull("syntax error");
+        while (!(os_GetCSC()));
+        return 1;
+    }
     Tree* tr = to_tree(rpn);
     Tree* simp = analyse(tr);
     if (simp == NULL)
