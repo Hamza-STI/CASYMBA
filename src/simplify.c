@@ -487,13 +487,7 @@ int ordre_tree(Tree* u, Tree* v)
 		q = clear_map(q);
 	}
 	else if (u->tok_type == v->tok_type && u->tok_type == POW)
-	{
-		Tree* p = u->tleft, * q = u->tright, * r = v->tleft, * s = v->tright;
-		int t = ordre_tree(p, r);
-		if (!t)
-			t = ordre_tree(q, s);
-		return t;
-	}
+		return ordre_tree(u->tleft, v->tleft) || ordre_tree(u->tright, v->tright);
 	else if (u->tok_type == v->tok_type && u->tok_type == FACTORIEL_F)
 		return ordre_tree(u->tleft, v->tleft);
 	else if (u->gtype == FUNCTION && v->gtype == FUNCTION)
