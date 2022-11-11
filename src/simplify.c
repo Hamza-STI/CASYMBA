@@ -550,9 +550,19 @@ int ordre_tree(Tree* u, Tree* v)
 	else if (isconstant(u) && !isconstant(v))
 		return 1;
 	else if (u->tok_type == PROD && (v->tok_type == POW || v->tok_type == ADD || v->gtype == FUNCTION || v->gtype == VAR))
-		return ordre_tree(u->tright, v);
+	{
+		Tree* tr = join(new_tree("1"), clone(v), fnc[PROD].ex);
+		int k = ordre_tree(u, tr);
+		clean_tree(tr);
+		return k;
+	}
 	else if (u->tok_type == ADD && (v->gtype == FUNCTION || v->gtype == VAR))
-		return ordre_tree(u->tright, v);
+	{
+		Tree* tr = join(new_tree("0"), clone(v), fnc[ADD].ex);
+		int k = ordre_tree(u, tr);
+		clean_tree(tr);
+		return k;
+	}
 	else if ((u->tok_type == FACTORIEL_F && (v->gtype == FUNCTION && v->tok_type != FACTORIEL_F)) || v->gtype == VAR)
 		return ordre_tree(u->tleft, v);
 	else if (u->tok_type == POW && v->tok_type != POW)
