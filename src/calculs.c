@@ -737,20 +737,21 @@ static Tree* solve_ode_2(Tree* a, Tree* b, Tree* c, Tree* f, const char* x, cons
 		return NULL;
 	}
 	if (strcmp(par_sol->value, "0"))
-        yh = simplify(join(yh, par_sol, fnc[ADD].ex));
-    else
-    {
-        clean_tree(par_sol);
-    }
+		yh = simplify(join(yh, par_sol, fnc[ADD].ex));
+	else
+	{
+		yh = simplify(yh);
+		clean_tree(par_sol);
+	}
 	if (cond1 != NULL && cond2 != NULL)
 	{
         Tree* p = NULL, * q = NULL;
         b = get_condition(yh, cond1->tleft, x, y, &p);
         if (b == NULL)
         {
-            clean_tree(yh); clean_tree(cond1); clean_tree(cond2);
-			Error = push_back_dlist(Error, "Erreur argument condition.");
-            return NULL;
+		clean_tree(yh); clean_tree(cond1); clean_tree(cond2);
+		Error = push_back_dlist(Error, "Erreur argument condition.");
+		return NULL;
         }
         c = get_condition(yh, cond2->tleft, x, y, &q);
         if (c == NULL)
@@ -807,32 +808,33 @@ static Tree* solve_ode(Tree* M, Tree* N, Tree* f, const char* x, const char* y, 
 	if (g == NULL)
 	{
 		clean_tree(s);
-			Error = push_back_dlist(Error, "Pas de solution particulière. Non géré.");
+		Error = push_back_dlist(Error, "Pas de solution particulière. Non géré.");
 		return NULL;
 	}
 	s = simplify(join(s, g, fnc[ADD].ex));
 	if (cond != NULL)
 	{
-        Tree* p = NULL;
+		Tree* p = NULL;
 		Tree *dr = get_condition(s, cond->tleft, x, y, &p);
-        if (dr == NULL)
-        {
-            clean_tree(s); clean_tree(cond);
+        
+		if (dr == NULL)
+		{
+			clean_tree(s); clean_tree(cond);
 			Error = push_back_dlist(Error, "Erreur argument condition.");
-		    return NULL;
-        }
-        a = new_tree("1");
+			return NULL;
+		}
+		a = new_tree("1");
 		N = new_tree("0");
 		dr = remplace_tree(dr, x, cond->tleft->tright);
-        dr = simplify(dr);
-        Tree* b = coefficient_gpe(dr, "K", a);
-        M = coefficient_gpe(dr, "K", N);
-        clean_tree(dr); clean_tree(a); clean_tree(N);
-        Tree* k = join(join(clone(cond->tright), M, fnc[SUB].ex), b, fnc[DIVID].ex);
-        k = simplify(k);
-        s = remplace_tree(s, "K", k);
-        clean_tree(k); clean_tree(cond);
-        s = simplify(s);
+		dr = simplify(dr);
+		Tree* b = coefficient_gpe(dr, "K", a);
+		M = coefficient_gpe(dr, "K", N);
+		clean_tree(dr); clean_tree(a); clean_tree(N);
+		Tree* k = join(join(clone(cond->tright), M, fnc[SUB].ex), b, fnc[DIVID].ex);
+		k = simplify(k);
+		s = remplace_tree(s, "K", k);
+		clean_tree(k); clean_tree(cond);
+		s = simplify(s);
 	}
 	return join(new_tree(y), s, fnc[EGAL].ex);
 }
