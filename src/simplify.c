@@ -1885,7 +1885,7 @@ static map merge_sums(map p, map q)
 		map L = merge_sums(p, q);
 		L = push_front_map(L, h->begin->tr);
 		h = clear_map(h);
-		return simplify_sum_rec(L);
+		return L;
 	}
 	if (tree_compare(h->begin->tr, p1))
 	{
@@ -2777,8 +2777,8 @@ map polynomial_division(Tree* u, Tree* v, const char* x) // page 116
 	while (m >= n)
 	{
 		Tree* lcr = coefficient_gpe(r, x, dr);
-		Tree* s = join(clone(lcr), clone(lcv), fnc[DIVID].ex);
-        Tree* p = join(clone(s), join(new_tree(x), join(clone(dr), clone(dv), fnc[SUB].ex), fnc[POW].ex), fnc[PROD].ex);
+		Tree* s = join(lcr, clone(lcv), fnc[DIVID].ex);
+        Tree* p = join(s, join(new_tree(x), join(dr, clone(dv), fnc[SUB].ex), fnc[POW].ex), fnc[PROD].ex);
 		q = join(q, clone(p), fnc[ADD].ex);
         r = simplify(join(r, join(clone(v), p, fnc[PROD].ex), fnc[SUB].ex));
 		dr = degree_sv(r, x);
