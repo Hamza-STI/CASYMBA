@@ -1885,7 +1885,7 @@ static map merge_sums(map p, map q)
 		map L = merge_sums(p, q);
 		L = push_front_map(L, h->begin->tr);
 		h = clear_map(h);
-		return L;
+		return simplify_sum_rec(L);
 	}
 	if (tree_compare(h->begin->tr, p1))
 	{
@@ -1903,6 +1903,8 @@ static map merge_sums(map p, map q)
 
 static map simplify_sum_rec(map L)
 {
+	if (L->length == 1)
+		return L;
 	Tree* u1 = (L->begin->tr);
 	Tree* u2 = (L->end->tr);
 	if (L->length == 2 && (u1->tok_type != ADD && u1->tok_type != SUB) && (u2->tok_type != ADD && u2->tok_type != SUB))
