@@ -35,7 +35,7 @@ Il permet de faire :
 
 # Prérequis
 
-OS 5.3 ou supérieure. si la version est 5.5 ou supérieure, il faut activer l'assembleur avec Artifice + ASMHook.
+OS 5.3 ou supérieure. si la version est 5.5 ou supérieure, il faut activer l'assembleur avec [Artifice](https://tiplanet.org/forum/archives_voir.php?id=2641766) + [ASMHook](https://tiplanet.org/forum/archives_voir.php?id=2643391).
 
 Il faut transférer le programme en mémoire Archive 
 Il faut les bibliothèques C CE
