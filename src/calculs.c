@@ -197,10 +197,7 @@ static bool usuelle_forme(token a)
 static Tree* taylor(Tree* u, Tree* vr, Tree* ordre, Tree* point)
 {
 	if ((u->tok_type == LN_F || u->tok_type == SQRT_F || u->tok_type == POW) && ismonomial(u->tleft, vr->value))
-	{
-		Error = push_back_dlist(Error, "Non géré.");
-		return NULL;
-	}
+		return clone(u);
 	if (usuelle_forme(u->tok_type))
 	{
 		if (u->tleft->tok_type == SQRT_F)
