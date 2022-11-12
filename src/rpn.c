@@ -429,10 +429,29 @@ DList In2post2(const char* ex)
 			}
 			temp[sl] = ch;
 			temp[sl + 1] = '\0';
-			sl++;
+			if (!strcmp(temp, fnc[PI].ex) || !strcmp(temp, fnc[IMAGE].ex))
+			{
+				result = push_back_dlist(result, temp);
+				for (int k = sl - 1; k >= 0; k--)
+					temp[k] = '\0';
+				sl = 0;
+			}
+			else if (!strcmp(temp, "pi"))
+			{
+				result = push_back_dlist(result, fnc[PI].ex);
+				for (int k = sl - 1; k >= 0; k--)
+					temp[k] = '\0';
+				sl = 0;
+			}
+			else
+				sl++;
 		}
 		else
 		{
+			if (ch == '(')
+				p++;
+			if (ch == ')')
+				p--;
 			if (sl)
 			{
 				if (ch == '(')
@@ -452,10 +471,39 @@ DList In2post2(const char* ex)
 			}
 			op[0] = ch;
 			op[1] = '\0';
-			if (ch == '(')
-				p++;
-			if (ch == ')')
-				p--;
+			token tk = tokens(op);
+			if (result != NULL && tk != PAR_FERMANT && !(ADD <= tk && tk <= LOGIC_OR))
+			{
+				token t = tokens(result->end->value);
+				if (t == PAR_FERMANT)
+					result = push_back_dlist(result, fnc[PROD].ex);
+			}
+			if (tk == SUB)
+			{
+				if (result == NULL)
+					tk = NEGATIF;
+				else
+				{
+					token t = tokens(result->end->value);
+					if (((ADD <= t && t <= LOGIC_OR) && tk == PAR_OUVRANT))
+						tk = NEGATIF;
+				}
+			}
+			if (result == NULL && ((ADD <= tk && tk <= LOGIC_OR) || tk == PAR_FERMANT))
+			{
+				result = clear_dlist(result);
+				return NULL;
+			}
+			if (result != NULL)
+			{
+				token t = tokens(result->end->value);
+				if (((ADD <= t && t <= LOGIC_OR) && tk == PAR_FERMANT) ||
+					(((ADD <= t && t <= LOGIC_OR) || t == NEGATIF || t == PAR_OUVRANT) && (ADD <= tk && tk <= LOGIC_OR)))
+				{
+					result = clear_dlist(result);
+					return NULL;
+				}
+			}
 			result = push_back_dlist(result, op);
 			for (int k = sl - 1; k >= 0; k--)
 				temp[k] = '\0';
