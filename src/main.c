@@ -191,7 +191,12 @@ int main(int argc, char const* argv[])
     (void)argc;
     (void)argv;
 
-    DList rpn = In2post2("cos(PI/12)"); // 
+    DList rpn = In2post2("desolve(y''+2*y'+y=0,x,y)");
+    if (rpn == NULL)
+    {
+        printf("Syntax error...\n\nErreur syntaxe\n");
+        return 1;
+    }
     Tree* tr = to_tree(rpn);
 
     print_tree_prefix(tr);
@@ -199,6 +204,24 @@ int main(int argc, char const* argv[])
     printf("\n\n partie simplification :\n");
 
     Tree* simp = analyse(tr);
+    if (simp == NULL)
+    {
+        if (Error != NULL)
+        {
+            DListCell* element = Error->begin;
+            while (element != NULL)
+            {
+                puts(element->value);
+                element = element->next;
+            }
+            Error = clear_dlist(Error);
+        }
+        else
+        {
+            puts("Erreur.");
+        }
+        return 1;
+    }
     string expr = Post2in2(simp);
     print_tree_prefix(simp);
     clean_tree(simp);
