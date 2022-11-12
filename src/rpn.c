@@ -311,33 +311,33 @@ DList In2post(const uint8_t* ex, unsigned k)
 				if (t == PAR_FERMANT)
 					result = push_back_dlist(result, fnc[PROD].ex);
 			}
-            if (tk == SUB)
-            {
-                if (result == NULL)
-                    tk = NEGATIF;
-                else
-                {
-                    token t = tokens(result->end->value);
-                    if (((ADD <= t && t <= LOGIC_OR) && tk == PAR_OUVRANT))
-                        tk = NEGATIF;
-                }
-            }
-            if (result == NULL && ((ADD <= tk && tk <= LOGIC_OR) || tk == PAR_FERMANT))
-            {
-                result = clear_dlist(result);
-                return NULL;
-            }
-            if (result != NULL)
-            {
-                token t = tokens(result->end->value);
-                if (((ADD <= t && t <= LOGIC_OR) && tk == PAR_FERMANT) ||
-                    (((ADD <= t && t <= LOGIC_OR) || t == NEGATIF || t == PAR_OUVRANT) && (ADD <= tk && tk <= LOGIC_OR)))
-                {
-                    result = clear_dlist(result);
-                    return NULL;
-                }
-            }
-            result = push_back_dlist(result, fnc[tk].ex);
+			if (tk == SUB)
+			{
+				if (result == NULL)
+					tk = NEGATIF;
+				else
+				{
+					token t = tokens(result->end->value);
+					if (((ADD <= t && t <= LOGIC_OR) || t == PAR_OUVRANT))
+						tk = NEGATIF;
+				}
+			}
+			if (result == NULL && ((ADD <= tk && tk <= LOGIC_OR) || tk == PAR_FERMANT))
+			{
+				result = clear_dlist(result);
+				return NULL;
+			}
+			if (result != NULL)
+			{
+				token t = tokens(result->end->value);
+				if (((ADD <= t && t <= LOGIC_OR) && tk == PAR_FERMANT) ||
+				    (((ADD <= t && t <= LOGIC_OR) || t == NEGATIF || t == PAR_OUVRANT) && (ADD <= tk && tk <= LOGIC_OR)))
+				{
+					result = clear_dlist(result);
+					return NULL;
+				}
+			}
+			result = push_back_dlist(result, fnc[tk].ex);
 			if ((EXP_F <= tk && tk < AMOUNT_TOKEN) && tk != FACTORIEL_F)
 				result = push_back_dlist(result, fnc[PAR_OUVRANT].ex);
 			for (int j = 0; j < sl; ++j)
@@ -485,7 +485,7 @@ DList In2post2(const char* ex)
 				else
 				{
 					token t = tokens(result->end->value);
-					if (((ADD <= t && t <= LOGIC_OR) && tk == PAR_OUVRANT))
+					if (((ADD <= t && t <= LOGIC_OR) || t == PAR_OUVRANT))
 						tk = NEGATIF;
 				}
 			}
