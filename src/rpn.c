@@ -14,8 +14,7 @@ struct table_token ti_table[AMOUNT_TOKEN] =
 {
 	{{0}, 0}, {{0}, 0}, {{0}, 0}, {{0x2C}, 1}, {{0xAC}, 1},  {{0x0C}, 1}, {{0x0D}, 1}, {{0x0F}, 1},
 	/* OPERATOR */
-	{{0x70}, 1}, {{0x71}, 1}, {{0x82}, 1}, {{0x83}, 1}, {{0xF0}, 1}, {{0xEF, 0x2E}, 2}, {{0x2B}, 1},
-	{{0x10}, 1}, {{0x11}, 1},
+	{{0x10}, 1}, {{0x11}, 1}, {{0x70}, 1}, {{0x71}, 1}, {{0x82}, 1}, {{0x83}, 1}, {{0xF0}, 1}, {{0xEF, 0x2E}, 2}, {{0x2B}, 1},
 	/* COMPARISON */
 	{{0x6A}, 1}, {{0x6F}, 1}, {{0x6B}, 1}, {{0x6D}, 1}, {{0x6C}, 1}, {{0x6E}, 1},
 	/* LOGIC */
@@ -36,25 +35,24 @@ struct table_token ti_table[AMOUNT_TOKEN] =
 
 struct table_token fnc[AMOUNT_TOKEN] =
 {
-    { "\0", 0}, { "\0", 0}, { "UNDEF", 5}, { "@i", 2}, { "PI", 2}, { "^(-1)", 5}, { "^2", 2}, { "^3", 2},
-    /* OPÉRATEUR */
-    { "+", 1}, { "-", 1}, { "*", 1}, { "/", 1}, { "^", 1}, { "/", 1}, { ",", 1}, { "(", 1},
-	{ ")", 1},
-    /* COMPARISON */
-    { "=", 1}, { "!=", 2}, { "<", 1}, { "<=", 2}, { ">", 1}, { ">=", 2},
-    /* LOGIC */
-    { "and", 3}, { "or", 2},
-    /* NEGATION */
-    { "~", 1},
-    /* FUNCTIONS */
-    { "exp(", 4}, { "sqrt(", 5}, { "cbrt(", 5}, { "ln(", 3}, { "log(", 4}, { "logBASE(", 8}, { "10^(", 4},
+	{ "\0", 0}, { "\0", 0}, { "UNDEF", 5}, { "@i", 2}, { "PI", 2}, { "^(-1)", 5}, { "^2", 2}, { "^3", 2},
+	/* OPÉRATEUR */
+	{ "(", 1}, { ")", 1}, { "+", 1}, { "-", 1}, { "*", 1}, { "/", 1}, { "^", 1}, { "/", 1}, { ",", 1},
+	/* COMPARISON */
+	{ "=", 1}, { "!=", 2}, { "<", 1}, { "<=", 2}, { ">", 1}, { ">=", 2},
+	/* LOGIC */
+	{ "and", 3}, { "or", 2},
+	/* NEGATION */
+	{ "~", 1},
+	/* FUNCTIONS */
+	{ "exp(", 4}, { "sqrt(", 5}, { "cbrt(", 5}, { "ln(", 3}, { "log(", 4}, { "logBASE(", 8}, { "10^(", 4},
 	{ "[E]", 3}, { "abs(", 4}, { "sign(", 5}, { "cos(", 4}, { "sin(", 4}, { "tan(", 4}, { "asin(", 5}, { "acos(",5},
 	{ "atan(", 5}, { "sinh(", 6}, { "asinh(", 7}, { "cosh(", 6}, { "acosh(", 7}, { "tanh(", 6}, { "atanh(", 7},
 	{ "!", 1}, { "root(", 5},
 	/* COMPLEX FUNCTION */
 	{ "conj(", 5}, { "real(", 5}, { "image(", 6}, { "angle(", 6},
-    /* ANALYSE FUNCTIONS */
-    { "diff(", 5}, { "integral(", 9}, { "desolve(", 8}, { "tangent(", 8}, { "polyrem(", 8},
+	/* ANALYSE FUNCTIONS */
+	{ "diff(", 5}, { "integral(", 9}, { "desolve(", 8}, { "tangent(", 8}, { "polyrem(", 8},
 	{ "polyquot(", 9}, {"polygcd(", 8}, {"polysimp(", 9}, { "expand(", 7}, { "taylor(", 7}
 };
 
@@ -184,17 +182,17 @@ int opless( const char* a, const char* b)
 DList In2post(const uint8_t* ex, unsigned k)
 {
 	DList result = NULL, rlt = NULL, opstack = NULL;
-	DListCell* tmp;
+	DListCell *tmp;
 	char temp[TAILLE_MAX] = { 0 }, chr[3] = { 0 };
 	int stklen = 0, sl, p = 0;
-	unsigned i;
+    unsigned i;
 	temp[0] = '\0';
 	for (i = 0; i < k; ++i)
 	{
 		uint8_t ch = ex[i];
 		chr[0] = ch;
 		chr[1] = '\0';
-		token tk = token_ti(chr);
+        token tk = token_ti(chr);
 		sl = strlen(temp);
 		if (UNDEF < tk && tk <= PI)
 		{
@@ -220,7 +218,7 @@ DList In2post(const uint8_t* ex, unsigned k)
 			}
 			sl = 0;
 		}
-		else if (ch == 0xBB || ch == 0xEF)
+		else if(ch == 0xBB || ch == 0xEF)
 		{
 			i++;
 			char fn[3] = { ch, ex[i] };
@@ -239,13 +237,13 @@ DList In2post(const uint8_t* ex, unsigned k)
 			}
 			result = push_back_dlist(result, fnc[tk].ex);
 			if (EXP_F <= tk && tk < AMOUNT_TOKEN)
-			{
-				result = push_back_dlist(result, fnc[PAR_OUVRANT].ex);
-				p++;
-			}
+            {
+                result = push_back_dlist(result, fnc[PAR_OUVRANT].ex);
+                p++;
+            }
 			for (int j = 0; j < sl; ++j)
 				temp[j] = '\0';
-			sl = 0;
+            sl = 0;
 		}
 		else if (INVERSE <= tk && tk <= CUBE)
 		{
@@ -313,21 +311,33 @@ DList In2post(const uint8_t* ex, unsigned k)
 				if (t == PAR_FERMANT)
 					result = push_back_dlist(result, fnc[PROD].ex);
 			}
-			if (result == NULL && (ADD <= tk && tk <= LOGIC_OR) && tk != PAR_OUVRANT)
-			{
-				result = clear_dlist(result);
-				return NULL;
-			}
-			if (result != NULL && (ADD <= tk && tk <= LOGIC_OR))
-			{
-				token t = tokens(result->end->value);
-				if ((ADD <= t && t <= NEGATIF) && t != PAR_FERMANT)
-				{
-				    result = clear_dlist(result);
-				    return NULL;
-				}
-			}
-			result = push_back_dlist(result, fnc[tk].ex);
+            if (tk == SUB)
+            {
+                if (result == NULL)
+                    tk = NEGATIF;
+                else
+                {
+                    token t = tokens(result->end->value);
+                    if (((ADD <= t && t <= LOGIC_OR) && tk == PAR_OUVRANT))
+                        tk = NEGATIF;
+                }
+            }
+            if (result == NULL && ((ADD <= tk && tk <= LOGIC_OR) || tk == PAR_FERMANT))
+            {
+                result = clear_dlist(result);
+                return NULL;
+            }
+            if (result != NULL)
+            {
+                token t = tokens(result->end->value);
+                if (((ADD <= t && t <= LOGIC_OR) && tk == PAR_FERMANT) ||
+                    (((ADD <= t && t <= LOGIC_OR) || t == NEGATIF || t == PAR_OUVRANT) && (ADD <= tk && tk <= LOGIC_OR)))
+                {
+                    result = clear_dlist(result);
+                    return NULL;
+                }
+            }
+            result = push_back_dlist(result, fnc[tk].ex);
 			if ((EXP_F <= tk && tk < AMOUNT_TOKEN) && tk != FACTORIEL_F)
 				result = push_back_dlist(result, fnc[PAR_OUVRANT].ex);
 			for (int j = 0; j < sl; ++j)
