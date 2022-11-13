@@ -2304,9 +2304,8 @@ Tree* Contract_pow(Tree* v)
 	}
 	else if (v->tok_type == PROD || v->tok_type == DIVID)
 	{
-		map L = map_create(v), q = NULL, s = NULL;
+		map L = map_create(v), q = NULL, s = NULL, p = NULL;
 		clean_tree(v);
-		Tree* p = NULL;
 		mapCell* item = L->begin;
 		while (item != NULL)
 		{
@@ -2339,7 +2338,7 @@ Tree* Contract_pow(Tree* v)
 				}
 			}
 			else
-				p = (p == NULL) ? clone(item->tr) : join(p, clone(item->tr), fnc[PROD].ex);
+				p = push_back_map(p, item->tr);
 			item = item->next;
 		}
 		L = clear_map(L);
@@ -2349,14 +2348,17 @@ Tree* Contract_pow(Tree* v)
 			mapCell* tmp1 = s->begin;
 			while (tmp != NULL)
 			{
-				p = (p == NULL) ? join(clone(tmp1->tr), clone(tmp->tr), fnc[POW].ex) : join(p, join(clone(tmp1->tr), clone(tmp->tr), fnc[POW].ex), fnc[PROD].ex);
+				v = join(clone(tmp1->tr), clone(tmp->tr), fnc[POW].ex);
+				p = push_back_map(p, v);
+				clean_tree(v);
 				tmp = tmp->next;
 				tmp1 = tmp1->next;
 			}
 			q = clear_map(q);
 			s = clear_map(s);
+			p = map_sort(p);
 		}
-		return p;
+		return construct(fnc[PROD].ex, p);
 	}
 	return v;
 }
