@@ -1,7 +1,7 @@
 # CASymba
 
 🇺🇸 A **CAS engine** (symbolic math) for the TI-84 Plus CE / TI-83 Premium CE calculators  
-🇫🇷 *Un modeur de **calcul formel (CAS)** pour les calculatrices TI-84 Plus CE / TI-83 Premium CE*
+🇫🇷 *Un moteur de **calcul formel (CAS)** pour les calculatrices TI-84 Plus CE / TI-83 Premium CE*
 
 Source code: https://github.com/Hamza-STI/CASYMBA/
 
