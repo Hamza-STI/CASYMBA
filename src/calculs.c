@@ -2174,7 +2174,7 @@ Tree* analyse(Tree* tr)
 			clean_tree(tr);
 			return u;
 		}
-		if (is_constant(tr->tleft))
+		if (isconstant(tr->tleft))
 		{
 			Tree* u = clone(tr->tleft);
 			clean_tree(tr);
