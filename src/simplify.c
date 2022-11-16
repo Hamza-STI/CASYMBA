@@ -1228,14 +1228,13 @@ Tree* simplify(Tree* u)
 				clean_tree(v); clean_tree(w);
 				return new_tree(fnc[UNDEF].ex);
 			}
-			return join(v, join(w, join(new_tree("1"), NULL, fnc[NEGATIF].ex), fnc[POW].ex), fnc[PROD].ex);
+			return simplify(join(v, w, fnc[DIVID].ex));
 		}
 		u->tleft = simplify(u->tleft);
-		clean_noeud(u);
-		u = join(u, NULL, fnc[LN_F].ex);
-		Tree* v = simplify_ln(u), * w = join(new_tree("10"), NULL, fnc[LN_F].ex);
+		Tree* k = join(u, NULL, fnc[LN_F].ex);
+		Tree* v = simplify_ln(k), * w = join(new_tree("10"), NULL, fnc[LN_F].ex);
 		clean_tree(u);
-		return join(v, join(w, join(new_tree("1"), NULL, fnc[NEGATIF].ex), fnc[POW].ex), fnc[PROD].ex);
+		return simplify(join(v, w, fnc[DIVID].ex));
 	}
 	if (tk == ABS_F)
 	{
