@@ -1042,15 +1042,12 @@ static Tree* factorn(double val)
 	Tree* tr = NULL;
 	int f = 2, e = 0;
 	double m = sqrt(val);
-	double fractpart;
 	while (f <= m)
 	{
-		fractpart = fpart(val / f);
-		while (fractpart == 0)
+		while (fpart(val / f) == 0)
 		{
 			e++;
 			val /= f;
-			fractpart = fpart(val / f);
 		}
 		if (e > 0)
 		{
