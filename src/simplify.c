@@ -34,7 +34,6 @@ static Tree* sumOp(const char* left, const char* right);
 static Tree* diffOp(const char* left, const char* right);
 static Tree* prodOp(const char* left, const char* right);
 static Tree* factOp(const char* left);
-static Tree* factorn(double val);
 
 static Tree* simplify_RNE(Tree* u);
 static Tree* simplify_RNE_rec(Tree* u);
