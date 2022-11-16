@@ -1055,9 +1055,9 @@ static Tree* factorn(double val)
 		if (e > 0)
 		{
 			if (tr != NULL)
-				tr = join(tr, (e == 1) ? new_tree(tostr((double)f)) : join(new_tree(tostr((double)f)), new_tree(tostr((double)e)), fnc[POW].ex), fnc[PROD].ex);
+				tr = join(tr, (e == 1) ? new_tree(tostr(f)) : join(new_tree(tostr(f)), new_tree(tostr(e)), fnc[POW].ex), fnc[PROD].ex);
 			else
-				tr = (e == 1) ? new_tree(tostr((double)f)) : join(new_tree(tostr((double)f)), new_tree(tostr((double)e)), fnc[POW].ex);
+				tr = (e == 1) ? new_tree(tostr(f)) : join(new_tree(tostr(f)), new_tree(tostr(e)), fnc[POW].ex);
 			e = 0;
 			m = sqrt(val);
 		}
@@ -1066,9 +1066,9 @@ static Tree* factorn(double val)
 	if (val != 1)
 	{
 		if (tr != NULL)
-			tr = join(tr, new_tree(tostr((double)f)), fnc[PROD].ex);
+			tr = join(tr, new_tree(tostr(val)), fnc[PROD].ex);
 		else
-			tr = new_tree(tostr((double)f));
+			tr = new_tree(tostr(val));
 	}
 	return tr;
 }
