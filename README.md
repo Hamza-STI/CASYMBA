@@ -275,7 +275,7 @@ utilisez la fonction `stdDev(` ***calculatrice en anglais*** ou `écart-type(` *
 prgmCASYMBA
 ```
 
-## Décomposer un nombre en facteur premier <img src=https://i.imgur.com/tXjUZP3.png align="right">
+## Décomposer un nombre en facteur premier <img src=https://i.imgur.com/oKKuTeK.png align="right">
 
 utilisez la fonction `identity(` ***calculatrice en anglais*** ou `unité(` ***calculatrice en Français***
 
