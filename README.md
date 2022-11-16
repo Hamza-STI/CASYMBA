@@ -29,6 +29,7 @@ Il permet de faire :
 12. quotient d'une division euclidienne de 2 polynômes
 13. simplification d'une division de 2 polynômes
 14. développement d'expression
+15. décomposer en facteur premier (un entier)
 
 
 
@@ -271,5 +272,16 @@ utilisez la fonction `stdDev(` ***calculatrice en anglais*** ou `écart-type(` *
 
 ```
 "stdDev((A+B)^2)"
+prgmCASYMBA
+```
+
+## Décomposer un nombre en facteur premier <img src=https://i.imgur.com/tXjUZP3.png align="right">
+
+utilisez la fonction `identity(` ***calculatrice en anglais*** ou `unité(` ***calculatrice en Français***
+
+La fonction prend en argument un nombre entier (idéalement positif)
+
+```
+"identity(45)"
 prgmCASYMBA
 ```
