@@ -22,8 +22,8 @@ struct table_token ti_table[AMOUNT_TOKEN] =
 	/* NEGATION */
 	{{0xB0}, 1},
 	/* FUNCTIONS */
-	{{0xBF}, 1}, {{0xBC}, 1}, {{0xBD}, 1}, {{0xBE}, 1}, {{0xC0}, 1}, {{0xC1}, 1},
-	{{0x3B}, 1}, {{0xB2}, 1}, {{'S', 'I', 'G', 'N', 0x10}, 5}, {{0xC4}, 1}, {{0xC2}, 1}, {{0xC6}, 1}, {{0xC3}, 1},
+	{{0xBF}, 1}, {{0xBC}, 1}, {{0xBD}, 1}, {{0xBE}, 1}, {{0xC0}, 1},{{0xEF, 0x34}, 2}, {{0xC1}, 1},
+	{{0xB2}, 1}, {{'S', 'I', 'G', 'N', 0x10}, 5}, {{0xC4}, 1}, {{0xC2}, 1}, {{0xC6}, 1}, {{0xC3}, 1},
 	{{0xC5}, 1}, {{0xC7}, 1}, {{0xC8}, 1}, {{0xC9}, 1}, {{0xCA}, 1}, {{0xCB}, 1}, {{0xCC}, 1},
 	{{0xCD}, 1}, {{0x2D}, 1}, {{0xF1}, 1},
 	/*COMPLEX FUNCTIONS */
@@ -185,14 +185,14 @@ DList In2post(const uint8_t* ex, unsigned k)
 	DListCell *tmp;
 	char temp[TAILLE_MAX] = { 0 }, chr[3] = { 0 };
 	int stklen = 0, sl, p = 0;
-    unsigned i;
+	unsigned i;
 	temp[0] = '\0';
 	for (i = 0; i < k; ++i)
 	{
 		uint8_t ch = ex[i];
 		chr[0] = ch;
 		chr[1] = '\0';
-        token tk = token_ti(chr);
+		token tk = token_ti(chr);
 		sl = strlen(temp);
 		if (UNDEF < tk && tk <= PI)
 		{
@@ -223,27 +223,36 @@ DList In2post(const uint8_t* ex, unsigned k)
 			i++;
 			char fn[3] = { ch, ex[i] };
 			token tk = token_ti(fn);
-			if (sl != 0)
+			if (tk != TOKEN_INVALID)
 			{
-				result = push_back_dlist(result, temp);
+				if (sl != 0)
+				{
+					result = push_back_dlist(result, temp);
+					if (EXP_F <= tk && tk < AMOUNT_TOKEN)
+						result = push_back_dlist(result, fnc[PROD].ex);
+				}
+				if (result != NULL && tk != FRACTION)
+				{
+					token t = tokens(result->end->value);
+					if (!(ADD <= t && t <= NEGATIF) && t != PAR_OUVRANT && t != TOKEN_INVALID)
+						result = push_back_dlist(result, fnc[PROD].ex);
+				}
+				result = push_back_dlist(result, fnc[tk].ex);
 				if (EXP_F <= tk && tk < AMOUNT_TOKEN)
-					result = push_back_dlist(result, fnc[PROD].ex);
+				{
+					result = push_back_dlist(result, fnc[PAR_OUVRANT].ex);
+					p++;
+				}
+				for (int j = 0; j < sl; ++j)
+					temp[j] = '\0';
+				sl = 0;
 			}
-			if (result != NULL && tk != FRACTION)
+			else
 			{
-				token t = tokens(result->end->value);
-				if (!(ADD <= t && t <= NEGATIF) && t != PAR_OUVRANT && t != TOKEN_INVALID)
-					result = push_back_dlist(result, fnc[PROD].ex);
+				if (result != NULL)
+					result = clear_dlist(result);
+				return NULL;
 			}
-			result = push_back_dlist(result, fnc[tk].ex);
-			if (EXP_F <= tk && tk < AMOUNT_TOKEN)
-            {
-                result = push_back_dlist(result, fnc[PAR_OUVRANT].ex);
-                p++;
-            }
-			for (int j = 0; j < sl; ++j)
-				temp[j] = '\0';
-            sl = 0;
 		}
 		else if (INVERSE <= tk && tk <= CUBE)
 		{
@@ -264,6 +273,12 @@ DList In2post(const uint8_t* ex, unsigned k)
 			for (int j = 0; j < sl; ++j)
 				temp[j] = '\0';
 			sl = 0;
+		}
+		else if (tk == TOK_10_POWER)
+		{
+			result = push_back_dlist(result, "10");
+			result = push_back_dlist(result, fnc[POW].ex);
+			result = push_back_dlist(result, fnc[PAR_OUVRANT].ex);
 		}
 		else if (!isop(chr))
 		{
