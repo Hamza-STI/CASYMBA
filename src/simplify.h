@@ -27,7 +27,7 @@
 	double factoriel(double a);
 	Tree* trigo_identify(const char* s, token tk);
 	Tree* PGCD(Tree* A, Tree* B);
-    Tree* pow_transform(Tree* u);
+	Tree* pow_transform(Tree* u);
 
 	/* numeric simplify */
 
@@ -36,8 +36,9 @@
 	Tree* base(Tree* u);
 	Tree* exponent(Tree* u);
 	Tree* expand(Tree* tr);
-    Tree* constant(Tree* u);
-    Tree* term(Tree* u);
+	Tree* constant(Tree* u);
+	Tree* term(Tree* u);
+	Tree* factorn(double val);
 
 	/* symbolic simplify */
 
