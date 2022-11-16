@@ -57,7 +57,7 @@ struct table_token fnc[AMOUNT_TOKEN] =
 };
 
 bool isnumeric(uint8_t b) { return ((0x30 <= b && b <= 0x3A) || b == '.'); }
-bool isvar(uint8_t b) { return ((0x41 <= b && b < 0x5B) || ('a' <= b && b <= 'z')); }
+bool isvar(uint8_t b) { return ((0x41 <= b && b < 0x5B) || ('a' <= b && b <= 'z') || b == 0xAE || b == '\''); }
 
 int isconstant(Tree* tr)
 {
@@ -282,6 +282,12 @@ DList In2post(const uint8_t* ex, unsigned k)
 		}
 		else if (!isop(chr))
 		{
+			if (!isvar(ch) && !isnumeric(ch))
+			{
+				if (result != NULL)
+					result = clear_dlist(result);
+				return NULL;
+			}
 			if (strlen(temp) == 0)
 			{
 				if (result != NULL)
