@@ -22,8 +22,8 @@ struct table_token ti_table[AMOUNT_TOKEN] =
 	/* NEGATION */
 	{{0xB0}, 1},
 	/* FUNCTIONS */
-	{{0xBF}, 1}, {{0xBC}, 1}, {{0xBD}, 1}, {{0xBE}, 1}, {{0xC0}, 1}, {{0xEF, 0x34}, 2},
-	{{0xC1}, 1}, {{0x3B}, 1}, {{0xB2}, 1}, {{'S', 'I', 'G', 'N', 0x10}, 5}, {{0xC4}, 1}, {{0xC2}, 1}, {{0xC6}, 1}, {{0xC3}, 1},
+	{{0xBF}, 1}, {{0xBC}, 1}, {{0xBD}, 1}, {{0xBE}, 1}, {{0xC0}, 1}, {{0xC1}, 1},
+	{{0x3B}, 1}, {{0xB2}, 1}, {{'S', 'I', 'G', 'N', 0x10}, 5}, {{0xC4}, 1}, {{0xC2}, 1}, {{0xC6}, 1}, {{0xC3}, 1},
 	{{0xC5}, 1}, {{0xC7}, 1}, {{0xC8}, 1}, {{0xC9}, 1}, {{0xCA}, 1}, {{0xCB}, 1}, {{0xCC}, 1},
 	{{0xCD}, 1}, {{0x2D}, 1}, {{0xF1}, 1},
 	/*COMPLEX FUNCTIONS */
@@ -46,7 +46,7 @@ struct table_token fnc[AMOUNT_TOKEN] =
 	{ "~", 1},
 	/* FUNCTIONS */
 	{ "exp(", 4}, { "sqrt(", 5}, { "cbrt(", 5}, { "ln(", 3}, { "log(", 4}, { "logBASE(", 8}, { "10^(", 4},
-	{ "[E]", 3}, { "abs(", 4}, { "sign(", 5}, { "cos(", 4}, { "sin(", 4}, { "tan(", 4}, { "asin(", 5}, { "acos(",5},
+	{ "abs(", 4}, { "sign(", 5}, { "cos(", 4}, { "sin(", 4}, { "tan(", 4}, { "asin(", 5}, { "acos(",5},
 	{ "atan(", 5}, { "sinh(", 6}, { "asinh(", 7}, { "cosh(", 6}, { "acosh(", 7}, { "tanh(", 6}, { "atanh(", 7},
 	{ "!", 1}, { "root(", 5},
 	/* COMPLEX FUNCTION */
