@@ -30,7 +30,7 @@ struct table_token ti_table[AMOUNT_TOKEN] =
 	{{0xBB, 0x25}/*conj(*/, 2}, {{0xBB, 0x26}/*real(*/, 2}, {{0xBB, 0x27}/*image(*/, 2}, {{0xBB, 0x28}/*angle(*/, 2},
 	/* ANALYSE FUNCTIONS */
 	{{0x25}, 1}, {{0x24}, 1}, {{0x22} /*solve(*/, 1}, {{0xA7}, 1}, {{0xEF, 0x32}, 2},
-	{{0xB1}, 1}, {{0xBB, 0x09}, 2}, {{0xBB, 0x2A}/*expr(*/, 2}, {{0xBB, 0x0D}/*stdDev(*/, 2}, {{0xB3}/*det(*/, 1}
+	{{0xB1}, 1}, {{0xBB, 0x09}, 2}, {{0xBB, 0x2A}/*expr(*/, 2}, {{0xBB, 0x0D}/*stdDev(*/, 2}, {{0xB4}/*identity(*/, 1}, {{0xB3}/*det(*/, 1}
 };
 
 struct table_token fnc[AMOUNT_TOKEN] =
@@ -53,7 +53,7 @@ struct table_token fnc[AMOUNT_TOKEN] =
 	{ "conj(", 5}, { "real(", 5}, { "image(", 6}, { "angle(", 6},
 	/* ANALYSE FUNCTIONS */
 	{ "diff(", 5}, { "integral(", 9}, { "desolve(", 8}, { "tangent(", 8}, { "polyrem(", 8},
-	{ "polyquot(", 9}, {"polygcd(", 8}, {"polysimp(", 9}, { "expand(", 7}, { "taylor(", 7}
+	{ "polyquot(", 9}, {"polygcd(", 8}, {"polysimp(", 9}, { "expand(", 7}, {"factor(", 7}, { "taylor(", 7}
 };
 
 bool isnumeric(uint8_t b) { return ((0x30 <= b && b <= 0x3A) || b == '.'); }
