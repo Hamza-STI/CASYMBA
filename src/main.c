@@ -20,6 +20,7 @@ static const Help use_function[] =
     { "gcd 2 Polynomes", "poly1,poly2,var)", "X^3-6X^2+11X-6,X^2-6X+8,X)", ""},
     { "simplify 2 Polynomes", "poly1,poly2,var)", "X^3-6X^2+11X-6,X^2-6X+8,X)", ""},
     { "Developpement / expand", "Expr1)", "(A+B)^2)", ""},
+    {"facteur premier/prime factorization", "POSITIVE_INTEGER)", "45)", "" },
     { "Developpement limite / Taylor", "Expr1,var,ordre,point)", "sin(X),X,3,0)", ""}
 };
 
