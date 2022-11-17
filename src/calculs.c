@@ -177,7 +177,7 @@ static Tree* taylor_usuelle(Tree* u, const char* vr, Tree* ordre, Tree* point)
 		if (c->tok_type == UNDEF)
 		{
 			clean_tree(c); clean_tree(s); clean_tree(dtr);
-			Error = push_back_dlist(Error, "Erreur de calcul. Non géré.");
+			Error = push_back_dlist(Error, "Non géré. No solution.");
 			return NULL; // erreur
 		}
 		if (strcmp(c->value, "0"))
@@ -228,48 +228,48 @@ static Tree* taylor(Tree* u, Tree* vr, Tree* ordre, Tree* point)
 	else if (u->tok_type == PROD)
 	{
 		Tree* v = taylor(u->tleft, vr, ordre, point), * w = taylor(u->tright, vr, ordre, point);
-        if (v == NULL || w == NULL)
-        {
-            Error = push_back_dlist(Error, "Non géré.");
-            return NULL;
-        }
-        map lv = map_create_add(v), lw = map_create_add(w);
-        Tree* d = NULL, * s = new_tree("0");
-        mapCell* tmp_v = lv->begin, * tmp_w = NULL;
-        double g = Eval(ordre), h = 0;
-        while (tmp_v != NULL)
-        {
-            tmp_w = lw->begin;
-            while (tmp_w != NULL)
-            {
-                d = join(degree_sv(tmp_v->tr, vr->value), degree_sv(tmp_w->tr, vr->value), fnc[ADD].ex);
-                h = Eval(d);
-                clean_tree(d);
-                if (h <= g)
-                    s = join(s, simplify(join(tmp_v->tr, tmp_w->tr, fnc[PROD].ex)), fnc[ADD].ex);
-                else
-                    break;
-                tmp_w = tmp_w->next;
-            }
-            tmp_v = tmp_v->next;
-        }
-        lv = clear_map(lv);
-        lw = clear_map(lw);
-        clean_tree(v); clean_tree(w);
-        return simplify(s);
+		if (v == NULL || w == NULL)
+		{
+			Error = push_back_dlist(Error, "Non géré.");
+			return NULL;
+		}
+		map lv = map_create_add(v), lw = map_create_add(w);
+		Tree* d = NULL, * s = new_tree("0");
+		mapCell* tmp_v = lv->begin, * tmp_w = NULL;
+		double g = Eval(ordre), h = 0;
+		while (tmp_v != NULL)
+		{
+			tmp_w = lw->begin;
+			while (tmp_w != NULL)
+			{
+				d = join(degree_sv(tmp_v->tr, vr->value), degree_sv(tmp_w->tr, vr->value), fnc[ADD].ex);
+				h = Eval(d);
+				clean_tree(d);
+				if (h <= g)
+					s = join(s, simplify(join(tmp_v->tr, tmp_w->tr, fnc[PROD].ex)), fnc[ADD].ex);
+				else
+					break;
+				tmp_w = tmp_w->next;
+			}
+			tmp_v = tmp_v->next;
+		}
+		lv = clear_map(lv);
+		lw = clear_map(lw);
+		clean_tree(v); clean_tree(w);
+		return simplify(s);
 	}
 	else if (u->tok_type == ADD || u->tok_type == SUB)
 	{
 		Tree* v = taylor(u->tleft, vr, ordre, point), * w = taylor(u->tright, vr, ordre, point);
-		if (v == NULL && w == NULL)
-        {
-            Error = push_back_dlist(Error, "Non géré.");
-            return NULL;
-        }
-		if (v == NULL && w != NULL)
-			return simplify(join(clone(u->tleft), w, u->value));
-		if (v != NULL && w == NULL)
-			return simplify(join(v, clone(u->tright), u->value));
+		if (v == NULL || w == NULL)
+		{
+			if (v != NULL)
+				clean_tree(v);
+			if (w != NULL)
+				clean_tree(w);
+			Error = push_back_dlist(Error, "Non géré.");
+			return NULL;
+		}
 		return simplify(join(v, w, u->value));
 	}
 	return clone(u);
@@ -551,7 +551,7 @@ static Tree* trig_solution_2(Tree* a, Tree* b, Tree* c, const char* x, Tree* dg,
 		m3 = join(join(m3, new_tree(x), fnc[PROD].ex), m4, fnc[ADD].ex);
 		return join(join(m1, trig, fnc[PROD].ex), join(m3, trig1, fnc[PROD].ex), fnc[ADD].ex);
 	}
-	Error = push_back_dlist(Error, "Non géré.");
+	Error = push_back_dlist(Error, "Non géré. No solution.");
 	return NULL; // erreur cas non géré
 }
 
@@ -633,7 +633,7 @@ static Tree* solve_exact_2(Tree* a, Tree* b, Tree* c, Tree* f, map S, const char
 				if (R->length != 2)
 				{
 					R = clear_map(R);
-					Error = push_back_dlist(Error, "Erreur : forme attendue Acos(U)+Bsin(U).");
+					Error = push_back_dlist(Error, "Erreur : forme attendue/excepted form Acos(U)+Bsin(U).");
 					return NULL; //retourner une erreur forme attendu Acos(U)+Bsin(U)
 				}
 				trig = trig_separe(R->begin->tr, x, &part);
@@ -645,7 +645,7 @@ static Tree* solve_exact_2(Tree* a, Tree* b, Tree* c, Tree* f, map S, const char
 					clean_tree(trig1);
 					clean_tree(part1);
 					clean_tree(part);
-					Error = push_back_dlist(Error, "Erreur : forme attendue Acos(U)+Bsin(U).");
+					Error = push_back_dlist(Error, "Erreur : forme attendue/excepted form Acos(U)+Bsin(U).");
 					return NULL; //retourner une erreur forme attendu Acos(U)+Bsin(U)
 				}
 			}
@@ -730,7 +730,7 @@ static Tree* solve_ode_2(Tree* a, Tree* b, Tree* c, Tree* f, const char* x, cons
 	if (par_sol == NULL)
 	{
 		clean_tree(yh);
-		Error = push_back_dlist(Error, "Pas de solution particulière. Non géré.");
+		Error = push_back_dlist(Error, "Pas de solution particulière. No particular solution.");
 		return NULL;
 	}
 	if (strcmp(par_sol->value, "0"))
@@ -747,7 +747,7 @@ static Tree* solve_ode_2(Tree* a, Tree* b, Tree* c, Tree* f, const char* x, cons
 		if (b == NULL)
 		{
 			clean_tree(yh); clean_tree(cond1); clean_tree(cond2);
-			Error = push_back_dlist(Error, "Erreur argument condition.");
+			Error = push_back_dlist(Error, "Error: argument condition.");
 			return NULL;
 		}
 		c = get_condition(yh, cond2->tleft, x, y, &q);
@@ -755,7 +755,7 @@ static Tree* solve_ode_2(Tree* a, Tree* b, Tree* c, Tree* f, const char* x, cons
 		{
 			clean_tree(b); clean_tree(p); clean_tree(cond1); clean_tree(cond2);
 			clean_tree(yh);
-			Error = push_back_dlist(Error, "Erreur argument condition.");
+			Error = push_back_dlist(Error, "Error: argument condition.");
 			return NULL;
 		}
 		Tree* v = NULL, * w = NULL, * i = NULL, * j = NULL, * k = NULL, * l = NULL, * num1 = NULL, * num2 = NULL, * denom = NULL;
@@ -805,7 +805,7 @@ static Tree* solve_ode(Tree* M, Tree* N, Tree* f, const char* x, const char* y, 
 	if (g == NULL)
 	{
 		clean_tree(s);
-		Error = push_back_dlist(Error, "Pas de solution particulière. Non géré.");
+		Error = push_back_dlist(Error, "Pas de solution particulière. No particular solution.");
 		return NULL;
 	}
 	s = simplify(join(s, g, fnc[ADD].ex));
@@ -816,7 +816,7 @@ static Tree* solve_ode(Tree* M, Tree* N, Tree* f, const char* x, const char* y, 
 		if (dr == NULL)
 		{
 			clean_tree(s); clean_tree(cond);
-			Error = push_back_dlist(Error, "Erreur argument condition.");
+			Error = push_back_dlist(Error, "Error: argument condition.");
 			return NULL;
 		}
 		a = new_tree("1");
@@ -1994,7 +1994,7 @@ Tree* analyse(Tree* tr)
 		if (t->tok_type != SEPARATEUR)
 		{
 			clean_tree(tr);
-			Error = push_back_dlist(Error, "Erreur arguments.");
+			Error = push_back_dlist(Error, "Error: arguments.");
 			return NULL;
 		}
 		Tree* b = clone(t->tright);
@@ -2002,7 +2002,7 @@ Tree* analyse(Tree* tr)
 		if (t->tok_type != SEPARATEUR || b->gtype == VAR)
 		{
 			clean_tree(b); clean_tree(tr);
-			Error = push_back_dlist(Error, "Erreur arguments.");
+			Error = push_back_dlist(Error, "Error: arguments.");
 			return NULL;
 		}
 		Tree* a = clone(t->tright);
@@ -2018,7 +2018,7 @@ Tree* analyse(Tree* tr)
 		if (t->tok_type != SEPARATEUR)
 		{
 			clean_tree(tr);
-			Error = push_back_dlist(Error, "Erreur arguments.");
+			Error = push_back_dlist(Error, "Error: arguments.");
 			return NULL;
 		}
 		while (t->tleft->tok_type == SEPARATEUR)
@@ -2030,7 +2030,7 @@ Tree* analyse(Tree* tr)
 		clean_tree(f); clean_tree(x);
 		if (res == NULL)
 		{
-			Error = push_back_dlist(Error, "Non géré.");
+			Error = push_back_dlist(Error, "Non géré. No solution.");
 			return NULL;
 		}
 		return pow_transform(simplify(res));
@@ -2040,15 +2040,16 @@ Tree* analyse(Tree* tr)
 		Tree* t = tr->tleft;
 		if (t->tok_type != SEPARATEUR)
 		{
-			Error = push_back_dlist(Error, "Erreur arguments.");
+			clean_tree(tr);
+			Error = push_back_dlist(Error, "Error: arguments.");
 			return NULL;
 		}
 		Tree* y = clone(t->tright);
 		t = t->tleft;
 		if (t->tok_type != SEPARATEUR)
 		{
-			clean_tree(y);
-			Error = push_back_dlist(Error, "Erreur arguments.");
+			clean_tree(y); clean_tree(tr);
+			Error = push_back_dlist(Error, "Error: arguments.");
 			return NULL;
 		}
 		Tree* x = clone(t->tright);
@@ -2068,16 +2069,14 @@ Tree* analyse(Tree* tr)
 			i++;
 		}
 		for (i = 0; i < j; i++)
-		{
 			vrs = dlist_remove_id(vrs, li[i]);
-		}
 		vrs = dlist_sortD(vrs);
 		if (vrs == NULL || vrs->length > 3 || vrs->length < 2 || strlen(vrs->begin->value) - strlen(y->value) > 2)
 		{
-			clean_tree(x); clean_tree(y);
+			clean_tree(x); clean_tree(y); clean_tree(tr);
 			if (vrs != NULL)
 				vrs = clear_dlist(vrs);
-			Error = push_back_dlist(Error, "Erreur arguments. Verifiez la saisie.");
+			Error = push_back_dlist(Error, "Error: arguments.");
 			return NULL;
 		}
 		if (vrs != NULL && vrs->length == 2 && !strcmp(vrs->end->value, y->value) && strlen(vrs->begin->value) - strlen(y->value) == 1)
@@ -2087,8 +2086,10 @@ Tree* analyse(Tree* tr)
 			{
 				if (t->tleft->tok_type != EGAL)
 				{
-					clean_tree(x); clean_tree(y);
-					Error = push_back_dlist(Error, "Erreur arguments conditions.");
+					clean_tree(x); clean_tree(y); clean_tree(tr);
+					if (vrs != NULL)
+						vrs = clear_dlist(vrs);
+					Error = push_back_dlist(Error, "Error: arguments conditions.");
 					return NULL;
 				}
 				cond1 = clone(t->tright);
@@ -2109,8 +2110,10 @@ Tree* analyse(Tree* tr)
 		{
 			if (t->tleft->tleft->tok_type != EGAL || t->tleft->tok_type != LOGIC_AND)
 			{
-				clean_tree(x); clean_tree(y);
-				Error = push_back_dlist(Error, "Erreur arguments conditions.");
+				clean_tree(x); clean_tree(y); clean_tree(tr);
+				if (vrs != NULL)
+					vrs = clear_dlist(vrs);
+				Error = push_back_dlist(Error, "Error: arguments conditions.");
 				return NULL;
 			}
 			cond2 = clone(t->tright);
@@ -2149,7 +2152,8 @@ Tree* analyse(Tree* tr)
 	{
 		if (tr->tleft->tok_type == SEPARATEUR)
 		{
-			Error = push_back_dlist(Error, "Erreur Trop d'arguments.");
+			clean_tree(tr);
+			Error = push_back_dlist(Error, "Erreur Trop d'arguments. Error too many arguments.");
 			return NULL;
 		}
 		TRIG_EXPAND = true;
@@ -2180,6 +2184,9 @@ Tree* analyse(Tree* tr)
 			clean_tree(tr);
 			return u;
 		}
+		clean_tree(tr);
+		Error = push_back_dlist(Error, "Error: Argument : entier/int.");
+		return NULL;
 	}
 	else if (tk == REMAINDER_F || tk == INT_F || tk == GCD_F || tk == POLYSIMP_F)
 	{
@@ -2187,7 +2194,7 @@ Tree* analyse(Tree* tr)
 		if (t->tok_type != SEPARATEUR)
 		{
 			clean_tree(tr);
-			Error = push_back_dlist(Error, "Erreur arguments.");
+			Error = push_back_dlist(Error, "Error: arguments.");
 			return NULL;
 		}
 		Tree* b = clone(t->tright);
@@ -2195,7 +2202,7 @@ Tree* analyse(Tree* tr)
 		if (t->tok_type != SEPARATEUR)
 		{
 			clean_tree(b); clean_tree(tr);
-			Error = push_back_dlist(Error, "Erreur arguments.");
+			Error = push_back_dlist(Error, "Error: arguments.");
 			return NULL;
 		}
 		Tree* a = clone(t->tright), * r = NULL;
@@ -2213,6 +2220,6 @@ Tree* analyse(Tree* tr)
 		return pow_transform(r);
 	}
 	/*if (tk == SIN_F || tk == COS_F)
-            TRIGO_EXACT_SEARCH = true;*/
-        return pow_transform(Contract_pow(simplify(tr)));
+		TRIGO_EXACT_SEARCH = true;*/
+	return pow_transform(Contract_pow(simplify(tr)));
 }
