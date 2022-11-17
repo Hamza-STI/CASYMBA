@@ -221,7 +221,7 @@ prgmCASYMBA
 
 <img src="https://i.imgur.com/uHbSZvr.png" align="right">
 
-Utilisez la fonction `int(` ***calculatrice en anglais*** ou `ent(` ***calculatrice en Français***
+Utilisez la fonction `int(` ***calculatrice en anglais*** ou `partEnt(` ***calculatrice en Français***
 
 La fonction prend 3 arguments : `int(POLY1,POLY2,VARIABLE)`
 
