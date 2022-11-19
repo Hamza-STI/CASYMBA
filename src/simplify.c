@@ -711,7 +711,7 @@ static Tree* simplify_RNE_rec(Tree* u)
 	}
 	else if (u->tok_type == FACTORIEL_F)
 	{
-		Tree* t = simplify_RNE_rec(u->tleft);
+		Tree* t = simplify_RNE_rec(clone(u->tleft));
 		if (t->gtype == ENT)
 		{
 			Tree* ret = factOp(t->value);
