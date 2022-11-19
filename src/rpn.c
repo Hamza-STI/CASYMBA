@@ -975,20 +975,7 @@ DList Post2in2_rec(Tree* tr, DList rec)
 	optype op = tr->gtype;
 	if (op <= VAR)
 	{
-		if(op == DECIMAL)
-        {
-            size_t t = strlen(tr->value);
-            for (unsigned int i = 0; i < t; ++i)
-            {
-                if (tr->value[i] == '.')
-                {
-                    tr->value[i] = 0x3A;
-                }
-            }
-            rec = push_back_dlist(rec, tr->value);
-        }
-        else
-			rec = push_back_dlist(rec, tr->value);
+		rec = push_back_dlist(rec, tr->value);
 		return rec;
 	}
 	if (op == FUNCTION)
