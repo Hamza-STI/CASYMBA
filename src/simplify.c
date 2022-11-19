@@ -720,7 +720,7 @@ static Tree* simplify_RNE_rec(Tree* u)
 			return ret;
 		}
 		clean_tree(u);
-		return join(t, fnc[FACTORIEL_F].ex);
+		return join(t, NULL, fnc[FACTORIEL_F].ex);
 	}
 	else if (u->tok_type == ABS_F)
 	{
