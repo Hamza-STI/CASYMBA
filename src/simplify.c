@@ -210,9 +210,7 @@ Tree* pow_transform(Tree* u)
 			}
 		}
 		else if (u->gtype == FUNCTION || u->gtype == NEGATION)
-		{
 			u->tleft = pow_transform(u->tleft);
-		}
 		return u;
 	}
 }
@@ -226,8 +224,7 @@ Tree* numerator_fun(Tree* u)
 		Tree* v = u->tright;
 		if (isconstant(v))
 		{
-			double t = Eval(v);
-			if (t < 0)
+			if (Eval(v) < 0)
 				return new_tree("1");
 		}
 	}
@@ -247,8 +244,7 @@ Tree* denominator_fun(Tree* u)
 		Tree* v = u->tright;
 		if (isconstant(v))
 		{
-			double t = Eval(v);
-			if (t < 0)
+			if (Eval(v) < 0)
 				return simplify(join(clone(u), join(new_tree("1"), NULL, fnc[NEGATIF].ex), fnc[POW].ex));
 			return new_tree("1");
 		}
@@ -685,12 +681,9 @@ static Tree* simplify_RNE_rec(Tree* u)
 			clean_tree(u);
 			return new_tree(fnc[UNDEF].ex);
 		}
-		else
-		{
-			Tree* t = simplify_rational_number(u);
-			clean_tree(u);
-			return t;
-		}
+		Tree* t = simplify_rational_number(u);
+		clean_tree(u);
+		return t;
 	}
 	else if (u->tok_type == NEGATIF)
 	{
@@ -705,12 +698,12 @@ static Tree* simplify_RNE_rec(Tree* u)
 			clean_tree(u);
 			return r;
 		}
-        if (u->tleft->tok_type == NEGATIF)
-        {
-            Tree* r = clone(u->tleft->tleft);
+		if (u->tleft->tok_type == NEGATIF)
+		{
+			Tree* r = clone(u->tleft->tleft);
 			clean_tree(u);
 			return simplify_RNE_rec(r);
-        }
+		}
 		Tree* t = join(new_tree("1"), NULL, fnc[NEGATIF].ex);
 		Tree* tr = simplify_RNE_rec(join(t, simplify_RNE_rec(u->tleft), fnc[PROD].ex));
 		clean_noeud(u);
@@ -727,8 +720,7 @@ static Tree* simplify_RNE_rec(Tree* u)
 			return ret;
 		}
 		clean_tree(u);
-		clean_tree(t);
-		return new_tree(fnc[UNDEF].ex);
+		return join(t, fnc[FACTORIEL_F].ex);
 	}
 	else if (u->tok_type == ABS_F)
 	{
