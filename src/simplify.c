@@ -1116,7 +1116,7 @@ Tree* trigo_simplify(Tree* u, token tk)
 		clean_tree(u);
 		return s;
 	}
-	if (found_element(u, fnc[PI].ex) && (tk == COS_F || tk == SIN_F))
+	if (found_element(u, fnc[PI].ex) && (tk == COS_F || tk == SIN_F  || tk == TAN_F))
 	{
 		Tree* o = new_tree("1");
 		Tree* c = coefficient_gpe(u, fnc[PI].ex, o);
