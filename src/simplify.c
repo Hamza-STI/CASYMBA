@@ -1099,7 +1099,12 @@ Tree* trigo_simplify(Tree* u, token tk)
 		u = simplify(join(join(new_tree("1"), NULL, fnc[NEGATIF].ex), u, fnc[PROD].ex));
 		return trigo_simplify(u, tk);
 	}
-	if (tk == SIN_F && is_negation(u))
+	if (tk == ACOS_F && is_negation(u))
+	{
+		u = simplify(join(join(new_tree("1"), NULL, fnc[NEGATIF].ex), u, fnc[PROD].ex));
+		return simplify(join(trigo_simplify(u, ASIN_F), join(new_tree("2"), new_tree(fnc[PI].ex), fnc[DIVID].ex), fnc[ADD].ex));
+	}
+	if ((tk == SIN_F || tk == TAN_F || tk == ASIN_F || tk == ATAN_F) && is_negation(u))
 	{
 		u = simplify(join(join(new_tree("1"), NULL, fnc[NEGATIF].ex), u, fnc[PROD].ex));
 		return simplify(join(trigo_simplify(u, tk), NULL, fnc[NEGATIF].ex));
@@ -1246,11 +1251,23 @@ Tree* simplify(Tree* u)
 		clean_noeud(u);
 		return r;
 	}
-	if (tk == TAN_F)
+	if (tk == TAN_F || tk == ATAN_F)
 	{
 		u->tleft = simplify(u->tleft);
-		Tree* v = join(clone(u->tleft), NULL, fnc[SIN_F].ex);
-		Tree* w = join(join(clone(u->tleft), NULL, fnc[COS_F].ex), join(new_tree("1"), NULL, fnc[NEGATIF].ex), fnc[POW].ex);
+        	Tree* r = trigo_simplify(u->tleft, tk);
+		if(r != NULL)
+		{
+			clean_noeud(u);
+			return r;
+		}
+		token tkcos = COS_F, tksin = SIN_F;
+		if (tk == ATAN_F)
+		{
+			tkcos = ACOS_F;
+			tksin = ASIN_F;
+		}
+		Tree* v = join(clone(u->tleft), NULL, fnc[tksin].ex);
+		Tree* w = join(join(clone(u->tleft), NULL, fnc[tkcos].ex), join(new_tree("1"), NULL, fnc[NEGATIF].ex), fnc[POW].ex);
 		clean_tree(u);
 		return join(v,w, fnc[PROD].ex);
 	}
