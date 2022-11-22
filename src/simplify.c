@@ -1259,9 +1259,23 @@ Tree* simplify(Tree* u)
 			tksin = ASIN_F;
 		}
 		Tree* v = join(clone(u->tleft), NULL, fnc[tksin].ex);
-		Tree* w = join(join(clone(u->tleft), NULL, fnc[tkcos].ex), join(new_tree("1"), NULL, fnc[NEGATIF].ex), fnc[POW].ex);
+		Tree* w = join(clone(u->tleft), NULL, fnc[tkcos].ex),;
 		clean_tree(u);
-		return join(v,w, fnc[PROD].ex);
+		return join(v,w, fnc[DIVID].ex);
+	}
+	if (tk == TANH_F || tk == ATANH_F)
+	{
+		u->tleft = simplify(u->tleft);
+		token tkcosh = COSH_F, tksinh = SINH_F;
+		if (tk == ATANH_F)
+		{
+			tkcosh = ACOSH_F;
+			tksinh = ASINH_F;
+		}
+		Tree* v = join(clone(u->tleft), NULL, fnc[tksinh].ex);
+		Tree* w = join(clone(u->tleft), NULL, fnc[tkcosh].ex);
+		clean_tree(u);
+		return join(v,w, fnc[DIVID].ex);
 	}
 	if (tk == ROOT_F)
 	{
