@@ -907,7 +907,7 @@ static Tree* evaluate_add(Tree* left, Tree* right)
 static Tree* evaluate_diff(Tree* left, Tree* right)
 {
 	if (!strcmp(left->value, "0"))
-		return clone(right);
+		return join(clone(right), NULL, fnc[NEGATIF].ex);
 	if (!strcmp(right->value, "0"))
 		return clone(left);
 	if (count_tree_nodes(left) == 1 && count_tree_nodes(right) == 1)
