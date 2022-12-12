@@ -9,6 +9,31 @@ static Tree* tangline(Tree* tr, const char* vr, Tree* point);
 static Tree* taylor(Tree* u, Tree* vr, Tree* ordre, Tree* point);
 static Tree* integral(Tree* tr, const char* x);
 
+map polycoeffs(Tree* u, const char* x)
+{
+	int i = 1;
+	map cf = NULL;
+	Tree* z = new_tree("0");
+	Tree* r = remplace_tree(u, x, z), * d = diff(u, x);
+	r = simplify(r);
+	cf = push_back_map(cf, r);
+	clean_tree(r);
+	while (strcmp(d->value, "0"))
+	{
+		r = remplace_tree(d, x, z);
+		r = simplify(join(r, new_tree(tostr(factoriel(i))), fnc[DIVID].ex));
+		cf = push_front_map(cf, r);
+		clean_tree(r);
+		Tree* tmp = diff(d, x);
+		clean_tree(d);
+		d = tmp;
+		i++;
+	}
+	clean_tree(d);
+	clean_tree(z);
+	return cf;
+}
+
 static Tree* diff(Tree* tr, const char* vr)
 {
 	if (!found_element(tr, vr))
