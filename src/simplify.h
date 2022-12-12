@@ -63,6 +63,7 @@
 	Tree* poly_remainder(map L);
 	map coefficient_monomial_gpe(Tree* u, const char* x);
 	map polynomial_division(Tree* u, Tree* v, const char* x);
+	map polycoeffs(Tree* u, const char* x);
 	Tree* poly_gcd(Tree* u, Tree* v, const char* x);
 	Tree* poly_simp(Tree* u, Tree* v, const char* x);
 
