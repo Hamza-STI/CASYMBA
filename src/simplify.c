@@ -2651,32 +2651,85 @@ Tree* coefficient_gpe(Tree* u, const char* x, Tree* j)
 	}
 }
 
-map polynomial_division(Tree* u, Tree* v, const char* x) // page 116
+Tree* polyreconstitute(map Li, const char* x)
 {
-	Tree* q = new_tree("0");
-	Tree* r = clone(u);
-	Tree* dr = degree_sv(r, x);
-	Tree* dv = degree_sv(v, x);
-	map L = NULL;
-	int m = (int)Eval(dr), n = (int)Eval(dv);
-	Tree* lcv = coefficient_gpe(v, x, dv);
-	while (m >= n)
+	int n = Li->length;
+	mapCell* tmp = Li->begin;
+	Tree* u = NULL;
+	while (tmp != NULL)
 	{
-		Tree* lcr = coefficient_gpe(r, x, dr);
-		Tree* s = join(lcr, clone(lcv), fnc[DIVID].ex);
-		Tree* p = join(s, join(new_tree(x), join(dr, clone(dv), fnc[SUB].ex), fnc[POW].ex), fnc[PROD].ex);
-		q = join(q, clone(p), fnc[ADD].ex);
-		r = simplify(join(r, join(clone(v), p, fnc[PROD].ex), fnc[SUB].ex));
-		dr = degree_sv(r, x);
-		m = (int)Eval(dr);
+		Tree* v = clone(tmp->tr);
+		if (n > 2)
+			v = join(v, join(new_tree(x), new_tree(tostr(n - 1)), fnc[POW].ex), fnc[PROD].ex);
+		else if (n == 2)
+			v = join(v, new_tree(x), fnc[PROD].ex);
+		u = (u == NULL) ? v : join(u, v, fnc[ADD].ex);
+		n--;
+		tmp = tmp->next;
 	}
-	clean_tree(dr);
-	clean_tree(dv);
+	Li = clear_map(Li);
+	return u;
+}
+
+map polynomial_division(Tree* u, Tree* v, const char* x)
+{
+	map L = NULL, divd = polycoeffs(u, x), divr = polycoeffs(v, x);
+	map tmp = NULL, quot = NULL;
+	Tree* a = NULL;
+	while (divd->length >= divr->length)
+	{
+		a = simplify(join(clone(divd->begin->tr), clone(divr->begin->tr), fnc[DIVID].ex));
+		mapCell* t = divr->begin;
+		while (t != NULL)
+		{
+			Tree* k = simplify(join(clone(a), clone(t->tr), fnc[PROD].ex));
+			tmp = push_back_map(tmp, k);
+			clean_tree(k);
+			t = t->next;
+		}
+		mapCell* celdivd = divd->begin, * celtmp = tmp->begin;
+		while (celdivd != NULL && celtmp != NULL)
+		{
+			Tree* k = simplify(join(clone(celdivd->tr), clone(celtmp->tr), fnc[SUB].ex));
+			clean_tree(celdivd->tr);
+			celdivd->tr = clone(k);
+			clean_tree(k);
+			celdivd = celdivd->next;
+			celtmp = celtmp->next;
+		}
+		quot = push_back_map(quot, a);
+		clean_tree(a);
+		tmp = clear_map(tmp);
+		bool z = true;
+		celdivd = divd->begin;
+		while (z)
+		{
+			if (!strcmp(celdivd->tr->value, "0"))
+			{
+				divd = pop_front_map(divd);
+				if (divd != NULL)
+					celdivd = divd->begin;
+				else
+					break;
+			}
+			else
+				z = false;
+		}
+		if (divd == NULL)
+			break;
+	}
+	if (divd == NULL)
+	{
+		a = new_tree("0");
+		divd = push_back_map(divd, a);
+		clean_tree(a);
+	}
+	divr = clear_map(divr);
+	Tree* q = polyreconstitute(quot, x);
+	Tree* r = polyreconstitute(divd, x);
 	L = push_back_map(L, q);
 	L = push_back_map(L, r);
-	clean_tree(q);
-	clean_tree(r);
-	clean_tree(lcv);
+	clean_tree(r); clean_tree(q);
 	return L;
 }
 
