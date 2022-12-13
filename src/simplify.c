@@ -2761,9 +2761,9 @@ Tree* poly_gcd(Tree* u, Tree* v, const char* x)
 		V = R;
 	}
 	clean_tree(V);
-	Tree* dr = degree_sv(U, x);
-	Tree* lcr = coefficient_gpe(U, x, dr);
-	clean_tree(dr);
+	map L = polycoeffs(U, x);
+	Tree* lcr = clone(L->begin->tr);
+	L = clear_map(L);
 	return simplify(join(join(new_tree("1"), lcr, fnc[DIVID].ex), U, fnc[PROD].ex));
 }
 
