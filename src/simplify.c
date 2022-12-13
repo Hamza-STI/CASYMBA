@@ -1297,6 +1297,45 @@ Tree* simplify(Tree* u)
 	}
 	if (tk == POW)
 		return simplify_power(u);
+	if (tk == DIVID)
+	{
+		string vr = variable(u);
+		if (vr != NULL)
+		{
+			Tree* dn = degree_sv(u->tleft, vr), * dd = degree_sv(u->tright, vr);
+			if (strcmp(dn->value, "0") && strcmp(dd->value, "0"))
+			{
+				int a = Eval(dn), b = Eval(dd);
+				clean_tree(dd);
+				if (a >= b)
+				{
+					clean_tree(dn);
+					Tree* tr = poly_simp(u->tleft, u->tright, vr);
+					free(vr);
+					clean_tree(u);
+					return tr;
+				}
+				else
+				{
+					clean_tree(dn);
+					Tree* tr = poly_simp(u->tright, u->tleft, vr);
+					free(vr);
+					dn = numerator_fun(tr);
+					dd = denominator_fun(tr);
+					clean_tree(tr);
+					clean_tree(u);
+					if (!strcmp(dd->value, "1"))
+					{
+						clean_tree(dn);
+						return dd;
+					}
+					return join(dd, dn, fnc[DIVID].ex);
+				}
+			}
+			clean_tree(dn); clean_tree(dd);
+			free(vr);
+		}
+	}
 	if (tk == ADD || tk == SUB || tk == PROD || tk == DIVID)
 	{
 		if (tk == PROD)
