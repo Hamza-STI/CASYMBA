@@ -2715,6 +2715,12 @@ map polynomial_division(Tree* u, Tree* v, const char* x)
 	map L = NULL, divd = polycoeffs(u, x), divr = polycoeffs(v, x);
 	map tmp = NULL, quot = NULL;
 	Tree* a = NULL;
+	if (divd->length < divr->length)
+	{
+		map w = divd;
+		divd = divr;
+		divr = w;
+	}
 	while (divd->length >= divr->length)
 	{
 		a = simplify(join(clone(divd->begin->tr), clone(divr->begin->tr), fnc[DIVID].ex));
