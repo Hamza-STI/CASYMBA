@@ -144,6 +144,19 @@ map clear_map(map li)
 	return NULL;
 }
 
+map clone_map(map Li)
+{
+	map new_Li = NULL;
+	mapCell* tmp = Li->begin;
+	while (tmp != NULL)
+	{
+		Tree* a = tmp->tr;
+		new_Li = push_back_map(new_Li, a);
+		tmp = tmp->next;
+	}
+	return new_Li;
+}
+
 map map_create(Tree *tr)
 {
 	token tk = tr->tok_type;
