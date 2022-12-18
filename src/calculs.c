@@ -34,6 +34,65 @@ map polycoeffs(Tree* u, const char* x)
 	return cf;
 }
 
+static Tree* square_free_factor(Tree* u, const char* x)
+{
+	map cf = polycoeffs(u, x), coef_u = NULL, coef_v = NULL;
+	Tree* c = clone(cf->begin->tr);
+	mapCell* tmp = cf->begin;
+	while (tmp != NULL)
+	{
+		Tree* q = simplify(join(clone(tmp->tr), clone(c), fnc[DIVID].ex));
+		coef_u = push_back_map(coef_u, q);
+		clean_tree(q);
+		tmp = tmp->next;
+	}
+	cf = clear_map(cf);
+	int i = coef_u->length - 1;
+	tmp = coef_u->begin;
+	while (i > 0)
+	{
+		Tree* q = simplify(join(clone(tmp->tr), new_tree(tostr(i)), fnc[PROD].ex));
+		coef_v = push_back_map(coef_v, q);
+		clean_tree(q);
+		i--;
+		tmp = tmp->next;
+	}
+	map R = poly_gcd(coef_u, coef_v);
+	coef_v = clear_map(coef_v);
+	map F = poly_quotient(coef_u, R);
+	coef_u = clear_map(coef_u);
+	Tree* P = NULL;
+	int j = 1;
+	while (R->length > 1 || strcmp(R->begin->tr->value, "1"))
+	{
+		map G = poly_gcd(R, F);
+		map q = poly_quotient(F, G);
+		Tree* s = polyreconstitute(q, x);
+		if (j > 1 && strcmp(s->value, "1"))
+			s = join(s, new_tree(tostr(j)), fnc[POW].ex);
+		if (strcmp(s->value, "1"))
+			P = (P == NULL) ? s : join(P, s, fnc[PROD].ex);
+		else
+			clean_tree(s);
+		map tmp = poly_quotient(R, G);
+		R = clear_map(R); F = clear_map(F);
+		R = tmp;
+		F = G;
+		j++;
+	}
+	R = clear_map(R);
+	Tree* f = polyreconstitute(F, x);
+	if (j > 1)
+		f = join(f, new_tree(tostr(j)), fnc[POW].ex);
+	P = (P == NULL) ? f : join(P, f, fnc[PROD].ex);
+	if (!strcmp(c->value, "1"))
+	{
+		clean_tree(c);
+		return P;
+	}
+	return join(c, P, fnc[PROD].ex);
+}
+
 static Tree* diff(Tree* tr, const char* vr)
 {
 	if (!found_element(tr, vr))
@@ -2190,28 +2249,48 @@ Tree* analyse(Tree* tr)
 	}
 	else if (tk == FACTOR_F)
 	{
-		tr->tleft = simplify(tr->tleft);
-		if (tr->tleft->gtype == ENT)
+		if (tr->tleft->tok_type == SEPARATEUR && tr->tleft->tright->gtype == VAR)
 		{
-			Tree* u = factorn(tonumber(tr->tleft->value));
-			clean_tree(tr);
-			return u;
+			if (ispoly(tr->tleft->tleft, tr->tleft->tright->value))
+			{
+				Tree* s = square_free_factor(tr->tleft->tleft, tr->tleft->tright->value);
+				clean_tree(tr);
+				return s;
+			}
+			return tr;
 		}
-		if (is_int(tr->tleft))
+		else
 		{
-			Tree* u = factorn(tonumber(tr->tleft->tleft->value));
+			tr->tleft = simplify(tr->tleft);
+			if (tr->tleft->gtype == ENT)
+			{
+				Tree* u = factorn(tonumber(tr->tleft->value));
+				clean_tree(tr);
+				return u;
+			}
+			if (is_int(tr->tleft))
+			{
+				Tree* u = factorn(tonumber(tr->tleft->tleft->value));
+				clean_tree(tr);
+				return join(join(new_tree("1"), NULL, fnc[NEGATIF].ex), u, fnc[PROD].ex);
+			}
+			if (isconstant(tr->tleft))
+			{
+				Tree* u = clone(tr->tleft);
+				clean_tree(tr);
+				return u;
+			}
+			string vr = variable(tr->tleft);
+			if (vr != NULL && ispoly(tr->tleft, vr))
+			{
+				Tree* s = square_free_factor(tr->tleft->tleft, vr);
+				clean_tree(tr); free(vr);
+				return s;
+			}
 			clean_tree(tr);
-			return u;
+			Error = push_back_dlist(Error, "Error: Argument : entier/int.");
+			return NULL;
 		}
-		if (isconstant(tr->tleft))
-		{
-			Tree* u = clone(tr->tleft);
-			clean_tree(tr);
-			return u;
-		}
-		clean_tree(tr);
-		Error = push_back_dlist(Error, "Error: Argument : entier/int.");
-		return NULL;
 	}
 	else if (tk == REMAINDER_F || tk == INT_F || tk == GCD_F || tk == POLYSIMP_F)
 	{
