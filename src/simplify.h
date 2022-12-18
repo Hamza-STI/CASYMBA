@@ -59,12 +59,13 @@
 	Tree* degree_sv(Tree* u, const char* x);
 	Tree* degree_monomial_sv(Tree* u, const char* x);
 	Tree* coefficient_gpe(Tree* u, const char* x, Tree* j);
-	Tree* poly_quotient(map L);
-	Tree* poly_remainder(map L);
+	map poly_quotient(map u,map v);
+	map poly_remainder(map u, map v);
+	Tree* polyreconstitute(map Li, const char* x);
 	map coefficient_monomial_gpe(Tree* u, const char* x);
-	map polynomial_division(Tree* u, Tree* v, const char* x);
+	map polynomial_division(map u, map v, map* rem);
 	map polycoeffs(Tree* u, const char* x);
-	Tree* poly_gcd(Tree* u, Tree* v, const char* x);
-	Tree* poly_simp(Tree* u, Tree* v, const char* x);
+	map poly_gcd(map u, map v);
+	Tree* poly_simp(map u, map v, const char* x);
 
 #endif
