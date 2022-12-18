@@ -1310,7 +1310,8 @@ Tree* simplify(Tree* u)
 				if (a >= b)
 				{
 					clean_tree(dn);
-					Tree* tr = poly_simp(u->tleft, u->tright, vr);
+					map coef_u = polycoeffs(u->tleft, vr), coef_v = polycoeffs(u->tright, vr);
+					Tree* tr = poly_simp(coef_u, coef_v, vr);
 					free(vr);
 					clean_tree(u);
 					return tr;
@@ -1318,7 +1319,8 @@ Tree* simplify(Tree* u)
 				else
 				{
 					clean_tree(dn);
-					Tree* tr = poly_simp(u->tright, u->tleft, vr);
+					map coef_u = polycoeffs(u->tleft, vr), coef_v = polycoeffs(u->tright, vr);
+					Tree* tr = poly_simp(coef_u, coef_v, vr);
 					free(vr);
 					dn = numerator_fun(tr);
 					dd = denominator_fun(tr);
@@ -2015,11 +2017,43 @@ static Tree* simplify_sum(map L)
 	return construct(fnc[ADD].ex, v);
 }
 
+static Tree* denom_com(Tree* m, Tree* n, Tree* r, Tree* s, const char* op)
+{
+	DList vrs = NULL;
+	vrs = getvars(r, vrs);
+	if (vrs != NULL && ispoly(r, vrs->begin->value) && ispoly(s, vrs->begin->value))
+	{
+		Tree* dr = degree_sv(r, vrs->begin->value), * ds = degree_sv(s, vrs->begin->value);
+		double r1 = Eval(dr), s1 = Eval(ds);
+		clean_tree(dr); clean_tree(ds);
+		if (r1 * s1 > 0)
+		{
+			if (!(r1 >= s1))
+			{
+				Tree* tmp = m, * ptmp = r;
+				m = n; n = tmp; r = s; s = ptmp;
+			}
+			map coef_r = polycoeffs(r, vrs->begin->value), coef_s = polycoeffs(s, vrs->begin->value);
+			map gcd = poly_gcd(coef_r, coef_s);
+			map quot = poly_quotient(coef_r, gcd);
+			Tree* t = NULL, * q = polyreconstitute(quot, vrs->begin->value);
+			m = simplify(join(m, q, fnc[PROD].ex));
+			t = rationalize_sum(m, n, op);
+			clean_tree(n); clean_tree(m); clean_tree(s);
+			gcd = clear_map(gcd);
+			vrs = clear_dlist(vrs);
+			return join(t, r, fnc[DIVID].ex);
+		}
+	}
+	if (vrs != NULL)
+		vrs = clear_dlist(vrs);
+	return NULL;
+}
+
 static Tree* rationalize_sum(Tree* u, Tree* v, const char* op)
 {
 	Tree* m = numerator_fun(u), * r = denominator_fun(u);
 	Tree* n = numerator_fun(v), * s = denominator_fun(v);
-	DList vrs = NULL;
 	if (!strcmp(r->value, "1") && !strcmp(s->value, "1"))
 	{
 		clean_tree(m); clean_tree(r); clean_tree(n); clean_tree(s);
@@ -2052,9 +2086,9 @@ static Tree* rationalize_sum(Tree* u, Tree* v, const char* op)
 			}
 		}
 	}
-    
-	if (vrs != NULL)
-		vrs = clear_dlist(vrs);
+	Tree* ret = denom_com(m, n, r, s, op);
+	if (ret != NULL)
+		return ret;
 	Tree* d = simplify(join(clone(r), clone(s), fnc[PROD].ex));
 	Tree* a = simplify(join(m, s, fnc[PROD].ex));
 	Tree* b = simplify(join(n, r, fnc[PROD].ex));
@@ -2697,12 +2731,15 @@ Tree* polyreconstitute(map Li, const char* x)
 	Tree* u = NULL;
 	while (tmp != NULL)
 	{
-		Tree* v = clone(tmp->tr);
-		if (n > 2)
-			v = join(v, join(new_tree(x), new_tree(tostr(n - 1)), fnc[POW].ex), fnc[PROD].ex);
-		else if (n == 2)
-			v = join(v, new_tree(x), fnc[PROD].ex);
-		u = (u == NULL) ? v : join(u, v, fnc[ADD].ex);
+		if (strcmp(tmp->tr->value, "0"))
+		{
+			Tree* v = clone(tmp->tr);
+			if (n > 2)
+				v = join(v, join(new_tree(x), new_tree(tostr(n - 1)), fnc[POW].ex), fnc[PROD].ex);
+			else if (n == 2)
+				v = join(v, new_tree(x), fnc[PROD].ex);
+			u = (u == NULL) ? v : join(v, u, fnc[ADD].ex);
+		}
 		n--;
 		tmp = tmp->next;
 	}
@@ -2710,9 +2747,8 @@ Tree* polyreconstitute(map Li, const char* x)
 	return u;
 }
 
-map polynomial_division(Tree* u, Tree* v, const char* x)
+map polynomial_division(map divd, map divr, map* rem)
 {
-	map L = NULL, divd = polycoeffs(u, x), divr = polycoeffs(v, x);
 	map tmp = NULL, quot = NULL;
 	Tree* a = NULL;
 	if (divd->length < divr->length)
@@ -2721,6 +2757,7 @@ map polynomial_division(Tree* u, Tree* v, const char* x)
 		divd = divr;
 		divr = w;
 	}
+	bool z = true;
 	while (divd->length >= divr->length)
 	{
 		a = simplify(join(clone(divd->begin->tr), clone(divr->begin->tr), fnc[DIVID].ex));
@@ -2745,24 +2782,24 @@ map polynomial_division(Tree* u, Tree* v, const char* x)
 		quot = push_back_map(quot, a);
 		clean_tree(a);
 		tmp = clear_map(tmp);
-		bool z = true;
+		z = true;
+		if (divd->length > 1)
+			divd = pop_front_map(divd);
 		celdivd = divd->begin;
-		while (z)
+		while (celdivd != NULL)
 		{
-			if (!strcmp(celdivd->tr->value, "0"))
+			if (strcmp(celdivd->tr->value, "0"))
 			{
-				divd = pop_front_map(divd);
-				if (divd != NULL)
-					celdivd = divd->begin;
-				else
-					break;
-			}
-			else
 				z = false;
+				break;
+			}
+			celdivd = celdivd->next;
 		}
-		if (divd == NULL)
+		if (z)
 			break;
 	}
+	if (z)
+		divd = clear_map(divd);
 	if (divd == NULL)
 	{
 		a = new_tree("0");
@@ -2770,71 +2807,70 @@ map polynomial_division(Tree* u, Tree* v, const char* x)
 		clean_tree(a);
 	}
 	divr = clear_map(divr);
-	Tree* q = polyreconstitute(quot, x);
-	Tree* r = polyreconstitute(divd, x);
-	L = push_back_map(L, q);
-	L = push_back_map(L, r);
-	clean_tree(r); clean_tree(q);
+	*rem = divd;
+	return quot;
+}
+
+map poly_quotient(map u, map v)
+{
+	map rem = NULL, coef_u = clone_map(u), coef_v = clone_map(v);
+	map L = polynomial_division(coef_u, coef_v, &rem);
+	rem = clear_map(rem);
 	return L;
 }
 
-Tree* poly_quotient(map L)
+map poly_remainder(map u, map v)
 {
-	Tree* tr = clone(L->begin->tr);
+	map rem = NULL, coef_u = clone_map(u), coef_v = clone_map(v);
+	map L = polynomial_division(coef_u, coef_v, &rem);
 	L = clear_map(L);
-	return simplify(tr);
+	return rem;
 }
 
-Tree* poly_remainder(map L)
+map poly_gcd(map u, map v)
 {
-	Tree* tr = clone(L->end->tr);
-	L = clear_map(L);
-	return tr;
-}
-
-Tree* poly_gcd(Tree* u, Tree* v, const char* x)
-{
-	if (!strcmp(u->value, "0") && !strcmp(v->value, "0"))
-		return new_tree("1");
-	Tree* U = clone(u), * V = clone(v);
-	while (strcmp(V->value, "0"))
+	if (u->length == 1 && !strcmp(u->begin->tr->value, "0") && v->length == 1 && !strcmp(v->begin->tr->value, "0"))
 	{
-		Tree* R = poly_remainder(polynomial_division(U, V, x));
-		clean_tree(U);
-		U = clone(V);
-		clean_tree(V);
+		map L = NULL;
+		Tree* un = new_tree("1");
+		L = push_back_map(L, un);
+		clean_tree(un);
+		return L;
+	}
+	map U = clone_map(u), V = clone_map(v);
+	while (V->length > 1 || strcmp(V->begin->tr->value, "0"))
+	{
+		map R = poly_remainder(U, V);
+		U = clear_map(U);
+		U = V;
 		V = R;
 	}
-	clean_tree(V);
-	map L = polycoeffs(U, x);
-	Tree* lcr = clone(L->begin->tr);
-	L = clear_map(L);
-	return simplify(join(join(new_tree("1"), lcr, fnc[DIVID].ex), U, fnc[PROD].ex));
+	V = clear_map(V);
+	Tree* lcr = clone(U->begin->tr);
+	mapCell* tmp = U->begin;
+	while (tmp != NULL)
+	{
+		tmp->tr = simplify(join(tmp->tr, clone(lcr), fnc[DIVID].ex));
+		tmp = tmp->next;
+	}
+	clean_tree(lcr);
+	return U;
 }
 
-Tree* poly_simp(Tree* u, Tree* v, const char* x)
+Tree* poly_simp(map u, map v, const char* x)
 {
-	Tree* deg_u = degree_sv(u, x);
-	Tree* deg_v = degree_sv(v, x);
-	double a = Eval(deg_u), b = Eval(deg_v);
-	clean_tree(deg_u);
-	clean_tree(deg_v);
-	if (a > 0 && b > 0 && ((u->tok_type == SUB || u->tok_type == ADD) && (v->tok_type == SUB || v->tok_type == ADD)))
+	if (u->length > 1 && v->length > 1)
 	{
-		Tree* pgcd = poly_gcd(u, v, x);
-		if (strcmp(pgcd->value, "1"))
+		map pgcd = poly_gcd(u, v);
+		map qn = poly_quotient(u, pgcd), qd = poly_quotient(v, pgcd);
+		Tree* ql = polyreconstitute(qn, x), * qr = polyreconstitute(qd, x);
+		pgcd = clear_map(pgcd); u = clear_map(u); v = clear_map(v);
+		if (!strcmp(qr->value, "1"))
 		{
-			Tree* ql = poly_quotient(polynomial_division(u, pgcd, x));
-			Tree* qr = poly_quotient(polynomial_division(v, pgcd, x));
-			clean_tree(pgcd);
-			if (!strcmp(qr->value, "1"))
-			{
-				clean_tree(qr);
-				return ql;
-			}
-			return join(ql, join(qr, join(new_tree("1"), NULL, fnc[NEGATIF].ex), fnc[POW].ex), fnc[PROD].ex);
+			clean_tree(qr);
+			return ql;
 		}
-		clean_tree(pgcd);
+		return join(ql, qr, fnc[DIVID].ex);
 	}
-	return join(u, join(v, join(new_tree("1"), NULL, fnc[NEGATIF].ex), fnc[POW].ex), fnc[PROD].ex);
+	return join(polyreconstitute(u, x), polyreconstitute(v, x), fnc[DIVID].ex);
 }
