@@ -411,7 +411,8 @@ Tree* expand_main_op(Tree* u)
 			Tree* tr = NULL;
 			while (tmp != NULL)
 			{
-				tr = (!tr) ? clone(tmp->tr) : join(tr, clone(tmp->tr), u->value);
+				Tree* w = join(clone(tmp->tr), clone(s), fnc[PROD].ex);
+				tr = (!tr) ? w : join(tr, w, u->value);
 				tmp = tmp->next;
 			}
 			L = clear_map(L);
@@ -1343,7 +1344,7 @@ Tree* simplify(Tree* u)
 		if (tk == PROD)
 		{
 			LN_EXP_EXPAND = false;
-			Tree* r = expand(u);
+			Tree* r = expand_main_op(u);
 			clean_tree(u);
 			u = r;
 			tk = u->tok_type;
