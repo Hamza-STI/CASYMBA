@@ -773,12 +773,8 @@ DList Post2in_rec(Tree* tr, DList rec)
 		{
 			size_t t = strlen(tr->value);
 			for (unsigned int i = 0; i < t; ++i)
-			{
 				if (tr->value[i] == '.')
-				{
 					tr->value[i] = 0x3A;
-				}
-			}
 			rec = push_back_dlist(rec, tr->value);
 		}
 		else
@@ -841,7 +837,7 @@ DList Post2in_rec(Tree* tr, DList rec)
 				return rec;
 			}
 			string tmp = malloc((strlen(pleft) + strlen(pright) + 7) * sizeof(tmp));
-			string tmp1 = malloc((strlen(pright) + 3) * sizeof(tmp1));
+			string tmp1 = malloc((strlen(pleft) + 3) * sizeof(tmp1));
 			if (tr->tleft->tleft != NULL && (tr->tleft->tok_type == ADD || tr->tleft->tok_type == SUB))
 				sprintf(tmp1, "%s%s%s%s", ti_table[PAR_OUVRANT].ex, pleft, ti_table[PAR_FERMANT].ex, oper);
 			else
