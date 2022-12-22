@@ -400,7 +400,7 @@ Tree* expand(Tree* tr)
 
 Tree* expand_main_op(Tree* u)
 {
-	if (u->tok_type == PROD || u->tok_type == POW)
+	if (u->tok_type == PROD)
 	{
 		Tree* r = u->tleft;
 		Tree* s = u->tright;
@@ -412,7 +412,7 @@ Tree* expand_main_op(Tree* u)
 			while (tmp != NULL)
 			{
 				Tree* w = join(clone(tmp->tr), clone(s), fnc[PROD].ex);
-				tr = (!tr) ? w : join(tr, w, u->value);
+				tr = (!tr) ? w : join(tr, w, fnc[ADD].ex);
 				tmp = tmp->next;
 			}
 			L = clear_map(L);
