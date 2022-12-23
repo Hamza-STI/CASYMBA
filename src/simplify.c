@@ -5,7 +5,7 @@ bool ALG_EXPAND = false;
 bool LN_EXP_EXPAND = false;
 bool TRIG_EXPAND = false;
 bool RT_SIMP = false;
-//bool TRIGO_EXACT_SEARCH = false;
+bool TRIGO_EXACT_SEARCH = false;
 
 static const struct Trigo_value Exact_Values[AMONT_VALUE_TRIG] =
 {
@@ -1092,7 +1092,7 @@ static Tree* factorn(double val)
 	return tr;
 }
 
-Tree* texpand(Tree* f, token tk)
+static Tree* texpand(Tree* f, token tk)
 {
 	if (f->tok_type == ADD || f->tok_type == SUB)
 	{
@@ -1131,7 +1131,7 @@ Tree* trigo_simplify(Tree* u, token tk)
 		u = simplify(join(join(new_tree("1"), NULL, fnc[NEGATIF].ex), u, fnc[PROD].ex));
 		return simplify(join(trigo_simplify(u, tk), NULL, fnc[NEGATIF].ex));
 	}
-	if ((isconstant(u) || found_element(u, fnc[PI].ex)) && (tk == COS_F || tk == SIN_F  || tk == TAN_F))
+	if ((isconstant(u) || found_element(u, fnc[PI].ex)) && (tk == COS_F || tk == SIN_F || tk == TAN_F))
 	{
 		string su = Post2in2(u);
 		Tree* s = trigo_identify(su, tk);
@@ -1161,14 +1161,123 @@ Tree* trigo_simplify(Tree* u, token tk)
 		}
 		Tree* tmp = join(clone(c), new_tree(fnc[PI].ex), fnc[PROD].ex);
 		string tmps = Post2in2(tmp);
-		Tree* s = trigo_identify(tmps, tk);
+		s = trigo_identify(tmps, tk);
 		clean_tree(tmp);
 		if (s != NULL)
 		{
 			clean_tree(c); clean_tree(u);
 			return s;
 		}
+		char ls[8][2] = { "2", "3", "4", "5", "6", "8", "10", "12" };
+		int li[] = { 2, 3, 4, 5, 6, 8, 10, 12 }, y[2] = { 0, 0 }, index_y[2] = { 0, 0 };
+		double v = 0;
+		bool b = false;
+		Tree* n = numerator_fun(c), * d = denominator_fun(c);
 		clean_tree(c);
+		int z = (int)Eval(n), r = (int)Eval(d), w = 0;
+		for (int i = 7; i >= 0; i--)
+		{
+			if (!strcmp(d->value, ls[i]) && is_int(n))
+			{
+				clean_tree(u);
+				c = join(new_tree("1"), clone(d), fnc[DIVID].ex);
+				if (n->tok_type == NEGATIF)
+					c = join(c, NULL, fnc[NEGATIF].ex);
+				tmp = join(clone(c), new_tree(fnc[PI].ex), fnc[PROD].ex);
+				for (int k = 1; k < abs(z); k++)
+					tmp = join(tmp, join(clone(c), new_tree(fnc[PI].ex), fnc[PROD].ex), fnc[ADD].ex);
+				clean_tree(n); clean_tree(d); clean_tree(c);
+				u = texpand(tmp, tk);
+				clean_tree(tmp);
+				return u;
+			}
+			if (w < 2)
+			{
+				v = (double)r / li[i];
+				if (v == (int)v)
+				{
+					y[w] = li[i];
+					index_y[w] = i;
+					if (w == 1)
+					{
+						v = (double)y[0] * y[1] / r;
+						if (v == (int)v)
+						{
+							b = true;
+							break;
+						}
+						else
+						{
+							w = 0;
+							y[w] = li[i];
+							index_y[w] = i;
+						}
+					}
+					w++;
+				}
+			}
+		}
+		clean_tree(n);
+		clean_tree(d);
+		if (b)
+		{
+			n = NULL;
+			tmp = NULL;
+			for (int i = 1; i < y[0]; i++)
+			{
+				for (int k = 1; k < y[1]; k++)
+				{
+					w = (int)(i * y[0] - k * y[1]);
+					if (w == (int)v || w == 1)
+					{
+						if (w != 1)
+							z = 1;
+						clean_tree(u);
+						tmp = join(join(new_tree(tostr(i)), new_tree(ls[index_y[0]]), fnc[DIVID].ex), new_tree(fnc[PI].ex), fnc[PROD].ex);
+						tmp = join(tmp, join(join(new_tree(tostr(k)), new_tree(ls[index_y[1]]), fnc[DIVID].ex), new_tree(fnc[PI].ex), fnc[PROD].ex), fnc[SUB].ex);
+					}
+					w = (int)(k * y[1] - i * y[0]);
+					if (w == (int)v || w == 1)
+					{
+						if (w != 1)
+							z = 1;
+						clean_tree(u);
+						tmp = join(join(new_tree(tostr(k)), new_tree(ls[index_y[1]]), fnc[DIVID].ex), new_tree(fnc[PI].ex), fnc[PROD].ex);
+						tmp = join(join(join(new_tree(tostr(i)), new_tree(ls[index_y[0]]), fnc[DIVID].ex), new_tree(fnc[PI].ex), fnc[PROD].ex), tmp, fnc[SUB].ex);
+					}
+					w = (int)(i * y[0] + k * y[1]);
+					if (w == (int)v || w == 1)
+					{
+						if (w != 1)
+							z = 1;
+						clean_tree(u);
+						tmp = join(join(new_tree(tostr(z)), new_tree(ls[index_y[0]]), fnc[DIVID].ex), new_tree(fnc[PI].ex), fnc[PROD].ex);
+						tmp = join(tmp, join(join(new_tree(tostr(z)), new_tree(ls[index_y[1]]), fnc[DIVID].ex), new_tree(fnc[PI].ex), fnc[PROD].ex), fnc[ADD].ex);
+					}
+					if (tmp != NULL)
+					{
+						if (z == 1)
+						{
+							u = texpand(tmp, tk);
+							clean_tree(tmp);
+							return u;
+						}
+						for (int j = z; j > 0; j--)
+							n = (n == NULL) ? new_tree("a") : join(n, new_tree("a"), fnc[ADD].ex);
+						u = simplify(texpand(n, tk));
+						clean_tree(n);
+						Tree* cs = simplify(texpand(tmp, COS_F)), * sn = simplify(texpand(tmp, SIN_F));
+						clean_tree(tmp);
+						n = join(new_tree("a"), NULL, fnc[COS_F].ex);
+						tmp = join(new_tree("a"), NULL, fnc[SIN_F].ex);
+						Tree* sub_cos = substitute(u, n, cs);
+						Tree* sub_sin = substitute(sub_cos, tmp, sn);
+						clean_tree(u); clean_tree(tmp); clean_tree(n); clean_tree(sub_cos); clean_tree(cs); clean_tree(sn);
+						return sub_sin;
+					}
+				}
+			}
+		}
 	}
 	return join(u, NULL, fnc[tk].ex);
 }
