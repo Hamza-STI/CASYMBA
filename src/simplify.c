@@ -60,6 +60,7 @@ static Tree* contract_ln_rules(Tree* u);
 static Tree* contract_ln(Tree* u);
 static Tree* expand_exp(Tree* u);
 static Tree* expand_ln(Tree* u);
+static Tree* expand_main_op(Tree* u);
 
 static int free_of(Tree* u, Tree* t);
 static map merge_products(map p, map q);
@@ -344,15 +345,8 @@ Tree* expand_power(Tree* u, double n)
 			c = factoriel(n) / (factoriel(i) * factoriel(n - i));
 			Tree* a = simplify(join(new_tree(tostr(c)), g, fnc[PROD].ex));
 			Tree* b = simplify(expand_power(r, i));
-			if (s == NULL)
-			{
-				s = expand_product(a, b);
-			}
-			else
-			{
-				Tree* t = expand_product(a, b);
-				s = join(s, t, u->value);
-			}
+			Tree* t = expand_product(a, b);
+			s = (s == NULL) ? t : join(s, t, u->value);
 			clean_tree(a);
 			clean_tree(b);
 		}
@@ -396,6 +390,37 @@ Tree* expand(Tree* tr)
 	else if (tk == EXP_F && LN_EXP_EXPAND)
 		return expand_exp(tr);
 	return clone(tr);
+}
+
+static Tree* expand_pow_op(Tree* u, int n)
+{
+	if (u->tok_type == ADD || u->tok_type == SUB)
+	{
+		Tree* f = u->tleft;
+		Tree* r = u->tright;
+		Tree* s = NULL;
+		double c;
+		int i;
+		for (i = 0; i <= n; i++)
+		{
+			Tree* g = join(clone(f), new_tree(tostr(n - i)), fnc[POW].ex);
+			c = factoriel(n) / (factoriel(i) * factoriel(n - i));
+			Tree* a = simplify(join(new_tree(tostr(c)), g, fnc[PROD].ex));
+			Tree* b = expand_pow_op(r, i);
+			a = join(a, b, fnc[PROD].ex);
+			Tree* t = expand_main_op(a);
+			s = (s == NULL) ? t : join(s, t, u->value);
+			clean_tree(a);
+		}
+		return s;
+	}
+	if (u->tok_type == POW && u->tright->gtype == ENT)
+	{
+		int d = Eval(u->tright);
+		if (d <= 10)
+			return expand_pow_op(u->tleft, d);
+	}
+	return join(clone(u), new_tree(tostr(n)), fnc[POW].ex);
 }
 
 Tree* expand_main_op(Tree* u)
@@ -1349,7 +1374,7 @@ Tree* simplify(Tree* u)
 			u = r;
 			tk = u->tok_type;
 		}
-		bool need_sort = false, cplx = (tk == DIVID && found_element(u->tright, fnc[IMAGE].ex));
+		bool cplx = (tk == DIVID && found_element(u->tright, fnc[IMAGE].ex));
 		map v = map_create(u);
 		clean_tree(u);
 		mapCell* tmp = v->begin;
@@ -1370,14 +1395,12 @@ Tree* simplify(Tree* u)
 						k = k->next;
 					}
 					d = clear_map(d);
-					need_sort = true;
 				}
 			}
 			tmp = tmp->next;
 		}
 		Tree* ret = NULL;
-		if (need_sort)
-			v = map_sort(v);
+		v = map_sort(v);
 		if (tk == PROD || tk == DIVID)
 			ret = simplify_product(v);
 		if (tk == ADD || tk == SUB)
@@ -1476,6 +1499,17 @@ Tree* simplify_integer_power(Tree* v, Tree* w)
 		else if (a / 2 == (int)(a / 2))
 			return join(new_tree("1"), NULL, fnc[NEGATIF].ex);
 		return join(join(new_tree("1"), NULL, fnc[NEGATIF].ex), new_tree(fnc[IMAGE].ex), fnc[PROD].ex);
+	}
+	if (v->tok_type == ADD || v->tok_type == SUB)
+	{
+		int d = Eval(w);
+		if (d <= 10)
+		{
+			Tree* tr = join(v, w, fnc[POW].ex);
+			Tree* s = expand_main_op(tr);
+			clean_tree(tr);
+			return simplify(s);
+		}
 	}
 	if (!strcmp("2", w->value) && v->tok_type == COS_F)
 		TRIG_EXPAND = true;
