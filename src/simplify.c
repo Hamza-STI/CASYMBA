@@ -1092,28 +1092,6 @@ static Tree* factorn(double val)
 	return tr;
 }
 
-static Tree* texpand(Tree* f, token tk)
-{
-	if (f->tok_type == ADD || f->tok_type == SUB)
-	{
-		Tree* a = f->tleft, * b = f->tright;
-		token tk1 = (tk == COS_F) ? SIN_F : COS_F, op_tk = f->tok_type;
-		Tree* v = texpand(a, tk), * w = texpand(b, tk1);
-		Tree* p = texpand(b, tk), * q = texpand(a, tk1);
-		if (tk == COS_F)
-		{
-			op_tk = (f->tok_type == ADD) ? SUB : ADD;
-			return join(join(v, p, fnc[PROD].ex), join(w, q, fnc[PROD].ex), fnc[op_tk].ex);
-		}
-        if(op_tk == SUB)
-        {
-		return join(join(q, p, fnc[PROD].ex), join(v, w, fnc[PROD].ex), fnc[op_tk].ex);
-        }
-		return join(join(v, w, fnc[PROD].ex), join(q, p, fnc[PROD].ex), fnc[op_tk].ex);
-	}
-	return trigo_simplify(clone(f), tk);
-}
-
 Tree* trigo_simplify(Tree* u, token tk)
 {
 	if (tk == COS_F && is_negation(u))
