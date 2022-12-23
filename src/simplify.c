@@ -5,7 +5,7 @@ bool ALG_EXPAND = false;
 bool LN_EXP_EXPAND = false;
 bool TRIG_EXPAND = false;
 bool RT_SIMP = false;
-bool TRIGO_EXACT_SEARCH = false;
+//bool TRIGO_EXACT_SEARCH = false;
 
 static const struct Trigo_value Exact_Values[AMONT_VALUE_TRIG] =
 {
@@ -1168,7 +1168,7 @@ Tree* trigo_simplify(Tree* u, token tk)
 			clean_tree(c); clean_tree(u);
 			return s;
 		}
-		char ls[8][2] = { "2", "3", "4", "5", "6", "8", "10", "12" };
+		/*char ls[8][2] = { "2", "3", "4", "5", "6", "8", "10", "12" };
 		int li[] = { 2, 3, 4, 5, 6, 8, 10, 12 }, y[2] = { 0, 0 }, index_y[2] = { 0, 0 };
 		double v = 0;
 		bool b = false;
@@ -1277,7 +1277,7 @@ Tree* trigo_simplify(Tree* u, token tk)
 					}
 				}
 			}
-		}
+		}*/
 	}
 	return join(u, NULL, fnc[tk].ex);
 }
