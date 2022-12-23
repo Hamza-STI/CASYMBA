@@ -206,7 +206,7 @@ map map_create_prod(Tree* tr)
 		tmp = tmp->tleft;
 	}
 	li = push_front_map(li, tmp);
-	return map_sort(li);
+	return li;
 }
 
 map map_create_add(Tree* tr)
@@ -274,7 +274,7 @@ map map_create_add(Tree* tr)
 		tmp = tmp->tleft;
 	}
 	li = push_front_map(li, tmp);
-	return map_sort(li);
+	return li;
 }
 
 map map_remplace(map L, int pos, Tree* tr)
