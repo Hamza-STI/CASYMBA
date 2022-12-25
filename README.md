@@ -280,6 +280,6 @@ prgmCASYMBA
 Pour la factorisation de polynômes : ***(seulement pour certains polynômes)***
 
 ```
-identity(X^5+6X^4+10X^3-4X^2-24X-6,X)"
+"identity(X^5+6X^4+10X^3-4X^2-24X-6,X)"
 prgmCASYMBA
 ```
