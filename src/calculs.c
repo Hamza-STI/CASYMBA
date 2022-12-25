@@ -2298,7 +2298,7 @@ Tree* analyse(Tree* tr)
 		if (t->tok_type != SEPARATEUR)
 		{
 			clean_tree(tr);
-			Error = push_back_dlist(Error, "Error: arguments.");
+			Error = push_back_dlist(Error, "Erreur arguments.");
 			return NULL;
 		}
 		Tree* b = clone(t->tright);
@@ -2306,24 +2306,29 @@ Tree* analyse(Tree* tr)
 		if (t->tok_type != SEPARATEUR)
 		{
 			clean_tree(b); clean_tree(tr);
-			Error = push_back_dlist(Error, "Error: arguments.");
+			Error = push_back_dlist(Error, "Erreur arguments.");
 			return NULL;
 		}
-		Tree* a = clone(t->tright), * r = NULL;
-		t = clone(t->tleft);
+		Tree* a = t->tright;
+		t = t->tleft;
+		map coef_t = polycoeffs(t, b->value), coef_a = polycoeffs(a, b->value), r = NULL;
 		clean_tree(tr);
 		if (tk == REMAINDER_F)
-			r = poly_remainder(polynomial_division(t, a, b->value));
+			r = poly_remainder(coef_t, coef_a);
 		else if (tk == INT_F)
-			r = poly_quotient(polynomial_division(t, a, b->value));
+			r = poly_quotient(coef_t, coef_a);
 		else if (tk == POLYSIMP_F)
-			r = poly_simp(t, a, b->value);
+		{
+			Tree* ret = poly_simp(coef_t, coef_a, b->value);
+			clean_tree(b);
+			return ret;
+		}
 		else
-			r = poly_gcd(t, a, b->value);
-		clean_tree(t); clean_tree(a); clean_tree(b);
-		return pow_transform(r);
+			r = poly_gcd(coef_t, coef_a);
+		coef_t = clear_map(coef_t); coef_a = clear_map(coef_a);
+		Tree* ret = polyreconstitute(r, b->value);
+		clean_tree(b);
+		return pow_transform(ret);
 	}
-	/*if (tk == SIN_F || tk == COS_F)
-		TRIGO_EXACT_SEARCH = true;*/
 	return pow_transform(Contract_pow(simplify(tr)));
 }
