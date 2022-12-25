@@ -261,7 +261,7 @@ prgmCASYMBA
 
 <br>
 
-## Décomposer un nombre en facteur premier
+## Décomposer un nombre en facteur premier et factorisation de polynômes
 
 <img src=https://i.imgur.com/oKKuTeK.png align="right">
 
@@ -270,5 +270,16 @@ Utilisez la fonction `identity(` ***calculatrice en anglais*** ou `unité(` ***c
 La fonction prend en argument un nombre entier (idéalement positif)
 ```
 "identity(45)"
+prgmCASYMBA
+```
+
+<br>
+
+<img src="https://imgur.com/545YAvK.png" align="right">
+
+Pour la factorisation de polynômes : ***(seulement pour certains polynômes)***
+
+```
+identity(X^5+6X^4+10X^3-4X^2-24X-6,X)"
 prgmCASYMBA
 ```
