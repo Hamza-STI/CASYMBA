@@ -2317,21 +2317,6 @@ Tree* expand_ln_rules(Tree* u)
 		return new_tree(fnc[UNDEF].ex);
 	if (!strcmp(u->value, "1"))
 		return new_tree("0");
-	if (u->gtype == ENT)
-	{
-		Tree* tr = factorn(tonumber(u->value));
-		if (tr->tok_type == PROD || tr->tok_type == POW)
-		{
-			Tree* t = expand_ln_rules(tr);
-			clean_tree(tr);
-			return t;
-		}
-		else
-		{
-			clean_tree(tr);
-			return join(clone(u), NULL, fnc[LN_F].ex);
-		}
-	}
 	if (u->tok_type == PROD)
 		return join(expand_ln_rules(u->tleft), expand_ln_rules(u->tright), fnc[ADD].ex);
 	if (u->tok_type == DIVID)
