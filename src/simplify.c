@@ -431,16 +431,22 @@ Tree* expand_main_op(Tree* u)
 		Tree* s = u->tright;
 		if (r->tok_type == ADD || r->tok_type == SUB)
 		{
-			map L = map_create(r);
+			map L = map_create_add(r), M = map_create_add(s);
 			mapCell* tmp = L->begin;
 			Tree* tr = NULL;
 			while (tmp != NULL)
 			{
-				Tree* w = join(clone(tmp->tr), clone(s), fnc[PROD].ex);
-				tr = (!tr) ? w : join(tr, w, fnc[ADD].ex);
+				mapCell* tmp1 = M->begin;
+				while (tmp1 != NULL)
+				{
+					Tree* w = join(clone(tmp->tr), clone(tmp1->tr), fnc[PROD].ex);
+					tr = (!tr) ? w : join(tr, w, fnc[ADD].ex);
+					tmp1 = tmp1->next;
+				}
 				tmp = tmp->next;
 			}
 			L = clear_map(L);
+			M = clear_map(M);
 			return tr;
 		}
 		else if (u->tok_type == PROD && (s->tok_type == ADD || s->tok_type == SUB))
@@ -450,6 +456,12 @@ Tree* expand_main_op(Tree* u)
 			clean_tree(p);
 			return t;
 		}
+	}
+	if (u->tok_type == POW && u->tright->gtype == ENT)
+	{
+		int d = Eval(u->tright);
+		if (d <= 10)
+			return expand_pow_op(u->tleft, d);
 	}
 	return clone(u);
 }
@@ -1059,7 +1071,7 @@ int integer_gcd(int a, int b)
 	return b;
 }
 
-static Tree* factorn(double val)
+Tree* factorn(double val)
 {
 	Tree* tr = NULL;
 	int f = 2, e = 0;
@@ -1266,7 +1278,7 @@ Tree* simplify(Tree* u)
 			tksin = ASIN_F;
 		}
 		Tree* v = join(clone(u->tleft), NULL, fnc[tksin].ex);
-		Tree* w = join(clone(u->tleft), NULL, fnc[tkcos].ex),;
+		Tree* w = join(clone(u->tleft), NULL, fnc[tkcos].ex);
 		clean_tree(u);
 		return join(v,w, fnc[DIVID].ex);
 	}
