@@ -275,6 +275,17 @@ prgmCASYMBA
 
 <br>
 
+
+
+
+
+
+
+
+
+
+
+
 <img src="https://imgur.com/545YAvK.png" align="right">
 
 Pour la factorisation de polynômes : ***(seulement pour certains polynômes)***
