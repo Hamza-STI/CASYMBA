@@ -8,6 +8,7 @@ static Tree* diff_partial(Tree* tr, const char* vr, const char* vr1);
 static Tree* tangline(Tree* tr, const char* vr, Tree* point);
 static Tree* taylor(Tree* u, Tree* vr, Tree* ordre, Tree* point);
 static Tree* integral(Tree* tr, const char* x);
+static Tree* square_free_factor(Tree* u, const char* x);
 
 map polycoeffs(Tree* u, const char* x)
 {
@@ -34,6 +35,33 @@ map polycoeffs(Tree* u, const char* x)
 	return cf;
 }
 
+static Tree* factor_by_int(Tree* u, const char* x)
+{
+	int i = 1;
+	while (i <= 10)
+	{
+		Tree* v = new_tree(tostr(i)), * w = join(new_tree(tostr(i)), NULL, fnc[NEGATIF].ex);
+		Tree* r = simplify(remplace_tree(u, x, v)), * s = simplify(remplace_tree(u, x, w));
+		if (!strcmp(r->value, "0") || !strcmp(s->value, "0"))
+		{
+			map cf = polycoeffs(u, x), R = NULL;
+			Tree* un = new_tree("1");
+			R = push_back_map(R, un);
+			R = push_back_map(R, (!strcmp(s->value, "0")) ? v : w);
+			clean_tree(r); clean_tree(s); clean_tree(v); clean_tree(w); clean_tree(un);
+			map Q = poly_quotient(cf, R);
+			Tree* q = polyreconstitute(Q, x), * f = polyreconstitute(R, x);
+			r = square_free_factor(q, x);
+			cf = clear_map(cf);
+			clean_tree(q);
+			return join(f, r, fnc[PROD].ex);
+		}
+		clean_tree(r); clean_tree(s); clean_tree(v); clean_tree(w);
+		i++;
+	}
+	return  u;
+}
+
 static Tree* square_free_factor(Tree* u, const char* x)
 {
 	map cf = polycoeffs(u, x), coef_u = NULL, coef_v = NULL;
@@ -47,7 +75,8 @@ static Tree* square_free_factor(Tree* u, const char* x)
 		tmp = tmp->next;
 	}
 	cf = clear_map(cf);
-	int i = coef_u->length - 1;
+	int k = coef_u->length;
+	int i = k - 1;
 	tmp = coef_u->begin;
 	while (i > 0)
 	{
@@ -61,6 +90,12 @@ static Tree* square_free_factor(Tree* u, const char* x)
 	coef_v = clear_map(coef_v);
 	map F = poly_quotient(coef_u, R);
 	coef_u = clear_map(coef_u);
+	if (R->length == 1 && !strcmp(R->begin->tr->value, "1") && k > 2)
+	{
+		R = clear_map(R); F = clear_map(F);
+		clean_tree(c);
+		return factor_by_int(u, x);
+	}
 	Tree* P = NULL;
 	int j = 1;
 	while (R->length > 1 || strcmp(R->begin->tr->value, "1"))
