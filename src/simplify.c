@@ -677,7 +677,7 @@ static Tree* simplify_rational_number(Tree* u)
 	{
 		Tree* n = u->tleft;
 		Tree* d = u->tright;
-		int a = atoi(n->value), b = atoi(d->value);
+		long long int a = atoi(n->value), b = atoi(d->value);
 		if (!(a % b))
 		{
 			return new_tree(tostr(iquot(a, b)));
@@ -687,8 +687,7 @@ static Tree* simplify_rational_number(Tree* u)
 			int g = integer_gcd(a, b);
 			a = iquot(a, g);
 			b = iquot(b, g);
-			if (g != 1)
-				return join(new_tree(tostr(a)), new_tree(tostr(b)), fnc[DIVID].ex);
+			return join(new_tree(tostr(a)), new_tree(tostr(b)), fnc[DIVID].ex);
 		}
 	}
 	return clone(u);
