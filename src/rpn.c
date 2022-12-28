@@ -733,14 +733,14 @@ int found_element(Tree *tr, const char* elt)
 	return found_element(tr->tleft, elt) || found_element(tr->tright, elt);
 }
 
-long double tonumber(const char* ex)
+double tonumber(const char* ex)
 {
 	int n = strlen(ex), d = 0;
 	char* t = strchr(ex, '.');
 	if (t != NULL)
 		d = strlen(t);
 	int pw = n - d, i;
-	long double result = 0;
+	double result = 0;
 	for (i = 0; i < n; i++)
 	{
 		if (ex[i] == '.')
@@ -751,7 +751,7 @@ long double tonumber(const char* ex)
 	return result;
 }
 
-string tostr(long double t)
+string tostr(double t)
 {
 	static char ex[50];
 	double ent;
