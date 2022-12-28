@@ -677,19 +677,21 @@ static Tree* simplify_rational_number(Tree* u)
 	{
 		Tree* n = u->tleft;
 		Tree* d = u->tright;
-		long long int a = atoi(n->value), b = atoi(d->value);
+		if (!strcmp(n->value, "0"))
+			return clone(n);
+		long long int a = tonumber(n->value), b = tonumber(d->value);
 		if (!(a % b))
-		{
-			return new_tree(tostr(iquot(a, b)));
-		}
+			return new_tree(tostr((long long int)a / b));
 		else
 		{
-			int g = integer_gcd(a, b);
-			a = iquot(a, g);
-			b = iquot(b, g);
+			long long int g = integer_gcd(a, b);
+			a = (long long int) a / g;
+			b = (long long int) b / g;
 			return join(new_tree(tostr(a)), new_tree(tostr(b)), fnc[DIVID].ex);
 		}
 	}
+	if (u->tok_type == NEGATIF)
+		return join(simplify_rational_number(u->tleft), NULL, fnc[NEGATIF].ex);
 	return clone(u);
 }
 
@@ -806,6 +808,8 @@ static Tree* simplify_RNE_rec(Tree* u)
 
 static Tree* evaluate_quotient(Tree* left, Tree* right)
 {
+	if (!strcmp(left->value, "0"))
+		return clone(left);
 	Tree* t = numerator_fun(right);
 	if (!strcmp(t->value, "0"))
 	{
@@ -1010,13 +1014,13 @@ static Tree* evaluate_prod(Tree* left, Tree* right)
 
 static Tree* fracOp(const char* numerator, const char* denominator)
 {
-	double num = tonumber(numerator);
-	double denom = tonumber(denominator);
+	long double num = tonumber(numerator);
+	long double denom = tonumber(denominator);
 	string in = strchr(numerator, '.');
 	string id = strchr(denominator, '.');
 	if (in == NULL && id == NULL)
 	{
-		int pgcd = integer_gcd(num, denom);
+		long long int pgcd = integer_gcd((long long int)num, (long long int)denom);
 		num /= pgcd;
 		denom /= pgcd;
 		if (denom == 1)
@@ -1058,14 +1062,14 @@ static Tree* factOp(const char* left)
 	return new_tree(fnc[UNDEF].ex);
 }
 
-int integer_gcd(int a, int b)
+long long int integer_gcd(long long int a, long long int b)
 {
-	int r = (int)a % (int)b;
+	long long int r = a % b;
 	while (r)
 	{
 		a = b;
 		b = r;
-		r = (int)a % (int)b;
+		r = a % b;
 	}
 	return b;
 }
