@@ -9,7 +9,7 @@
 	extern bool LN_EXP_EXPAND;
 	extern bool TRIG_EXPAND;
 	extern bool RT_SIMP;
-    //extern bool TRIGO_EXACT_SEARCH;
+	//extern bool TRIGO_EXACT_SEARCH;
 
 	typedef struct Trigo_value
 	{
