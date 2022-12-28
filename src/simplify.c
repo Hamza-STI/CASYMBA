@@ -1117,44 +1117,6 @@ Tree* factorn(double val)
 	return tr;
 }
 
-static Tree* texpand(Tree* f, token tk)
-{
-	if (f->tok_type == ADD || f->tok_type == SUB)
-	{
-		Tree* a = f->tleft, * b = f->tright;
-		token tk1 = (tk == COS_F) ? SIN_F : COS_F, op_tk = f->tok_type;
-		if (tree_compare(a, b))
-		{
-			Tree* v = texpand(a, tk);
-			if (tk == COS_F)
-				return join(join(new_tree("2"), join(v, new_tree("2"), fnc[POW].ex), fnc[PROD].ex), new_tree("1"), fnc[SUB].ex);
-			Tree* w = texpand(b, tk1);
-			return join(join(new_tree("2"), v, fnc[PROD].ex), w, fnc[PROD].ex);
-		}
-		else
-		{
-			Tree* v = texpand(a, tk), * w = texpand(b, tk1);
-			Tree* p = texpand(b, tk), * q = texpand(a, tk1);
-			if (tk == COS_F)
-			{
-				map pr = NULL, pl = NULL;
-				pr = push_back_map(pr, v); pr = push_back_map(pr, p);
-				pl = push_back_map(pl, w); pl = push_back_map(pl, q);
-				clean_tree(v); clean_tree(w); clean_tree(p); clean_tree(q);
-				Tree* rt = simplify_product(pr), * lt = simplify_product(pl);
-				rt = join(rt, lt, fnc[(op_tk == ADD) ? SUB : ADD].ex);
-				pr = map_create_add(rt);
-				clean_tree(rt);
-				return simplify_sum(pr);
-			}
-			if (op_tk == SUB)
-				return join(join(q, p, fnc[PROD].ex), join(v, w, fnc[PROD].ex), fnc[op_tk].ex);
-			return join(join(v, w, fnc[PROD].ex), join(q, p, fnc[PROD].ex), fnc[op_tk].ex);
-		}
-	}
-	return trigo_simplify(clone(f), tk);
-}
-
 Tree* trigo_simplify(Tree* u, token tk)
 {
 	if (tk == COS_F && is_negation(u))
