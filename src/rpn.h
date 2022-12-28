@@ -85,7 +85,7 @@
     
 	double Eval(Tree *tr);
 	int isconstant(Tree* tr);
-    bool is_symbolic(Tree* tr);
+	bool is_symbolic(Tree* tr);
 	double tonumber(const char* ex);
 	string tostr(double n);
 
@@ -95,9 +95,9 @@
 	Tree *clone(Tree *tr);
 	int nb_operand(Tree *tr);
 	Tree *operand(Tree *tr, int i);
-    DList getvars(Tree* tr, DList vrs);
-    string variable(Tree* u);
-    void print_tree_prefix(Tree* tr);
+    	DList getvars(Tree* tr, DList vrs);
+    	string variable(Tree* u);
+    	void print_tree_prefix(Tree* tr);
 
 #endif
 
