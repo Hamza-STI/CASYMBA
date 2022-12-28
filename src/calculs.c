@@ -59,7 +59,7 @@ static Tree* factor_by_int(Tree* u, const char* x)
 		clean_tree(r); clean_tree(s); clean_tree(v); clean_tree(w);
 		i++;
 	}
-	return  u;
+	return  clone(u);
 }
 
 static Tree* square_free_factor(Tree* u, const char* x)
