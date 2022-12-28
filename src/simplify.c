@@ -1014,8 +1014,8 @@ static Tree* evaluate_prod(Tree* left, Tree* right)
 
 static Tree* fracOp(const char* numerator, const char* denominator)
 {
-	long double num = tonumber(numerator);
-	long double denom = tonumber(denominator);
+	double num = tonumber(numerator);
+	double denom = tonumber(denominator);
 	string in = strchr(numerator, '.');
 	string id = strchr(denominator, '.');
 	if (in == NULL && id == NULL)
