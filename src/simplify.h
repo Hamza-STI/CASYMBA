@@ -23,7 +23,7 @@
 	int is_int(Tree* u);
 	bool isdemi(Tree* tr);
 	bool is_negation(Tree* u);
-	int integer_gcd(int a, int b);
+	long long int integer_gcd(long long int a, long long int b);
 	double factoriel(double a);
 	Tree* trigo_identify(const char* s, token tk);
 	Tree* PGCD(Tree* A, Tree* B);
