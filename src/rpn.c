@@ -733,32 +733,41 @@ int found_element(Tree *tr, const char* elt)
 	return found_element(tr->tleft, elt) || found_element(tr->tright, elt);
 }
 
-double tonumber(const char* ex)
+long double tonumber(const char* ex)
 {
-    if (strchr(ex, (int)0x3A) == NULL && strchr(ex, '.') == NULL )
-    {
-        return atoi(ex);
-    }
-	return strtod(ex, NULL);
+	int n = strlen(ex), d = 0;
+	char* t = strchr(ex, '.');
+	if (t != NULL)
+		d = strlen(t);
+	int pw = n - d, i;
+	long double result = 0;
+	for (i = 0; i < n; i++)
+	{
+		if (ex[i] == '.')
+			continue;
+		pw--;
+		result += (ex[i] - '0') * pow(10, pw);
+	}
+	return result;
 }
 
-string tostr(double t)
+string tostr(long double t)
 {
 	static char ex[50];
 	double ent;
 	double dec = modf(t, &ent);
 	if (!dec)
-		snprintf(ex, 50, "%d", (int)t);
+		snprintf(ex, 50, "%ld", (long int)t);
 	else
-    {
-        snprintf(ex, 50, "%0.9f", t);
-        int k = strlen(ex) - 1;
-        while (ex[k] == '0')
-        {
-            ex[k] = '\0';
-            k--;
-        }
-    }
+	{
+		snprintf(ex, 50, "%0.9Lf", t);
+		int k = strlen(ex) - 1;
+		while (ex[k] == '0')
+		{
+			ex[k] = '\0';
+			k--;
+		}
+	}
 	return ex;
 }
 
