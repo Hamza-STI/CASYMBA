@@ -86,8 +86,8 @@
 	double Eval(Tree *tr);
 	int isconstant(Tree* tr);
 	bool is_symbolic(Tree* tr);
-	long double tonumber(const char* ex);
-	string tostr(long double n);
+	double tonumber(const char* ex);
+	string tostr(double n);
 
 	Tree *remplace_tree(Tree *tr, const char* el, Tree *new_el);
 	Tree *substitute(Tree *tr, Tree *av, Tree *ap);
