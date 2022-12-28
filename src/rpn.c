@@ -760,7 +760,7 @@ string tostr(double t)
 		snprintf(ex, 50, "%ld", (long int)t);
 	else
 	{
-		snprintf(ex, 50, "%0.9Lf", t);
+		snprintf(ex, 50, "%0.9f", t);
 		int k = strlen(ex) - 1;
 		while (ex[k] == '0')
 		{
