@@ -4,6 +4,7 @@
 🇫🇷 *Un moteur de **calcul formel (CAS)** pour les calculatrices TI-84 Plus CE / TI-83 Premium CE*
 
 Source code: https://github.com/Hamza-STI/CASYMBA/
+Download: https://tiplanet.org/forum/archives_voir.php?id=3123911
 
 ## License
 <a rel="license" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0<br>
