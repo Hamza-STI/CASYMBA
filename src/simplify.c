@@ -722,7 +722,7 @@ bool greater(const char* a, const char* b)
 	return false;
 }
 
-char* new_value(const char* a, int size_int_a, int size_dec_a, int new_size_int, int new_size_dec)
+char* new_value(const char* a, unsigned size_int_a, unsigned size_dec_a, unsigned new_size_int, unsigned new_size_dec)
 {
 	if (strlen(a) == new_size_int + new_size_dec)
 		return strdup(a);
@@ -730,7 +730,7 @@ char* new_value(const char* a, int size_int_a, int size_dec_a, int new_size_int,
 	int length = new_size_int - size_int_a;
 	for (int i = 0; i < length; i++)
 		ret[i] = '0';
-	for (int i = 0; i < strlen(a); i++)
+	for (unsigned i = 0; i < strlen(a); i++)
 	{
 		ret[length] = a[i];
 		length++;
@@ -740,7 +740,7 @@ char* new_value(const char* a, int size_int_a, int size_dec_a, int new_size_int,
 		ret[length] = '.';
 		length++;
 	}
-	for (int i = 1; i <= new_size_dec - size_dec_a; i++)
+	for (unsigned i = 1; i <= new_size_dec - size_dec_a; i++)
 	{
 		ret[length] = '0';
 		length++;
