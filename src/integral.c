@@ -782,7 +782,6 @@ static Tree* integral_table(Tree* f, const char* x)
 		clean_tree(v); clean_tree(w);
 	}
 	string s_form = Post2in2(form);
-	printf("forme [%s]\n", s_form);
 	clean_tree(form);
 	Tree* sol = form_integral(s_form, Integraltable, AMOUNT_INTEGRAL);
 	free(s_form);
