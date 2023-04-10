@@ -9,6 +9,8 @@
 
 	#endif // _EZ80
 
+	#define AMONT_VALUE_TRIG 15
+
 	typedef enum token
 	{
 		NUMBER, VARIABLE, UNDEF, IMAGE, PI, INVERSE, CARRE, CUBE,
@@ -21,8 +23,8 @@
 		/* NEGATION */
 		NEGATIF,
 		/* FONCTION */
-		EXP_F, SQRT_F, CBRT_F, LN_F, LOG_F, LOGBASE_F, TOK_10_POWER, ABS_F, SIGN_F, COS_F, SIN_F, TAN_F, ACOS_F, ASIN_F,
-		ATAN_F, COSH_F, SINH_F, TANH_F, ACOSH_F, ASINH_F, ATANH_F, FACTORIEL_F, ROOT_F,
+		EXP_F, SQRT_F, CBRT_F, LN_F, LOG_F, LOGBASE_F, TOK_10_POWER, ABS_F, SIGN_F, COS_F, SIN_F, TAN_F, ASIN_F, ACOS_F,
+		ATAN_F, SINH_F, ASINH_F, COSH_F, ACOSH_F, TANH_F, ATANH_F, FACTORIEL_F, ROOT_F,
 		/* COMPLEX FONCTION */
 		CONJ_F, REEL_F, IMAGE_F, ANGLE_F,
 		/* FONCTION CALCULS */
@@ -80,10 +82,10 @@
 	string Post2in2(Tree* tr);
 	DList In2post(const uint8_t* ex, unsigned str_len);
 	string Post2in(Tree* tr);
-
+    
 	double Eval(Tree *tr);
 	int isconstant(Tree* tr);
-    bool is_symbolic(Tree* tr);
+	bool is_symbolic(Tree* tr);
 	double tonumber(const char* ex);
 	string tostr(double n);
 
@@ -93,8 +95,9 @@
 	Tree *clone(Tree *tr);
 	int nb_operand(Tree *tr);
 	Tree *operand(Tree *tr, int i);
-    DList getvars(Tree* tr, DList vrs);
-    string variable(Tree* u);
+    	DList getvars(Tree* tr, DList vrs);
+    	string variable(Tree* u);
+    	void print_tree_prefix(Tree* tr);
 
 #endif
 

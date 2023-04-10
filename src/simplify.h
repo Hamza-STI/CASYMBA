@@ -34,6 +34,8 @@
 	Tree* base(Tree* u);
 	Tree* exponent(Tree* u);
 	Tree* expand(Tree* tr);
+	Tree* constant(Tree* u);
+	Tree* term(Tree* u);
 	Tree* factorn(long long int val);
 
 	/* symbolic simplify */
@@ -53,12 +55,13 @@
 
 	bool ismonomial(Tree* u, const char* x);
 	Tree* degree_sv(Tree* u, const char* x);
+	Tree* degree_monomial_sv(Tree* u, const char* x);
 	Tree* coefficient_gpe(Tree* u, const char* x, Tree* j);
 	map poly_quotient(map u,map v);
 	map poly_remainder(map u, map v);
-	Tree* polyreconstitute(map* Li, const char* x);
+	Tree* polyreconstitute(map Li, const char* x);
 	map coefficient_monomial_gpe(Tree* u, const char* x);
-	map polynomial_division(map* u, map* v, map* rem);
+	map polynomial_division(map u, map v, map* rem);
 	map polycoeffs(Tree* u, const char* x);
 	map poly_gcd(map u, map v);
 	Tree* poly_simp(map u, map v, const char* x);

@@ -1,7 +1,7 @@
 ////////////////////////////////////////
 // { CASYMBA } { 0.1.0 }
 // Author: Hamza.S, Adriweb, Hayleia, critor, Bisam
-// License: CC-BY-NC-SA 4.0
+// License:
 // Description: symbolic simplify
 ////////////////////////////////////////
 
@@ -11,17 +11,17 @@
 
 static const Help use_function[] =
 {
-    { "Derivative", "sin(X),X,X)", "sin(X),X,2)", "X+2Y,X,Y)" },
-    { "Primitive", "Expr1,var,var,var)", "sin(6X),X,X,X)", "" },
-    { "Equa diff", "Y''-Y'-2Y=sin(2X),X,Y)", "Y'+2Y=-5*e^(-2X) and Y(0)=1,X,Y)", "" },
+    { "Derivee : Derivative", "sin(X),X,X)", "sin(X),X,2)", "X+2Y,X,Y)" },
+    { "Primitive : Integral", "Expr1,var,var,var)", "sin(6X),X,X,X)", ""},
+    { "Equa diff : diff equation", "Y''-Y'-2Y=sin(2X),X,Y)", "Y'+2Y=-5*e^(-2X) and Y(0)=1,X,Y)", "Y''+2Y'+Y=2*e^(-X) and Y(0)=1 and Y'(0)=-1,X,Y)"},
     { "Tangent", "Expr1,var,point)", "e^(X),X,1)", ""},
-    { "reste : remain 2 Poly", "poly1,poly2,var)", "X^3-6X^2+11X-6,X^2-6X+8,X)", "" },
-    { "quotient 2 Poly", "poly1,poly2,var)", "X^3-6X^2+11X-6,X^2-6X+8,X)", "" },
-    { "gcd 2 Poly", "poly1,poly2,var)", "X^3-6X^2+11X-6,X^2-6X+8,X)", "" },
-    { "simplify 2 Poly", "poly1,poly2,var)", "X^3-6X^2+11X-6,X^2-6X+8,X)", "" },
-    { "Dev. / expand", "Expr1)", "(A+B)^2)", ""},
-    { "facteur premier/prime factorization", "POSITIVE_INTEGER)", "45)", "" },
-    { "Dev. limite / Taylor", "Expr1,var,ordre,point)", "sin(X),X,3,0)", "" }
+    { "reste : remainder 2 Polynomes", "poly1,poly2,var)", "X^3-6X^2+11X-6,X^2-6X+8,X)", ""},
+    { "quotient 2 Polynomes", "poly1,poly2,var)", "X^3-6X^2+11X-6,X^2-6X+8,X)", ""},
+    { "gcd 2 Polynomes", "poly1,poly2,var)", "X^3-6X^2+11X-6,X^2-6X+8,X)", ""},
+    { "simplify 2 Polynomes", "poly1,poly2,var)", "X^3-6X^2+11X-6,X^2-6X+8,X)", ""},
+    { "Developpement / expand", "Expr1)", "(A+B)^2)", ""},
+    {"facteur premier/prime factorization", "POSITIVE_INTEGER)", "45)", "" },
+    { "Developpement limite / Taylor", "Expr1,var,ordre,point)", "sin(X),X,3,0)", ""}
 };
 
 void help(void)
@@ -110,6 +110,7 @@ int main(void)
         os_ClrHome();
         os_PutStrFull("Aide du programme. Pressez une touche...");
         os_NewLine();
+        os_NewLine();
         os_PutStrFull("Program help. Press a key...");
         while (!(os_GetCSC()));
         help();
@@ -119,6 +120,9 @@ int main(void)
     if (rpn == NULL)
     {
         os_ClrHome();
+        os_PutStrFull("Erreur syntaxe");
+        os_NewLine();
+        os_NewLine();
         os_PutStrFull("syntax error");
         while (!(os_GetCSC()));
         return 1;
@@ -147,6 +151,7 @@ int main(void)
         while (!(os_GetCSC()));
         return 1;
     }
+
     string out_tokens = Post2in(simp);
     clean_tree(simp);
     os_NewLine();
@@ -176,6 +181,7 @@ int main(void)
     }
 
     // todo: add it to the history in mathprint. see with commandz
+
     return 0;
 }
 
@@ -189,7 +195,7 @@ int main(int argc, char const* argv[])
     DList rpn = In2post2("desolve(y''+2*y'+y=0,x,y)");
     if (rpn == NULL)
     {
-        printf("Erreur syntaxe\n");
+        printf("Syntax error...\n\nErreur syntaxe\n");
         return 1;
     }
     Tree* tr = to_tree(rpn);
@@ -218,9 +224,10 @@ int main(int argc, char const* argv[])
         return 1;
     }
     string expr = Post2in2(simp);
+    print_tree_prefix(simp);
     clean_tree(simp);
     printf("\nla forme simplifiee : %s\n", expr);
-    free(expr);
+
     return 0;
 }
 

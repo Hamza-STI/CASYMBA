@@ -24,7 +24,6 @@
 	map push_back_map(map li, Tree* arb);
 	map pop_back_map(map li);
 	map pop_front_map(map li);
-    void print_map(map li);
 	map clear_map(map li);
 	map clone_map(map Li);
 	map map_create(Tree* tr);
@@ -32,7 +31,6 @@
 	map map_create_prod(Tree* tr);
 	map map_sort(map li);
 	map map_remplace(map L, int pos, Tree* tr);
-	map push_back_map_if(map li, Tree* arb, Tree* tr);
 
 #endif
 

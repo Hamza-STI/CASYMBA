@@ -1,4 +1,4 @@
-#include "integral.h"
+#include "simplify.h"
 
 extern DList Error;
 
