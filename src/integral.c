@@ -254,8 +254,10 @@ static Tree* function_form(int var, Tree* u, const char* x, map* L)
 			return join(join(new_tree("x"), a, fnc[DIVID].ex), NULL, u->value);
 		}
 		*L = push_back_map_if(*L, a, tr);
+		cf1 = clear_map(cf1);
 		return join(join(a, new_tree("x"), fnc[PROD].ex), NULL, u->value);
 	}
+	cf1 = clear_map(cf1);
 	return NULL;
 }
 
@@ -661,10 +663,7 @@ Tree* integral_form(Tree* u, const char* x, map* L)
 		return (!f)? f : join(f, NULL, u->value);
 	}
 	if ((trig_tok(utok) || utok == EXP_F) && ispoly(u->tleft, x))
-	{
-		Tree* f = function_form(1, u, x, L);
-		return (!f) ? f : join(f, NULL, u->value);
-	}
+		return function_form(1, u, x, L);
 	if (utok == LN_F || utok == SQRT_F)
 	{
 		if (ismonomial(u->tleft, x))
