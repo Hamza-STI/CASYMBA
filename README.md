@@ -88,7 +88,8 @@ prgmCASYMBA
 ## Calcul de (***certaines***) primitives
 
 <img src="https://i.imgur.com/dClTOJc.png" align="right">
-***C'est un trop gros programme qui demande de la patiencce et de la connaissance, je n'ai pas encore les moyens de créer quelque chose de complet pour ces modèles***
+
+***C'est un trop gros programme qui demande de la patience et des connaissances, je n'ai pas encore les moyens de créer quelque chose de complet pour ces modèles***
 
 Utilisez la fonction `fnInt(` ***calculatrice en anglais*** ou `intégrFonct(` ***calculatrice en Français*** accessible dans la touche `math`
 
