@@ -373,12 +373,21 @@ int ordre_tree(Tree* u, Tree* v)
 	if (isconstant(u) && isconstant(v))
 		return Eval(u) < Eval(v);
 	else if (u->gtype == VAR && v->gtype == VAR)
-		return strcmp(u->value, v->value) == -1;
+	{
+		char* p = u->value, * q = v->value;
+		int a = strlen(p), b = strlen(q);
+		int i = (a >= b) ? a : b;
+		int k = 0;
+		while (k < i && p[k] == q[k])
+			k++;
+		return k < i && p[k] < q[k];
+	}
 	else if (v->gtype == FUNCTION && u->gtype == VAR)
 		return 1;
 	else if (u->tok_type == v->tok_type && (u->tok_type == ADD || u->tok_type == PROD))
 	{
-		map p = map_create(u), q = map_create(v);
+		map p = map_create(u);
+		map q = map_create(v);
 		if (!tree_compare(p->end->tr, q->end->tr))
 		{
 			int k = ordre_tree(p->end->tr, q->end->tr);
@@ -388,7 +397,8 @@ int ordre_tree(Tree* u, Tree* v)
 		}
 		else
 		{
-			mapCell* tmp = p->end, * tmp1 = q->end;
+			mapCell* tmp = p->end;
+			mapCell* tmp1 = q->end;
 			while (tmp != NULL && tmp1 != NULL)
 			{
 				if (!tree_compare(tmp->tr, tmp1->tr))
@@ -409,20 +419,39 @@ int ordre_tree(Tree* u, Tree* v)
 				return k;
 			}
 		}
-		p = clear_map(p);
-		q = clear_map(q);
 	}
 	else if (u->tok_type == v->tok_type && u->tok_type == POW)
-		return (!tree_compare(u->tleft, v->tleft)) ? ordre_tree(u->tleft, v->tleft) : ordre_tree(u->tright, v->tright);
+	{
+		Tree* p = base(u), * q = exponent(u), * r = base(v), * s = exponent(v);
+		int t;
+		if (!tree_compare(p, r))
+			t = ordre_tree(p, r);
+		else
+			t = ordre_tree(q, s);
+		clean_tree(s);
+		clean_tree(q);
+		return t;
+	}
 	else if (u->tok_type == v->tok_type && u->tok_type == FACTORIEL_F)
+	{
 		return ordre_tree(u->tleft, v->tleft);
+	}
 	else if (u->gtype == FUNCTION && v->gtype == FUNCTION)
 	{
 		if (u->tok_type != v->tok_type)
-			return strcmp(u->value, v->value) == -1;
+		{
+			char* p = u->value, * q = v->value;
+			int a = strlen(p), b = strlen(q);
+			int i = (a >= b) ? a : b;
+			int k = 0;
+			while (k < i && p[k] == q[k])
+				k++;
+			return k < i && p[k] < q[k];
+		}
 		else
 		{
-			map p = map_create(u->tleft), q = map_create(v->tleft);
+			map p = map_create(u->tleft);
+			map q = map_create(v->tleft);
 			if (!tree_compare(p->begin->tr, q->begin->tr))
 			{
 				int k = ordre_tree(p->begin->tr, q->begin->tr);
@@ -432,7 +461,8 @@ int ordre_tree(Tree* u, Tree* v)
 			}
 			else
 			{
-				mapCell* tmp = p->begin, * tmp1 = q->begin;
+				mapCell* tmp = p->begin;
+				mapCell* tmp1 = q->begin;
 				while (tmp != NULL || tmp1 != NULL)
 				{
 					if (!tree_compare(tmp->tr, tmp1->tr))
@@ -453,26 +483,14 @@ int ordre_tree(Tree* u, Tree* v)
 					return k;
 				}
 			}
-			p = clear_map(p);
-			q = clear_map(q);
 		}
 	}
 	else if (isconstant(u) && !isconstant(v))
 		return 1;
 	else if (u->tok_type == PROD && (v->tok_type == POW || v->tok_type == ADD || v->gtype == FUNCTION || v->gtype == VAR))
-	{
-		Tree* tr = join(new_tree("1"), clone(v), fnc[PROD].ex);
-		int k = ordre_tree(u, tr);
-		clean_tree(tr);
-		return k;
-	}
+		return ordre_tree(u->tright, v);
 	else if (u->tok_type == ADD && (v->gtype == FUNCTION || v->gtype == VAR))
-	{
-		Tree* tr = join(new_tree("0"), clone(v), fnc[ADD].ex);
-		int k = ordre_tree(u, tr);
-		clean_tree(tr);
-		return k;
-	}
+		return ordre_tree(u->tright, v);
 	else if ((u->tok_type == FACTORIEL_F && (v->gtype == FUNCTION && v->tok_type != FACTORIEL_F)) || v->gtype == VAR)
 		return ordre_tree(u->tleft, v);
 	else if (u->tok_type == POW && v->tok_type != POW)
