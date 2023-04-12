@@ -29,7 +29,8 @@ struct table_token ti_table[AMOUNT_TOKEN] =
 	{{0xBB, 0x25}/*conj(*/, 2}, {{0xBB, 0x26}/*real(*/, 2}, {{0xBB, 0x27}/*image(*/, 2}, {{0xBB, 0x28}/*angle(*/, 2},
 	/* ANALYSE FUNCTIONS */
 	{{0x25}, 1}, {{0x24}, 1}, {{0x22} /*solve(*/, 1}, {{0xA7}, 1}, {{0xEF, 0x32}, 2},
-	{{0xB1}, 1}, {{0xBB, 0x09}, 2}, {{0xBB, 0x2A}/*expr(*/, 2}, {{0xBB, 0x0D}/*stdDev(*/, 2}, {{0xB4}/*identity(*/, 1}, {{0xB3}/*det(*/, 1}
+	{{0xB1}, 1}, {{0xBB, 0x09}, 2}, {{0xBB, 0x2A}/*expr(*/, 2}, {{0xBB, 0x0D}/*stdDev(*/, 2}, {{0xB4}/*identity(*/, 1}, {{0xB3}/*det(*/, 1},
+	{{0xEF, 0x33}, 2}
 };
 
 struct table_token fnc[AMOUNT_TOKEN] =
@@ -52,7 +53,8 @@ struct table_token fnc[AMOUNT_TOKEN] =
 	{ "conj(", 5}, { "real(", 5}, { "image(", 6}, { "angle(", 6},
 	/* ANALYSE FUNCTIONS */
 	{ "diff(", 5}, { "integral(", 9}, { "desolve(", 8}, { "tangent(", 8}, { "polyrem(", 8},
-	{ "polyquot(", 9}, {"polygcd(", 8}, {"polysimp(", 9}, { "expand(", 7}, {"factor(", 7}, { "taylor(", 7}
+	{ "polyquot(", 9}, {"polygcd(", 8}, {"polysimp(", 9}, { "expand(", 7}, {"factor(", 7}, { "taylor(", 7},
+	{ "sum(", 4}
 };
 
 bool isnumeric(uint8_t b) { return ((0x30 <= b && b <= 0x3A) || b == '.'); }
@@ -572,7 +574,7 @@ int tokens(const char* s, struct table_token* w)
 	{
 		if (!strcmp(element->ex, s))
 			return k;
-        ++k;
+		++k;
 	}
 	return TOKEN_INVALID;
 }
@@ -587,33 +589,27 @@ Tree* new_tree(const char* x)
 		tr->parent = NULL;
 		if (EXP_F <= tk && tk < AMOUNT_TOKEN)
 			tr->gtype = FUNCTION;
-		else
-		{
-			if (tk == NEGATIF)
-				tr->gtype = NEGATION;
-			else if (tk == LOGIC_AND || tk == LOGIC_OR)
-				tr->gtype = LOGIC;
-			else if (ADD <= tk && tk <= SUPERIEUR_EGAL)
-				tr->gtype = OPERAT;
-			else if (UNDEF <= tk && tk <= PI)
-				tr->gtype = VAR;
-		}
+		else if (tk == NEGATIF)
+			tr->gtype = NEGATION;
+		else if (tk == LOGIC_AND || tk == LOGIC_OR)
+			tr->gtype = LOGIC;
+		else if (ADD <= tk && tk <= SUPERIEUR_EGAL)
+			tr->gtype = OPERAT;
+		else if (UNDEF <= tk && tk <= PI)
+			tr->gtype = VAR;
 		tr->tok_type = tk;
+	}
+	else if(isnumeric(x[0]))
+	{
+		tr->gtype = (strchr(x, '.') == NULL) ? ENT : DECIMAL;
+		tr->tok_type = NUMBER;
 	}
 	else
 	{
-		tr->parent = NULL;
-		if (isnumeric(x[0]))
-		{
-			tr->gtype = (strchr(x, '.') == NULL) ? ENT : DECIMAL;
-			tr->tok_type = NUMBER;
-		}
-		else
-		{
-			tr->tok_type = VARIABLE;
-			tr->gtype = VAR;
-		}
+		tr->tok_type = VARIABLE;
+		tr->gtype = VAR;
 	}
+	tr->parent = NULL;
 	tr->tleft = NULL;
 	tr->tright = NULL;
 	return tr;
@@ -884,10 +880,8 @@ string Post2in2(Tree* tr)
 double Eval(Tree* tr)
 {
 	optype op = tr->gtype;
-	if (op == DECIMAL)
+	if (op < VAR)
 		return tonumber(tr->value);
-    if (op == ENT)
-		return atoi(tr->value);
 	token sig = tr->tok_type;
 	if (op == OPERAT)
 	{
@@ -947,25 +941,21 @@ double Eval(Tree* tr)
 
 Tree* remplace_tree(Tree* tr, const char* el, Tree* new_el)
 {
-	Tree* tr_remp = NULL;
-	optype op = tr->gtype;
-	if (!strcmp(tr->value, el))
-		tr_remp = clone(new_el);
-	else if (op == ENT || op == DECIMAL || op ==VAR)
-		tr_remp = new_tree(tr->value);
-	else if (op == OPERAT)
-		tr_remp = join(remplace_tree(tr->tleft, el, new_el), remplace_tree(tr->tright, el, new_el), tr->value);
-	else
-		tr_remp = join(remplace_tree(tr->tleft, el, new_el), NULL, tr->value);
-	return tr_remp;
+	if (!strcmp(el, tr->value))
+		return clone(new_el);
+	optype g = tr->gtype;
+	if (g == OPERAT)
+		return join(remplace_tree(tr->tleft, el, new_el), remplace_tree(tr->tright, el, new_el), tr->value);
+	else if (g == NEGATION || g == FUNCTION)
+		return join(remplace_tree(tr->tleft, el, new_el), NULL, tr->value);
+	return clone(tr);
 }
 
 int tree_compare(Tree* tr1, Tree* tr2)
 {
 	if (count_tree_nodes(tr1) != count_tree_nodes(tr2))
 		return 0;
-	token op1 = tr1->tok_type;
-	token op2 = tr2->tok_type;
+	token op1 = tr1->tok_type, op2 = tr2->tok_type;
 	if (op1 == op2)
 	{
 		if ((tr1->gtype <= VAR) && !strcmp(tr1->value, tr2->value))
@@ -984,15 +974,12 @@ int tree_compare(Tree* tr1, Tree* tr2)
 
 Tree* clone(Tree* tr)
 {
-	Tree* tr_cpy = NULL;
 	optype op = tr->gtype;
 	if (op == OPERAT)
-		tr_cpy = join(clone(tr->tleft), clone(tr->tright), tr->value);
+		return join(clone(tr->tleft), clone(tr->tright), tr->value);
 	else if (op == NEGATION || op == FUNCTION)
-		tr_cpy = join(clone(tr->tleft), NULL, tr->value);
-	else
-		tr_cpy = new_tree(tr->value);
-	return tr_cpy;
+		return join(clone(tr->tleft), NULL, tr->value);
+	return new_tree(tr->value);
 }
 
 Tree* substitute(Tree* tr, Tree* av, Tree* ap)
@@ -1010,25 +997,14 @@ Tree* substitute(Tree* tr, Tree* av, Tree* ap)
 int nb_operand(Tree* tr)
 {
 	optype op = tr->gtype;
-	switch (op)
-	{
-		case (OPERAT):
-		case (LOGIC):
-			return 2;
-		case (NEGATION):
-			return 1;
-		case (FUNCTION):
-			return 1;
-		default:
-			return 0;
-	}
+	if (op == OPERAT || op == LOGIC)
+		return 2;
+	return (op == NEGATION || op == FUNCTION);
 }
 
 Tree* operand(Tree* tr, int i)
 {
-    if (i == 1)
-        return tr->tleft;
-    return tr->tright;
+	return (i == 1) ? tr->tleft : tr->tright;
 }
 
 DList getvars(Tree* tr, DList vrs)
@@ -1092,3 +1068,43 @@ string variable(Tree* u)
 	vrs = clear_dlist(vrs);
 	return vr;
 }
+
+#ifdef _EZ80
+
+void print_tree_prefix(Tree* tr)
+{
+	if (tr == NULL)
+		return;
+
+	if (tr->parent != NULL)
+		dbg_printf("[%s] -> %s -> type (%d) -> token (%d)\n", tr->parent->value, tr->value, tr->gtype, tr->tok_type);
+	else
+		dbg_printf("[%s] = type (%d) -> token (%d)\n", tr->value, tr->gtype, tr->tok_type);
+
+	if (tr->tleft != NULL)
+		print_tree_prefix(tr->tleft);
+
+	if (tr->tright != NULL)
+		print_tree_prefix(tr->tright);
+}
+
+#else
+
+void print_tree_prefix(Tree* tr)
+{
+	if (tr == NULL)
+		return;
+
+	if (tr->parent != NULL)
+		printf("[%s] -> %s -> type (%d) -> token (%d)\n", tr->parent->value, tr->value, tr->gtype, tr->tok_type);
+	else
+		printf("[%s] = type (%d) -> token (%d)\n", tr->value, tr->gtype, tr->tok_type);
+
+	if (tr->tleft != NULL)
+		print_tree_prefix(tr->tleft);
+
+	if (tr->tright != NULL)
+		print_tree_prefix(tr->tright);
+}
+
+#endif // _EZ80

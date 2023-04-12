@@ -587,7 +587,7 @@ static Tree* solve_exact_2(Tree* a, Tree* b, Tree* c, Tree* f, map S, const char
 				if (R->length != 2)
 				{
 					R = clear_map(R);
-					Error = push_back_dlist(Error, "Erreur : forme attendue/excepted form Acos(U)+Bsin(U).");
+					Error = push_back_dlist(Error, "Error : excepted form Acos(U)+Bsin(U).");
 					return NULL; //retourner une erreur forme attendu Acos(U)+Bsin(U)
 				}
 				trig = trig_separe(R->begin->tr, x, &part);
@@ -596,7 +596,7 @@ static Tree* solve_exact_2(Tree* a, Tree* b, Tree* c, Tree* f, map S, const char
 				if (trig == NULL || trig1 == NULL || trig->tok_type == trig1->tok_type || !tree_compare(trig->tleft, trig1->tleft))
 				{
 					clean_tree(trig); clean_tree(trig1); clean_tree(part1); clean_tree(part);
-					Error = push_back_dlist(Error, "Erreur : forme attendue/excepted form Acos(U)+Bsin(U).");
+					Error = push_back_dlist(Error, "Error : excepted form Acos(U)+Bsin(U).");
 					return NULL; //retourner une erreur forme attendu Acos(U)+Bsin(U)
 				}
 			}
@@ -680,7 +680,7 @@ static Tree* solve_ode_2(Tree* a, Tree* b, Tree* c, Tree* f, const char* x, cons
 	if (par_sol == NULL)
 	{
 		clean_tree(yh);
-		Error = push_back_dlist(Error, "Pas de solution particulière. No particular solution.");
+		Error = push_back_dlist(Error, "No particular solution.");
 		return NULL;
 	}
 	if (strcmp(par_sol->value, "0"))
@@ -755,7 +755,7 @@ static Tree* solve_ode(Tree* M, Tree* N, Tree* f, const char* x, const char* y, 
 	if (g == NULL)
 	{
 		clean_tree(s);
-		Error = push_back_dlist(Error, "No particular solution.");
+		Error = push_back_dlist(Error, "Error: No particular solution.");
 		return NULL;
 	}
 	s = simplify(join(s, g, fnc[ADD].ex));
@@ -771,8 +771,7 @@ static Tree* solve_ode(Tree* M, Tree* N, Tree* f, const char* x, const char* y, 
 		}
 		a = new_tree("1");
 		N = new_tree("0");
-		dr = remplace_tree(dr, x, cond->tleft->tright);
-		dr = simplify(dr);
+		dr = simplify(remplace_tree(dr, x, cond->tleft->tright));
 		Tree* b = coefficient_gpe(dr, "K", a);
 		M = coefficient_gpe(dr, "K", N);
 		clean_tree(dr); clean_tree(a); clean_tree(N);
@@ -817,7 +816,7 @@ Tree* analyse(Tree* tr)
 			else
 				res = simplify(diff_partial(L->begin->tr, L->end->back->tr->value, L->end->tr->value));
 			L = clear_map(L);
-			return res;
+			return pow_transform(res);
 		}
 		if (L != NULL)
 			L = clear_map(L);
@@ -860,7 +859,6 @@ Tree* analyse(Tree* tr)
 		clean_tree(tr);
 		if (L->length >=2  && L->begin->next->tr->gtype == VAR)
 		{
-            L->begin->tr = simplify(L->begin->tr);
 			Tree* res = integral(L->begin->tr, L->begin->next->tr->value);
 			L = clear_map(L);
 			if (res == NULL)
@@ -982,7 +980,7 @@ Tree* analyse(Tree* tr)
 		if (tr->tleft->tok_type == SEPARATEUR)
 		{
 			clean_tree(tr);
-			Error = push_back_dlist(Error, "Erreur Trop d'arguments. Error too many arguments.");
+			Error = push_back_dlist(Error, "Error: arguments.");
 			return NULL;
 		}
 		TRIG_EXPAND = true;
