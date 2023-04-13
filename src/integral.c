@@ -141,13 +141,6 @@ struct Integral Derivtable[] =
 	{ fnc[CBRT_F].ex, "u/(3*U^(2/3))", "" }
 };
 
-static Tree* subderiv(Tree* u, const char* v, Tree* w)
-{
-	Tree* y = remplace_tree(u, v, w);
-	clean_tree(u);
-	return y;
-}
-
 Tree* diff(Tree* tr, const char* vr)
 {
 	if (!found_element(tr, vr))
@@ -183,9 +176,9 @@ Tree* diff(Tree* tr, const char* vr)
 			Tree* sol = NULL;
 			bool v = !strcmp(dr->value, "0");
 			if (v || !strcmp(dl->value, "0"))
-				sol = subderiv(subderiv(subderiv(to_tree(In2post2(v ? "c*u*U^(c-1)" : "ln(c)*c^U")), "U", v ? tr->tleft : tr->tright), "u", v ? dl : dr), "c", v ? tr->tright : tr->tleft);
+				sol = remplace_var(remplace_var(remplace_var(to_tree(In2post2(v ? "c*u*U^(c-1)" : "ln(c)*c^U")), "U", v ? tr->tleft : tr->tright), "u", v ? dl : dr), "c", v ? tr->tright : tr->tleft);
 			else
-				sol = subderiv(subderiv(subderiv(subderiv(to_tree(In2post2("(u*V/U+ln(U)*v)*U^V")), "U", tr->tleft), "V", tr->tright), "u", dl), "v", dr);
+				sol = remplace_var(remplace_var(remplace_var(remplace_var(to_tree(In2post2("(u*V/U+ln(U)*v)*U^V")), "U", tr->tleft), "V", tr->tright), "u", dl), "v", dr);
 			clean_tree(dr); clean_tree(dl);
 			return sol;
 		}
@@ -202,7 +195,7 @@ Tree* diff(Tree* tr, const char* vr)
 		if (tok == LOGBASE_F || tok == ROOT_F)
 		{
 			Tree* dl = simplify(diff(tr->tleft->tleft, vr)), * sol = to_tree(In2post2((tok == LOGBASE_F) ? "u/(U*ln(c))" : "u/(c*U^((c-1)/c))"));
-			sol = subderiv(subderiv(subderiv(sol, "U", tr->tleft->tleft), "u", dl), "u", tr->tleft->tright);
+			sol = remplace_var(remplace_var(remplace_var(sol, "U", tr->tleft->tleft), "u", dl), "u", tr->tleft->tright);
 			clean_tree(dl);
 			return sol;
 		}
@@ -210,7 +203,7 @@ Tree* diff(Tree* tr, const char* vr)
 		Tree* sol = form_integral(sig, Derivtable, AMOUNT_DERIV);
 		if (sol != NULL)
 		{
-			sol = subderiv(subderiv(sol, "U", tr->tleft), "u", dl);
+			sol = remplace_var(remplace_var(sol, "U", tr->tleft), "u", dl);
 			clean_tree(dl);
 			return sol;
 		}

@@ -52,10 +52,10 @@
 
 	typedef struct Tree
 	{
-		char *value;
-		struct Tree *tleft;
-		struct Tree *tright;
-		struct Tree *parent;
+		char* value;
+		struct Tree* tleft;
+		struct Tree* tright;
+		struct Tree* parent;
 		optype gtype;
 		token tok_type;
 	}Tree;
@@ -67,13 +67,13 @@
 	extern struct table_token fnc[AMOUNT_TOKEN];
 
 	/* Prototypes des fonctions */
-	Tree *new_tree(const char* x);
-	void clean_tree(Tree *tr);
-	void clean_noeud(Tree *tr);
-	Tree *join(Tree *left, Tree *right, const char* node);
-	int count_tree_nodes(Tree *tr);
-	Tree *to_tree(DList list);
-	int found_element(Tree *tr, const char* elt);
+	Tree* new_tree(const char* x);
+	void clean_tree(Tree* tr);
+	void clean_noeud(Tree* tr);
+	Tree* join(Tree* left, Tree* right, const char* node);
+	int count_tree_nodes(Tree* tr);
+	Tree* to_tree(DList list);
+	int found_element(Tree* tr, const char* elt);
 
 	int isop(const char* s);
 	DList In2post2(const char* ex);
@@ -81,20 +81,22 @@
 	DList In2post(const uint8_t* ex, unsigned str_len);
 	string Post2in(Tree* tr);
 
-	double Eval(Tree *tr);
+	double Eval(Tree* tr);
 	int isconstant(Tree* tr);
     bool is_symbolic(Tree* tr);
 	double tonumber(const char* ex);
 	string tostr(double n);
 
-	Tree *remplace_tree(Tree *tr, const char* el, Tree *new_el);
-	Tree *substitute(Tree *tr, Tree *av, Tree *ap);
-	int   tree_compare(Tree *tr1, Tree *tr2);
-	Tree *clone(Tree *tr);
-	int nb_operand(Tree *tr);
-	Tree *operand(Tree *tr, int i);
-    DList getvars(Tree* tr, DList vrs);
+	Tree* remplace_tree(Tree* tr, const char* el, Tree* new_el);
+	Tree* remplace_var(Tree* tr, const char* el, Tree* new_el);
+	Tree* substitute(Tree* tr, Tree* av, Tree* ap);
+	int   tree_compare(Tree* tr1, Tree* tr2);
+	Tree* clone(Tree* tr);
+	int nb_operand(Tree* tr);
+	Tree* operand(Tree* tr, int i);
+	DList getvars(Tree* tr, DList vrs);
     string variable(Tree* u);
+    void print_tree_prefix(Tree* tr);
 
 #endif
 

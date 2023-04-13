@@ -2036,11 +2036,9 @@ Tree* simplify(Tree* u)
 	}
 	if (tk == ROOT_F)
 	{
-		Tree* tr = u->tleft;
-		clean_noeud(u);
-		if (tr->tok_type != SEPARATEUR)
-			return simplify(join(tr, NULL, fnc[SQRT_F].ex));
-		return simplify(join(tr->tleft, join(new_tree("1"), tr->tright, fnc[DIVID].ex), fnc[POW].ex));
+		Tree* tr = simplify(join(clone(u->tleft->tleft), join(new_tree("1"), clone(u->tleft->tright), fnc[DIVID].ex), fnc[POW].ex));
+		clean_tree(u);
+		return tr;
 	}
 	if (EXP_F <= tk && tk < ROOT_F)
 	{

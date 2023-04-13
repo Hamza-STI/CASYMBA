@@ -186,7 +186,16 @@ int main(int argc, char const* argv[])
     (void)argc;
     (void)argv;
 
-    DList rpn = In2post2("desolve(y''+2*y'+y=0,x,y)");
+    char ex[] = { 0x10, '3', 0xF1, '2', '7', 0x11 };
+    DList rpn = In2post(ex, 6);
+    Tree* tr = to_tree(rpn);
+    Tree* simp = analyse(tr);
+    string expr = Post2in2(simp);
+    print_tree_prefix(simp);
+    clean_tree(simp);
+    printf("\nla forme simplifiee : %s\n", expr);
+    free(expr);
+    /*DList rpn = In2post2("diff(tan(2*x),x)");
     if (rpn == NULL)
     {
         printf("Erreur syntaxe\n");
@@ -218,9 +227,10 @@ int main(int argc, char const* argv[])
         return 1;
     }
     string expr = Post2in2(simp);
+    print_tree_prefix(simp);
     clean_tree(simp);
     printf("\nla forme simplifiee : %s\n", expr);
-    free(expr);
+    free(expr);*/
     return 0;
 }
 
