@@ -1,7 +1,7 @@
 #include "integral.h"
 
 #define AMOUNT_INTEGRAL 166
-#define AMOUNT_DERIV 19
+#define AMOUNT_DERIV 30
 int ipp_loop = 10;
 char int_cond[10] = { 0 };
 
@@ -17,31 +17,12 @@ static map separate_factor(Tree* u, const char* x)
 		clean_tree(un);
 		return L;
 	}
-	if (u->tok_type == DIVID)
+	if (u->tok_type == DIVID || u->tok_type == PROD)
 	{
 		map f = separate_factor(u->tleft, x), g = separate_factor(u->tright, x);
-		Tree* free_of_part = join(clone(f->begin->tr), clone(g->begin->tr), fnc[DIVID].ex);
-		Tree* dependent_part = join(clone(f->end->tr), clone(g->end->tr), fnc[DIVID].ex);
+		Tree* free_of_part = join(clone(f->begin->tr), clone(g->begin->tr), fnc[u->tok_type].ex);
+		Tree* dependent_part = join(clone(f->end->tr), clone(g->end->tr), fnc[u->tok_type].ex);
 		f = clear_map(f); g = clear_map(g);
-		L = push_back_map(push_back_map(L, free_of_part), dependent_part);
-		clean_tree(free_of_part);
-		clean_tree(dependent_part);
-		return L;
-	}
-	if (u->tok_type == PROD)
-	{
-		Tree* free_of_part = NULL, * dependent_part = NULL;
-		for (int i = 1; i <= nb_operand(u); i++)
-		{
-			map f = separate_factor(operand(u, i), x);
-			free_of_part = (free_of_part == NULL) ? clone(f->begin->tr) : join(free_of_part, clone(f->begin->tr), fnc[u->tok_type].ex);
-			dependent_part = (dependent_part == NULL) ? clone(f->end->tr) : join(dependent_part, clone(f->end->tr), fnc[u->tok_type].ex);
-			f = clear_map(f);
-		}
-		if (free_of_part == NULL)
-			free_of_part = new_tree("1");
-		if (dependent_part == NULL)
-			dependent_part = new_tree("1");
 		L = push_back_map(push_back_map(L, free_of_part), dependent_part);
 		clean_tree(free_of_part);
 		clean_tree(dependent_part);
@@ -120,7 +101,18 @@ static Tree* form_integral(const char* s_form, struct Integral* w, int size)
 
 struct Integral Derivtable[] =
 {
-	{ fnc[NEGATIF].ex, "u", "" },
+	{ fnc[ADD].ex, "u+v", "" },
+	{ fnc[SUB].ex, "u-v", "" },
+	{ fnc[PROD].ex, "U*v", "L=0" },
+	{ fnc[PROD].ex, "u*V", "R=0" },
+	{ fnc[PROD].ex, "u*V+U*v", "" },
+	{ fnc[DIVID].ex, "~U*v/V^2", "L=0" },
+	{ fnc[DIVID].ex, "u/V", "R=0" },
+	{ fnc[DIVID].ex, "(u*V-U*v)/V^2", "" },
+	{ fnc[POW].ex, "ln(U)*U^V", "L=0" },
+	{ fnc[POW].ex, "u*V*U^(V-1)", "R=0" },
+	{ fnc[POW].ex, "(u*V/U+ln(U)*v)*U^V", "" },
+	{ fnc[NEGATIF].ex, "~u", "" },
 	{ fnc[LN_F].ex, "u/U", "" },
 	{ fnc[LOG_F].ex, "u/(U*ln(10))", "" },
 	{ fnc[EXP_F].ex, "u*exp(U)", "" },
@@ -147,68 +139,52 @@ Tree* diff(Tree* tr, const char* vr)
 		return new_tree("0");
 	if (!strcmp(tr->value, vr))
 		return new_tree("1");
-	optype op = tr->gtype;
-	string sig = tr->value;
 	token tok = tr->tok_type;
-	if (op == OPERAT)
+	if (tok == INTEGRAL_F)
 	{
-		if (tok == PROD)
-		{
-			Tree* w = denominator_fun(tr);
-			if (found_element(w, vr))
-			{
-				Tree* v = numerator_fun(tr);
-				Tree* dl = diff(v, vr), * dr = diff(w, vr);
-				return join(join(join(dl, clone(w), fnc[PROD].ex), join(dr, v, fnc[PROD].ex), fnc[SUB].ex), join(w, new_tree("2"), fnc[POW].ex), fnc[DIVID].ex);
-			}
-			clean_tree(w);
-		}
-		Tree* dl = diff(tr->tleft, vr), * dr = diff(tr->tright, vr);
-		if (tok == ADD || tok == SUB)
-			return simplify(join(dl, dr, sig));
-		if (tok == PROD || tok == DIVID)
-		{
-			Tree* t = simplify(join(join(dl, clone(tr->tright), fnc[PROD].ex), join(dr, clone(tr->tleft), fnc[PROD].ex), fnc[(tok == PROD) ? ADD : SUB].ex));
-			return (tok == PROD)? t : join(t, join(clone(tr->tright), new_tree("2"), fnc[POW].ex), fnc[DIVID].ex);;
-		}
-		if (tok == POW)
-		{
-			Tree* sol = NULL;
-			bool v = !strcmp(dr->value, "0");
-			if (v || !strcmp(dl->value, "0"))
-				sol = remplace_var(remplace_var(remplace_var(to_tree(In2post2(v ? "c*u*U^(c-1)" : "ln(c)*c^U")), "U", v ? tr->tleft : tr->tright), "u", v ? dl : dr), "c", v ? tr->tright : tr->tleft);
-			else
-				sol = remplace_var(remplace_var(remplace_var(remplace_var(to_tree(In2post2("(u*V/U+ln(U)*v)*U^V")), "U", tr->tleft), "V", tr->tright), "u", dl), "v", dr);
-			clean_tree(dr); clean_tree(dl);
-			return sol;
-		}
+		Tree* t = tr;
+		while (t->tleft->tok_type == SEPARATEUR)
+			t = t->tleft;
+		return clone(t->tleft);
 	}
-	else if (op == FUNCTION || op == NEGATION)
+	if (tok == LOGBASE_F || tok == ROOT_F)
 	{
-		if (tok == INTEGRAL_F)
-		{
-			Tree* t = tr;
-			while (t->tleft->tok_type == SEPARATEUR)
-				t = t->tleft;
-			return clone(t->tleft);
-		}
-		if (tok == LOGBASE_F || tok == ROOT_F)
-		{
-			Tree* dl = simplify(diff(tr->tleft->tleft, vr)), * sol = to_tree(In2post2((tok == LOGBASE_F) ? "u/(U*ln(c))" : "u/(c*U^((c-1)/c))"));
-			sol = remplace_var(remplace_var(remplace_var(sol, "U", tr->tleft->tleft), "u", dl), "u", tr->tleft->tright);
-			clean_tree(dl);
-			return sol;
-		}
-		Tree* dl = simplify(diff(tr->tleft, vr));
-		Tree* sol = form_integral(sig, Derivtable, AMOUNT_DERIV);
-		if (sol != NULL)
-		{
-			sol = remplace_var(remplace_var(sol, "U", tr->tleft), "u", dl);
-			clean_tree(dl);
-			return sol;
-		}
+		Tree* dl = simplify(diff(tr->tleft->tleft, vr)), * sol = to_tree(In2post2((tok == LOGBASE_F) ? "u/(U*ln(c))" : "u/(c*U^((c-1)/c))"));
+		sol = remplace_var(remplace_var(remplace_var(sol, "U", tr->tleft->tleft), "u", dl), "u", tr->tleft->tright);
 		clean_tree(dl);
+		return sol;
 	}
+	if (tok == PROD)
+	{
+		Tree* w = denominator_fun(tr);
+		if (found_element(w, vr))
+		{
+			Tree* v = numerator_fun(tr);
+			Tree* dl = diff(v, vr), * dr = diff(w, vr);
+			return join(join(join(dl, clone(w), fnc[PROD].ex), join(dr, v, fnc[PROD].ex), fnc[SUB].ex), join(w, new_tree("2"), fnc[POW].ex), fnc[DIVID].ex);
+		}
+		clean_tree(w);
+	}
+	Tree* dl = simplify(diff(tr->tleft, vr)), * dr = NULL;
+	if (tr->gtype == OPERAT)
+	{
+		dr = diff(tr->tright, vr);
+		if (!strcmp(dr->value, "0"))
+			strcpy(int_cond, "R=0");
+		if (!strcmp(dl->value, "0"))
+			strcpy(int_cond, "L=0");
+	}
+	Tree* sol = form_integral(tr->value, Derivtable, AMOUNT_DERIV);
+	memset(int_cond, 0, 10 * sizeof(char));
+	if (sol != NULL)
+	{
+		sol = remplace_var(remplace_var(sol, "U", tr->tleft), "u", dl);
+		if (dr != NULL)
+			sol = remplace_var(remplace_var(sol, "V", tr->tright), "v", dr);
+		clean_tree(dr); clean_tree(dl);
+		return sol;
+	}
+	clean_tree(dl);
 	return join(join(clone(tr), new_tree(vr), fnc[SEPARATEUR].ex), NULL, fnc[DERIV_F].ex);
 }
 
@@ -471,7 +447,7 @@ static Tree* prod_form(Tree* u, Tree* v, const char* x, map* L, token op)
 				clean_tree(f);
 			if (g != NULL)
 				clean_tree(g);
-			clean_tree(m);clean_tree(n);
+			clean_tree(m); clean_tree(n);
 			return NULL;
 		}
 		return join(join(f, m, fnc[POW].ex), join(g, n, fnc[POW].ex), fnc[op].ex);
@@ -500,7 +476,7 @@ static Tree* prod_form(Tree* u, Tree* v, const char* x, map* L, token op)
 		}
 		Tree* n = new_tree("n");
 		*L = push_back_map_if(*L, n, u->tright);
-		return join( g, join(h, n, fnc[POW].ex), fnc[op].ex);
+		return join(g, join(h, n, fnc[POW].ex), fnc[op].ex);
 	}
 	if ((trig_tok(u->tok_type) || u->tok_type == EXP_F) && (trig_tok(v->tok_type) || v->tok_type == EXP_F) && ispoly(u->tleft, x) && ispoly(v->tleft, x))
 	{
@@ -635,7 +611,7 @@ Tree* integral_form(Tree* u, const char* x, map* L)
 	if ((utok == COS_F || utok == SIN_F) && u->tleft->tok_type == LN_F && ispoly(u->tleft->tleft, x))
 	{
 		Tree* f = function_form(1, u->tleft, x, L);
-		return (!f)? f : join(f, NULL, u->value);
+		return (!f) ? f : join(f, NULL, u->value);
 	}
 	if ((trig_tok(utok) || utok == EXP_F) && ispoly(u->tleft, x))
 		return function_form(1, u, x, L);
@@ -675,7 +651,7 @@ Tree* integral_form(Tree* u, const char* x, map* L)
 				map cf = polycoeffs(v, x);
 				if (cf->length == 2)
 				{
-					Tree* a = new_tree("a") , * p = new_tree("p"), * q = new_tree("q");
+					Tree* a = new_tree("a"), * p = new_tree("p"), * q = new_tree("q");
 					*L = push_back_map_if(push_back_map_if(push_back_map_if(*L, a, u->tleft), p, cf->begin->tr), q, cf->end->tr);
 					cf = clear_map(cf);
 					return join(a, join(join(p, new_tree("x"), fnc[PROD].ex), q, fnc[ADD].ex), fnc[POW].ex);
@@ -935,9 +911,10 @@ struct Integral Integraltable[] =
 	{ "x^m/((a*x+b)^n)", "~x^(m+1)*(a*x+b)^(n+1)/((n+1)*b)+(m+n+2)/((n+1)*b)*integral(x^m/(a*x+b)^(n-1),x)", "" },
 	{ "1/(x*(a*x+b))", "ln(x/(a*x+b))/b", "" },
 	{ "(a*x+b)^n", "(a*x+b)^(n+1)/((n+1)*a)", "" },
+	{ "x*(a*x+b)^n", "(a*x+b)^(n+1)*((n+1)*(a*x+b)-n-2)/(a^2*(n+1)*(n+2))", "" },
 	{ "x^m*(a*x+b)^n", "(x^m*(a*x+b)^(n+1)+n*b*integral(x^(m-1)*(a*x+b)^n,x))/(a*(m+n+1))", "" },
 	{ "1/((a*x+b)*(p*x+q))", "1/(b*p-a*q)*ln((p*x+q)/(a*x+b))", "" },
-    { "(a*x+b)/(p*x+q)", "(a*x)/p+(b*p-a*q)/p^2*ln(p*x+q)", "" },
+	{ "(a*x+b)/(p*x+q)", "(a*x)/p+(b*p-a*q)/p^2*ln(p*x+q)", "" },
 	/* sqrt(a*x+b) */
 	{ "1/sqrt(a*x+b)", "2*sqrt(a*x+b)/a", "" },
 	{ "1/(x*sqrt(a*x+b))", "ln((sqrt(a*x+b)-sqrt(b))/(sqrt(a*x+b)+sqrt(b)))/sqrt(b)", "" },
@@ -945,7 +922,6 @@ struct Integral Integraltable[] =
 	{ "x*sqrt(a*x+b)", "2*(3*a*x-2*b)/(15*a^2)*sqrt((a*x+b)^3)", "" },
 	{ "sqrt(a*x+b)/x", "2*sqrt(a*x+b)+b*integral(1/(x*sqrt(a*x+b)),x)", "" },
 	{ "sqrt(a*x+b)/(p*x+q)", "(2*sqrt(a*x+b))/p+sqrt(b*p-a*q)/(p*sqrt(p))*ln((sqrt(p*(a*x+b))-sqrt(b*p-a*q))/(sqrt(p*(a*x+b))+sqrt(b*p-a*q)))", "" },
-	{ "sqrt(a*x+b)/sqrt(p*x+q)", "sqrt((a*x+b)*(p*x+q))/a+(q*a-p*b)/(2*a)*integral(1/(sqrt((a*x+b)*(p*x+q))),x)", "" },
 	/* c+a*x^2 */
 	{ "1/(c+a*x^2)", "1/(2*sqrt(~a*c))*ln((x*sqrt(a)-sqrt(~c))/(x*sqrt(a)+sqrt(~c)))", "a>0 c<0" },
 	{ "1/(c+a*x^2)", "1/(2*sqrt(~a*c))*ln((x*sqrt(~a)+sqrt(c))/(x*sqrt(a)-sqrt(c)))", "a<0 c>0" },

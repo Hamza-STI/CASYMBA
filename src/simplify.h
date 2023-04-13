@@ -7,7 +7,6 @@
 	extern bool LN_EXP_EXPAND;
 	extern bool TRIG_EXPAND;
 	extern bool RT_SIMP;
-    //extern bool TRIGO_EXACT_SEARCH;
 
 	typedef struct Trigo_value
 	{
@@ -21,7 +20,6 @@
 	int is_int(Tree* u);
 	bool isdemi(Tree* tr);
 	bool is_negation(Tree* u);
-	long long integer_gcd(long long a, long long b);
 	long long int factoriel(long long int a);
 	Tree* trigo_identify(const char* s, token tk);
 	Tree* PGCD(Tree* A, Tree* B);

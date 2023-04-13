@@ -4,8 +4,7 @@ DList Error = NULL;
 
 static Tree* factor_by_int(Tree* u, const char* x)
 {
-	int i = 1;
-	while (i <= 10)
+	for (unsigned i = 1; i <= 10; i++)
 	{
 		Tree* v = new_tree(tostr(i)), * w = join(new_tree(tostr(i)), NULL, fnc[NEGATIF].ex);
 		Tree* r = simplify(remplace_tree(u, x, v)), * s = simplify(remplace_tree(u, x, w));
@@ -23,7 +22,6 @@ static Tree* factor_by_int(Tree* u, const char* x)
 			return join(f, r, fnc[PROD].ex);
 		}
 		clean_tree(r); clean_tree(s); clean_tree(v); clean_tree(w);
-		i++;
 	}
 	return  clone(u);
 }
@@ -187,9 +185,7 @@ static Tree* taylor(Tree* u, Tree* vr, Tree* ordre, Tree* point)
 			return taylor_usuelle(u, vr->value, ordre, point);
 	}
 	else if (u->tok_type == SQRT_F || u->tok_type == POW)
-	{
 		return taylor_usuelle(u, vr->value, ordre, point);
-	}
 	else if (u->tok_type == PROD)
 	{
 		Tree* v = taylor(u->tleft, vr, ordre, point), * w = taylor(u->tright, vr, ordre, point);

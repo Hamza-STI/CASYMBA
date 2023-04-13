@@ -79,7 +79,7 @@ bool is_symbolic(Tree* tr)
 	optype op = tr->gtype;
 	if (op == VAR)
 		return false;
-	if (op == ENT || op == DECIMAL)
+	if (op <= VAR)
 		return true;
 	if (op == FUNCTION)
 		return is_symbolic(tr->tleft);
@@ -88,57 +88,50 @@ bool is_symbolic(Tree* tr)
 
 DList Parts(DList rpn, int nb)
 {
-
-    int i = 1, n = rpn->length;
-    int k = n;
-    if (nb == 0)
-    {
-        DList op = NULL;
-        op = push_back_dlist(op, rpn->end->value);
-        return op;
-    }
-    while (i > 0)
-    {
-        k--;
-        DList lf = dlist_left(rpn, k);
-        i = i + nparts(lf) - 1;
-        lf = clear_dlist(lf);
-    }
-    if (nb == 1 && k > 1)
-    	return dlist_left(rpn, k - 1);
-    return dlist_sub(rpn, k, n - k);
+	int i = 1, n = rpn->length;
+	int k = n;
+	while (i > 0)
+	{
+		k--;
+		DList lf = dlist_left(rpn, k);
+		i = i + nparts(lf) - 1;
+		lf = clear_dlist(lf);
+	}
+	if (nb == 1 && k > 1)
+		return dlist_left(rpn, k - 1);
+	return dlist_sub(rpn, k, n - k);
 }
 
 int nparts(DList rpn)
 {
 	token tk = tokens(rpn->end->value, fnc);
-    if (ADD <= tk && tk <= LOGIC_OR && tk != PAR_FERMANT && tk != PAR_OUVRANT)
-        return 2;
-    return (NEGATIF <= tk && tk < AMOUNT_TOKEN);
+	if (ADD <= tk && tk <= LOGIC_OR)
+		return 2;
+	return (NEGATIF <= tk && tk < AMOUNT_TOKEN);
 }
 
 int prior(const char* s)
 {
-    token ch = tokens(s, fnc);
-    if (NEGATIF < ch && ch < AMOUNT_TOKEN)
-    	return 10;
-    else if (ch == POW)
-    	return 9;
-    else if (ch == NEGATIF)
-    	return 8;
-    else if (ch == PROD || ch == DIVID)
-    	return 7;
-    else if (ch == ADD || ch == SUB)
-    	return 6;
-    else if (EGAL <= ch && ch <= SUPERIEUR_EGAL)
-    	return 5;
-    else if (ch == LOGIC_OR)
-    	return 4;
-    else if (ch == LOGIC_AND)
-    	return 3;
-    else if (ch == SEPARATEUR)
-    	return 2;
-    return (ch == PAR_FERMANT || ch == PAR_OUVRANT);
+	token ch = tokens(s, fnc);
+	if (NEGATIF < ch && ch < AMOUNT_TOKEN)
+		return 10;
+	else if (ch == POW)
+		return 9;
+	else if (ch == NEGATIF)
+		return 8;
+	else if (ch == PROD || ch == DIVID)
+		return 7;
+	else if (ch == ADD || ch == SUB)
+		return 6;
+	else if (EGAL <= ch && ch <= SUPERIEUR_EGAL)
+		return 5;
+	else if (ch == LOGIC_OR)
+		return 4;
+	else if (ch == LOGIC_AND)
+		return 3;
+	else if (ch == SEPARATEUR)
+		return 2;
+	return (ch == PAR_FERMANT || ch == PAR_OUVRANT);
 }
 
 int isfn(const char* s)
@@ -159,7 +152,7 @@ int isop(const char* s)
 	return !(tk == TOKEN_INVALID);
 }
 
-int opless( const char* a, const char* b)
+int opless(const char* a, const char* b)
 {
 	if (a[0] != '~' && a[0] != '^')
 		return prior(a) <= prior(b);
@@ -187,10 +180,8 @@ DList parse(const uint8_t* ex, unsigned k)
 			{
 				if (sl > 0)
 				{
-					int j, count = strlen(temp);
 					result = push_back_dlist(push_back_dlist(result, temp), fnc[PROD].ex);
-					for (j = 0; j < count; ++j)
-						temp[j] = '\0';
+					memset(temp, 0, sl * sizeof(char));
 				}
 				else if (result != NULL)
 				{
@@ -227,8 +218,7 @@ DList parse(const uint8_t* ex, unsigned k)
 					result = push_back_dlist(result, fnc[PAR_OUVRANT].ex);
 					p++;
 				}
-				for (int j = 0; j < sl; ++j)
-					temp[j] = '\0';
+				memset(temp, 0, sl * sizeof(char));
 				sl = 0;
 			}
 			else
@@ -273,15 +263,13 @@ DList parse(const uint8_t* ex, unsigned k)
 				++i;
 			}
 			DList rtl = parse(root_chars, pos);
-			result = push_back_dlist(result, fnc[tk].ex);
-			result = push_back_dlist(result, fnc[PAR_OUVRANT].ex);
+			result = push_back_dlist(push_back_dlist(result, fnc[tk].ex), fnc[PAR_OUVRANT].ex);
 			DListCell* tmp = rtl->begin;
 			while (tmp != NULL)
 			{
 				result = push_back_dlist(result, tmp->value);
 				tmp = tmp->next;
 			}
-			printf("\n");
 			rtl = clear_dlist(rtl);
 			result = push_back_dlist(push_back_dlist(push_back_dlist(result, fnc[SEPARATEUR].ex), (sl) ? temp : "2"), fnc[PAR_FERMANT].ex);
 			memset(temp, 0, sl * sizeof(char));
@@ -381,9 +369,8 @@ DList parse(const uint8_t* ex, unsigned k)
 DList In2post(const uint8_t* ex, unsigned k)
 {
 	DList result = parse(ex, k), rlt = NULL, opstack = NULL;
-	DListCell* tmp;
 	int stklen = 0;
-	tmp = result->begin;
+	DListCell* tmp = result->begin;
 	while (tmp != NULL)
 	{
 		if (!isop(tmp->value) || !strcmp(tmp->value, fnc[PI].ex) || !strcmp(tmp->value, fnc[IMAGE].ex))
@@ -441,8 +428,7 @@ DList In2post2(const char* ex)
 		{
 			if (sl)
 				result = push_back_dlist(result, temp);
-			for (int k = sl - 1; k >= 0; k--)
-				temp[k] = '\0';
+			memset(temp, 0, sl * sizeof(char));
 			sl = 0;
 		}
 		else if (!cisop(ch))
@@ -450,8 +436,7 @@ DList In2post2(const char* ex)
 			if (sl && ((isvar(ch) && isnumeric(temp[sl - 1])) || (isnumeric(ch) && isvar(temp[sl - 1]))))
 			{
 				result = push_back_dlist(push_back_dlist(result, temp), fnc[PROD].ex);
-				for (int k = sl - 1; k >= 0; k--)
-					temp[k] = '\0';
+				memset(temp, 0, sl * sizeof(char));
 				sl = 0;
 			}
 			temp[sl] = ch;
@@ -459,15 +444,13 @@ DList In2post2(const char* ex)
 			if (!strcmp(temp, fnc[PI].ex) || !strcmp(temp, fnc[IMAGE].ex))
 			{
 				result = push_back_dlist(result, temp);
-				for (int k = sl - 1; k >= 0; k--)
-					temp[k] = '\0';
+				memset(temp, 0, sl * sizeof(char));
 				sl = 0;
 			}
 			else if (!strcmp(temp, "pi"))
 			{
 				result = push_back_dlist(result, fnc[PI].ex);
-				for (int k = sl - 1; k >= 0; k--)
-					temp[k] = '\0';
+				memset(temp, 0, sl * sizeof(char));
 				sl = 0;
 			}
 			else
@@ -524,16 +507,14 @@ DList In2post2(const char* ex)
 			if (result != NULL)
 			{
 				token t = tokens(result->end->value, fnc);
-				if (((ADD <= t && t <= LOGIC_OR) && tk == PAR_FERMANT) ||
-					(((ADD <= t && t <= LOGIC_OR) || t == NEGATIF || t == PAR_OUVRANT) && (ADD <= tk && tk <= LOGIC_OR)))
+				if ((ADD <= t && t <= LOGIC_OR && tk == PAR_FERMANT) || (((ADD <= t && t <= LOGIC_OR) || t == NEGATIF || t == PAR_OUVRANT) && ADD <= tk && tk <= LOGIC_OR))
 				{
 					result = clear_dlist(result);
 					return NULL;
 				}
 			}
 			result = push_back_dlist(result, op);
-			for (int k = sl - 1; k >= 0; k--)
-				temp[k] = '\0';
+			memset(temp, 0, sl * sizeof(char));
 			sl = 0;
 		}
 	}
@@ -626,7 +607,7 @@ Tree* new_tree(const char* x)
 			tr->gtype = VAR;
 		tr->tok_type = tk;
 	}
-	else if(isnumeric(x[0]))
+	else if (isnumeric(x[0]))
 	{
 		tr->gtype = (strchr(x, '.') == NULL) ? ENT : DECIMAL;
 		tr->tok_type = NUMBER;
@@ -644,7 +625,7 @@ Tree* new_tree(const char* x)
 
 void clean_tree(Tree* tr)
 {
-	if(tr == NULL)
+	if (tr == NULL)
 		return;
 
 	clean_tree(tr->tleft);
@@ -655,7 +636,7 @@ void clean_tree(Tree* tr)
 
 void clean_noeud(Tree* tr)
 {
-	if(tr == NULL)
+	if (tr == NULL)
 		return;
 	free(tr->value);
 	free(tr);
@@ -668,9 +649,9 @@ Tree* join(Tree* left, Tree* right, const char* node)
 	tr->tleft = left;
 	tr->tright = right;
 
-	if(left != NULL)
+	if (left != NULL)
 		left->parent = tr;
-	if(right != NULL)
+	if (right != NULL)
 		right->parent = tr;
 
 	return tr;
@@ -678,7 +659,7 @@ Tree* join(Tree* left, Tree* right, const char* node)
 
 int count_tree_nodes(Tree* tr)
 {
-	if(tr == NULL)
+	if (tr == NULL)
 		return 0;
 
 	return (count_tree_nodes(tr->tleft) + count_tree_nodes(tr->tright) + 1);
@@ -689,10 +670,8 @@ Tree* to_tree(DList list)
 	string ch = list->end->value;
 	int n = nparts(list);
 	Tree* tr = NULL;
-	if (n == 2)
-		tr = join(to_tree(Parts(list , 1)), to_tree(Parts(list , 2)), ch);
-	else if (n == 1)
-		tr = join(to_tree(Parts(list , 1)), NULL, ch);
+	if (n > 0)
+		tr = join(to_tree(Parts(list, 1)), (n == 2) ? to_tree(Parts(list, 2)) : NULL, ch);
 	else
 		tr = new_tree(ch);
 	clear_dlist(list);
@@ -710,23 +689,23 @@ int found_element(Tree* tr, const char* elt)
 
 double tonumber(const char* ex)
 {
-    char* t = strchr(ex, '.');
+	char* t = strchr(ex, '.');
 	if (t != NULL)
 		return strtod(ex, NULL);
-    return strtoull(ex, NULL, 10);
+	return strtoull(ex, NULL, 10);
 }
 
 string tostr(double t)
 {
 	static char ex[50];
 	snprintf(ex, 50, "%0.9f", t);
-    int k = strlen(ex) - 1;
-    while (ex[k] == '0')
-    {
-        ex[k] = '\0';
-        k--;
-    }
-    if (ex[k] == '.') ex[k] = '\0';
+	int k = strlen(ex) - 1;
+	while (ex[k] == '0')
+	{
+		ex[k] = '\0';
+		k--;
+	}
+	if (ex[k] == '.') ex[k] = '\0';
 	return ex;
 }
 
@@ -921,11 +900,11 @@ double Eval(Tree* tr)
 		if (sig == DIVID)
 			return Eval(tr->tleft) / Eval(tr->tright);
 		if (sig == POW)
-        {
-            if (tr->tleft->gtype == ENT && tr->tright->gtype == ENT)
+		{
+			if (tr->tleft->gtype == ENT && tr->tright->gtype == ENT)
 				return (int)pow(Eval(tr->tleft), Eval(tr->tright));
-            return pow(Eval(tr->tleft), Eval(tr->tright));
-        }
+			return pow(Eval(tr->tleft), Eval(tr->tright));
+		}
 	}
 	else if (op == NEGATION)
 		return -Eval(tr->tleft);
@@ -933,35 +912,34 @@ double Eval(Tree* tr)
 	{
 		switch (sig)
 		{
-			case EXP_F:
-				return exp(Eval(tr->tleft));
-			case LN_F:
-				return log(Eval(tr->tleft));
-			case SQRT_F:
-				return sqrt(Eval(tr->tleft));
-			case COS_F:
-				return cos(Eval(tr->tleft));
-			case ACOS_F:
-				return acos(Eval(tr->tleft));
-			case SIN_F:
-				return sin(Eval(tr->tleft));
-			case ASIN_F:
-				return asin(Eval(tr->tleft));
-			case TAN_F:
-				return tan(Eval(tr->tleft));
-			case ATAN_F:
-				return atan(Eval(tr->tleft));
-			case LOG_F:
-				return log10(Eval(tr->tleft));
-			case LOGBASE_F:
-				return (double)log(Eval(tr->tleft->tleft)) / log(Eval(tr->tleft->tright));
-			case ABS_F:
-				return fabs(Eval(tr->tleft));
+		case EXP_F:
+			return exp(Eval(tr->tleft));
+		case LN_F:
+			return log(Eval(tr->tleft));
+		case SQRT_F:
+			return sqrt(Eval(tr->tleft));
+		case COS_F:
+			return cos(Eval(tr->tleft));
+		case ACOS_F:
+			return acos(Eval(tr->tleft));
+		case SIN_F:
+			return sin(Eval(tr->tleft));
+		case ASIN_F:
+			return asin(Eval(tr->tleft));
+		case TAN_F:
+			return tan(Eval(tr->tleft));
+		case ATAN_F:
+			return atan(Eval(tr->tleft));
+		case LOG_F:
+			return log10(Eval(tr->tleft));
+		case LOGBASE_F:
+			return (double)log(Eval(tr->tleft->tleft)) / log(Eval(tr->tleft->tright));
+		case ABS_F:
+			return fabs(Eval(tr->tleft));
 
-			default:
-				break;
+		default:
+			break;
 		}
-
 	}
 	return 0;
 }
@@ -1102,43 +1080,3 @@ string variable(Tree* u)
 	vrs = clear_dlist(vrs);
 	return vr;
 }
-
-#ifdef _EZ80
-
-void print_tree_prefix(Tree* tr)
-{
-	if (tr == NULL)
-		return;
-
-	if (tr->parent != NULL)
-		dbg_printf("[%s] -> %s -> type (%d) -> token (%d)\n", tr->parent->value, tr->value, tr->gtype, tr->tok_type);
-	else
-		dbg_printf("[%s] = type (%d) -> token (%d)\n", tr->value, tr->gtype, tr->tok_type);
-
-	if (tr->tleft != NULL)
-		print_tree_prefix(tr->tleft);
-
-	if (tr->tright != NULL)
-		print_tree_prefix(tr->tright);
-}
-
-#else
-
-void print_tree_prefix(Tree* tr)
-{
-	if (tr == NULL)
-		return;
-
-	if (tr->parent != NULL)
-		printf("[%s] -> %s -> type (%d) -> token (%d)\n", tr->parent->value, tr->value, tr->gtype, tr->tok_type);
-	else
-		printf("[%s] = type (%d) -> token (%d)\n", tr->value, tr->gtype, tr->tok_type);
-
-	if (tr->tleft != NULL)
-		print_tree_prefix(tr->tleft);
-
-	if (tr->tright != NULL)
-		print_tree_prefix(tr->tright);
-}
-
-#endif // _EZ80

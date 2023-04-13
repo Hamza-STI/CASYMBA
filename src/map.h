@@ -20,11 +20,10 @@
 	} *map;
 	/*-----------------------------------*/
 
-	map push_front_map(map li, Tree *tr);
+	map push_front_map(map li, Tree* tr);
 	map push_back_map(map li, Tree* arb);
 	map pop_back_map(map li);
 	map pop_front_map(map li);
-    void print_map(map li);
 	map clear_map(map li);
 	map clone_map(map Li);
 	map map_create(Tree* tr);
