@@ -176,7 +176,7 @@ Tree* diff(Tree* tr, const char* vr)
 		if (tok == LOGBASE_F || tok == ROOT_F)
 		{
 			Tree* dl = simplify(diff(tr->tleft->tleft, vr)), * sol = to_tree(In2post2((tok == LOGBASE_F) ? "u/(U*ln(c))" : "u/(c*U^((c-1)/c))"));
-			sol = remplace_var(remplace_var(remplace_var(sol, "U", tr->tleft->tleft), "u", dl), "u", tr->tleft->tright);
+			sol = remplace_var(remplace_var(remplace_var(sol, "U", tr->tleft->tleft), "u", dl), "c", tr->tleft->tright);
 			clean_tree(dl);
 			return sol;
 		}
