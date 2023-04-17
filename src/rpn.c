@@ -102,18 +102,23 @@ DList Parts(DList rpn, int nb)
 	return dlist_sub(rpn, k, n - k);
 }
 
+int isfn(const char* s)
+{
+	return ((isvar(s[0]) && s[strlen(s) - 1] == '(') || s[0] == '!');
+}
+
 int nparts(DList rpn)
 {
 	token tk = tokens(rpn->end->value, fnc);
 	if (ADD <= tk && tk <= LOGIC_OR)
 		return 2;
-	return (NEGATIF <= tk && tk < AMOUNT_TOKEN);
+	return (NEGATIF <= tk && tk < AMOUNT_TOKEN) || isfn(rpn->end->value);
 }
 
 int prior(const char* s)
 {
 	token ch = tokens(s, fnc);
-	if (NEGATIF < ch && ch < AMOUNT_TOKEN)
+	if ((NEGATIF < ch && ch < AMOUNT_TOKEN) || isfn(s))
 		return 10;
 	else if (ch == POW)
 		return 9;
@@ -132,11 +137,6 @@ int prior(const char* s)
 	else if (ch == SEPARATEUR)
 		return 2;
 	return (ch == PAR_FERMANT || ch == PAR_OUVRANT);
-}
-
-int isfn(const char* s)
-{
-	return ((isvar(s[0]) && s[strlen(s) - 1] == '(') || s[0] == '!');
 }
 
 int cisop(char ch)
@@ -523,7 +523,7 @@ DList In2post2(const char* ex)
 		temp[sl] = '\0';
 		result = push_back_dlist(result, temp);
 	}
-	while (p)
+	while (p > 0)
 	{
 		result = push_back_dlist(result, fnc[PAR_FERMANT].ex);
 		p--;
@@ -531,9 +531,9 @@ DList In2post2(const char* ex)
 	int stklen = 0, n = result->length;
 	DList rlt = NULL, opstack = NULL;
 	DListCell* tmp = result->begin;
-	for (int i = 0; i < n; ++i)
+	while (tmp != NULL)
 	{
-		if (!(cisop(tmp->value[0]) || isfn(tmp->value)))
+		if (!(isop(tmp->value) || isfn(tmp->value)))
 			rlt = push_back_dlist(rlt, tmp->value);
 		else
 		{
@@ -569,6 +569,12 @@ DList In2post2(const char* ex)
 	{
 		rlt = push_back_dlist(rlt, dlist_last(opstack));
 		opstack = pop_back_dlist(opstack);
+	}
+	tmp = rlt->begin;
+	while (tmp!= NULL)
+	{
+		printf("[%s] ", tmp->value);
+		tmp = tmp->next;
 	}
 	result = clear_dlist(result);
 	opstack = clear_dlist(opstack);
@@ -1042,7 +1048,7 @@ DList getvars(Tree* tr, DList vrs)
 	if (tr->tleft != NULL)
 	{
 		vrs = getvars(tr->tleft, vrs);
-		if (tr->gtype == OPERAT)
+		if (tr->tright != NULL)
 			vrs = getvars(tr->tright, vrs);
 	}
 	return vrs;
@@ -1079,4 +1085,21 @@ string variable(Tree* u)
 	}
 	vrs = clear_dlist(vrs);
 	return vr;
+}
+
+void print_tree_prefix(Tree* tr)
+{
+	if (tr == NULL)
+		return;
+
+	if (tr->parent != NULL)
+		printf("[%s] -> %s -> type (%d) -> token (%d)\n", tr->parent->value, tr->value, tr->gtype, tr->tok_type);
+	else
+		printf("[%s] = type (%d) -> token (%d)\n", tr->value, tr->gtype, tr->tok_type);
+
+	if (tr->tleft != NULL)
+		print_tree_prefix(tr->tleft);
+
+	if (tr->tright != NULL)
+		print_tree_prefix(tr->tright);
 }
