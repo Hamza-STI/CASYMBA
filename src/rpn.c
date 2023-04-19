@@ -366,14 +366,14 @@ DList parse(const uint8_t* ex, unsigned k)
 	return result;
 }
 
-DList In2post(const uint8_t* ex, unsigned k)
+static DList to_rpn(DList* result)
 {
-	DList result = parse(ex, k), rlt = NULL, opstack = NULL;
 	int stklen = 0;
-	DListCell* tmp = result->begin;
+	DList rlt = NULL, opstack = NULL;
+	DListCell* tmp = (*result)->begin;
 	while (tmp != NULL)
 	{
-		if (!isop(tmp->value) || !strcmp(tmp->value, fnc[PI].ex) || !strcmp(tmp->value, fnc[IMAGE].ex))
+		if (!(isop(tmp->value) || isfn(tmp->value)))
 			rlt = push_back_dlist(rlt, tmp->value);
 		else
 		{
@@ -407,12 +407,18 @@ DList In2post(const uint8_t* ex, unsigned k)
 	}
 	while (opstack != NULL)
 	{
-		rlt = push_back_dlist(rlt, opstack->end->value);
+		rlt = push_back_dlist(rlt, dlist_last(opstack));
 		opstack = pop_back_dlist(opstack);
 	}
-	result = clear_dlist(result);
+	*result = clear_dlist(*result);
 	opstack = clear_dlist(opstack);
 	return rlt;
+}
+
+DList In2post(const uint8_t* ex, unsigned k)
+{
+	DList result = parse(ex, k);
+	return to_rpn(&result);
 }
 
 DList In2post2(const char* ex)
@@ -528,57 +534,7 @@ DList In2post2(const char* ex)
 		result = push_back_dlist(result, fnc[PAR_FERMANT].ex);
 		p--;
 	}
-	int stklen = 0, n = result->length;
-	DList rlt = NULL, opstack = NULL;
-	DListCell* tmp = result->begin;
-	while (tmp != NULL)
-	{
-		if (!(isop(tmp->value) || isfn(tmp->value)))
-			rlt = push_back_dlist(rlt, tmp->value);
-		else
-		{
-			if ((tmp->value)[0] != '(' && (tmp->value)[0] != ')')
-			{
-				while (opless(tmp->value, dlist_last(opstack)) && stklen > 0)
-				{
-					rlt = push_back_dlist(rlt, dlist_last(opstack));
-					opstack = pop_back_dlist(opstack);
-					stklen--;
-				}
-			}
-			if ((tmp->value)[0] == ')')
-			{
-				while (dlist_last(opstack)[0] != '(')
-				{
-					rlt = push_back_dlist(rlt, dlist_last(opstack));
-					opstack = pop_back_dlist(opstack);
-					stklen--;
-				}
-				opstack = pop_back_dlist(opstack);
-				stklen--;
-			}
-			if ((tmp->value)[0] != ')')
-			{
-				opstack = push_back_dlist(opstack, tmp->value);
-				stklen++;
-			}
-		}
-		tmp = tmp->next;
-	}
-	while (opstack != NULL)
-	{
-		rlt = push_back_dlist(rlt, dlist_last(opstack));
-		opstack = pop_back_dlist(opstack);
-	}
-	tmp = rlt->begin;
-	while (tmp!= NULL)
-	{
-		printf("[%s] ", tmp->value);
-		tmp = tmp->next;
-	}
-	result = clear_dlist(result);
-	opstack = clear_dlist(opstack);
-	return rlt;
+	return to_rpn(&result);
 }
 
 int tokens(const char* s, struct table_token* w)
@@ -598,10 +554,10 @@ Tree* new_tree(const char* x)
 	Tree* tr = malloc(sizeof(Tree));
 	tr->value = strdup(x);
 	token tk = tokens(x, fnc);
-	if (tk != TOKEN_INVALID)
+	if (tk != TOKEN_INVALID || isfn(x))
 	{
 		tr->parent = NULL;
-		if (EXP_F <= tk && tk < AMOUNT_TOKEN)
+		if ((EXP_F <= tk && tk < AMOUNT_TOKEN) || isfn(x))
 			tr->gtype = FUNCTION;
 		else if (tk == NEGATIF)
 			tr->gtype = NEGATION;
@@ -993,7 +949,7 @@ int tree_compare(Tree* tr1, Tree* tr2)
 Tree* clone(Tree* tr)
 {
 	optype op = tr->gtype;
-	if (op == OPERAT)
+	if (op == OPERAT || op == LOGIC)
 		return join(clone(tr->tleft), clone(tr->tright), tr->value);
 	else if (op == NEGATION || op == FUNCTION)
 		return join(clone(tr->tleft), NULL, tr->value);
