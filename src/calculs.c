@@ -112,8 +112,9 @@ static Tree* diff_partial(Tree* tr, const char* vr, const char* vr1)
 static Tree* tangline(Tree* tr, const char* vr, Tree* point)
 {
 	Tree* dtr = diff(tr, vr);
-	Tree* dtrc = remplace_tree(dtr, vr, point), * trc = remplace_tree(clone(tr), vr, point);
+	Tree* dtrc = remplace_tree(dtr, vr, point), * trc = remplace_tree(tr, vr, point);
 	Tree* tantr = join(join(dtrc, join(new_tree(vr), clone(point), fnc[SUB].ex), fnc[PROD].ex), trc, fnc[ADD].ex);
+	clean_tree(dtr);
 	return simplify(tantr);
 }
 
