@@ -30,7 +30,7 @@ Il permet de faire :
 12. quotient d'une division euclidienne de 2 polynômes
 13. simplification d'une division de 2 polynômes
 14. développement d'expression
-15. décomposer en facteur premier (un entier)
+15. factorisation de certains polynômes et décomposition en facteur premier (un entier)
 
 
 # Prérequis
