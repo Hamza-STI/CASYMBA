@@ -149,7 +149,7 @@ int isop(const char* s)
 	token tk = tokens(s, ti_table);
 	if (tk == TOKEN_INVALID)
 		tk = tokens(s, fnc);
-	return !(tk == TOKEN_INVALID);
+	return tk != TOKEN_INVALID;
 }
 
 int opless(const char* a, const char* b)
@@ -366,14 +366,15 @@ DList parse(const uint8_t* ex, unsigned k)
 	return result;
 }
 
-static DList to_rpn(DList* result)
+static DList to_rpn(DList* result, bool ce_parse)
 {
 	int stklen = 0;
 	DList rlt = NULL, opstack = NULL;
 	DListCell* tmp = (*result)->begin;
 	while (tmp != NULL)
 	{
-		if (!(isop(tmp->value) || isfn(tmp->value)))
+
+		if (!((ce_parse && isop(tmp->value)) || cisop(tmp->value[0]) || isfn(tmp->value)))
 			rlt = push_back_dlist(rlt, tmp->value);
 		else
 		{
@@ -388,7 +389,7 @@ static DList to_rpn(DList* result)
 			}
 			if ((tmp->value)[0] == ')')
 			{
-				while (dlist_last(opstack)[0] != '(')
+				while (dlist_last(opstack)[0] != '(' && stklen > 0)
 				{
 					rlt = push_back_dlist(rlt, dlist_last(opstack));
 					opstack = pop_back_dlist(opstack);
@@ -417,15 +418,16 @@ static DList to_rpn(DList* result)
 
 DList In2post(const uint8_t* ex, unsigned k)
 {
+	bool ce_parse = true;
 	DList result = parse(ex, k);
-	return to_rpn(&result);
+	return to_rpn(&result, ce_parse);
 }
 
 DList In2post2(const char* ex)
 {
 	DList result = NULL;
-	char ch, tch;
-	char temp[TAILLE_MAX] = { 0 }, op[2] = { 0 };
+	bool ce_parse = false;
+	char ch, tch, temp[TAILLE_MAX] = { 0 }, op[2] = { 0 };
 	int sl = 0, p = 0;
 	for (unsigned i = 0; i < strlen(ex); ++i)
 	{
@@ -534,7 +536,7 @@ DList In2post2(const char* ex)
 		result = push_back_dlist(result, fnc[PAR_FERMANT].ex);
 		p--;
 	}
-	return to_rpn(&result);
+	return to_rpn(&result, ce_parse);
 }
 
 int tokens(const char* s, struct table_token* w)
