@@ -30,12 +30,12 @@ Il permet de faire :
 12. quotient d'une division euclidienne de 2 polynômes
 13. simplification d'une division de 2 polynômes
 14. développement d'expression
-15. décomposer en facteur premier (un entier)
+15. factorisation de certains polynômes et décomposition en facteur premier (un entier)
 
 
 # Prérequis
 
-- OS 5.3 ou supérieure. Si la version est 5.5 ou supérieure, il faut activer l'assembleur avec [arTIfiCE + AsmHook/Cesium](https://yvantt.github.io/arTIfiCE/).
+- OS 5.3 ou supérieure. Si la version est 5.5 ou supérieure, il faut activer l'assembleur avec [arTIfiCE](https://yvantt.github.io/arTIfiCE/) + [AsmHook](https://tiplanet.org/forum/archives_voir.php?id=2643391).
 - Il faut transférer le programme en mémoire d'Archive.
 - Il faut les [bibliothèques C CE](https://github.com/CE-Programming/libraries/releases/tag/v10.2)
 
