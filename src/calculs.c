@@ -11,9 +11,10 @@ static Tree* factor_by_int(Tree* u, const char* x)
 		if (!strcmp(r->value, "0") || !strcmp(s->value, "0"))
 		{
 			map cf = polycoeffs(u, x), R = NULL;
-			Tree* un = new_tree("1");
-			R = push_back_map(push_back_map(R, un), (!strcmp(s->value, "0")) ? v : w);
-			clean_tree(r); clean_tree(s); clean_tree(v); clean_tree(w); clean_tree(un);
+			bool k = !strcmp(s->value, "0");
+			clean_tree(r); clean_tree(s);
+			R = push_back_map(push_back_map_s(R, new_tree("1")), k ? v : w);
+			clean_tree(v); clean_tree(w);
 			map Q = poly_quotient(cf, R);
 			Tree* q = polyreconstitute(&Q, x), * f = polyreconstitute(&R, x);
 			r = square_free_factor(q, x);
@@ -34,8 +35,7 @@ Tree* square_free_factor(Tree* u, const char* x)
 	while (tmp != NULL)
 	{
 		Tree* q = simplify(join(clone(tmp->tr), clone(c), fnc[DIVID].ex));
-		coef_u = push_back_map(coef_u, q);
-		clean_tree(q);
+		coef_u = push_back_map_s(coef_u, q);
 		tmp = tmp->next;
 	}
 	cf = clear_map(cf);
@@ -45,8 +45,7 @@ Tree* square_free_factor(Tree* u, const char* x)
 	while (i > 0)
 	{
 		Tree* q = simplify(join(clone(tmp->tr), new_tree(tostr(i)), fnc[PROD].ex));
-		coef_v = push_back_map(coef_v, q);
-		clean_tree(q);
+		coef_v = push_back_map_s(coef_v, q);
 		i--;
 		tmp = tmp->next;
 	}
@@ -239,6 +238,19 @@ static Tree* taylor(Tree* u, Tree* vr, Tree* ordre, Tree* point)
 
 /* équations differentielles linéaires */
 
+static Tree* sub_ode(Tree* tr, const char** vrs, map Li)
+{
+	mapCell* tmp = Li->begin;
+	int i = 0;
+	while (tmp != NULL)
+	{
+		tr = remplace_var(tr, vrs[i], tmp->tr);
+		++i;
+		tmp = tmp->next;
+	}
+	return tr;
+}
+
 static Tree* trig_separe(Tree* f, const char* x, Tree** part)
 {
 	map M = map_create_prod(f);
@@ -266,11 +278,8 @@ static map homogenious_2(Tree* a, Tree* b, Tree* c, const char* x, map* S)
 		Tree* d = simplify(join(clone(c), NULL, fnc[SQRT_F].ex));
 		Tree* cs = join(join(clone(d), new_tree(x), fnc[PROD].ex), NULL, fnc[COS_F].ex);
 		Tree* sn = join(join(clone(d), new_tree(x), fnc[PROD].ex), NULL, fnc[SIN_F].ex);
-		*S = push_back_map(*S, d);
-		L = push_back_map(push_back_map(L, cs), sn);
-		clean_tree(cs);
-		clean_tree(sn);
-		clean_tree(d);
+		*S = push_back_map_s(*S, d);
+		L = push_back_map_s(push_back_map_s(L, cs), sn);
 		return L;
 	}
 	Tree* D = simplify(join(clone((b->tok_type == NEGATIF)? b->tleft : b), new_tree("2"), fnc[POW].ex));
@@ -287,9 +296,7 @@ static map homogenious_2(Tree* a, Tree* b, Tree* c, const char* x, map* S)
 		*S = push_back_map(push_back_map(*S, r1), r2);
 		Tree* y1 = join(join(r1, new_tree(x), fnc[PROD].ex), NULL, fnc[EXP_F].ex);
 		Tree* y2 = join(join(r2, new_tree(x), fnc[PROD].ex), NULL, fnc[EXP_F].ex);
-		L = push_back_map(push_back_map(L, y1), y2);
-		clean_tree(y1);
-		clean_tree(y2);
+		L = push_back_map_s(push_back_map_s(L, y1), y2);
 	}
 	else if (d == 0)
 	{
@@ -298,9 +305,7 @@ static map homogenious_2(Tree* a, Tree* b, Tree* c, const char* x, map* S)
 		*S = push_back_map(*S, com);
 		com = join(join(com, new_tree(x), fnc[PROD].ex), NULL, fnc[EXP_F].ex);
 		Tree* y = join(clone(com), new_tree(x), fnc[PROD].ex);
-		L = push_back_map(push_back_map(L, com), y);
-		clean_tree(com);
-		clean_tree(y);
+		L = push_back_map_s(push_back_map_s(L, com), y);
 		clean_tree(D);
 	}
 	else if (d < 0)
@@ -315,9 +320,7 @@ static map homogenious_2(Tree* a, Tree* b, Tree* c, const char* x, map* S)
 		*S = push_back_map(*S, r);
 		Tree* y1 = join(clone(com), join(join(clone(r), new_tree(x), fnc[PROD].ex), NULL, fnc[SIN_F].ex), fnc[PROD].ex);
 		Tree* y2 = join(com, join(join(r, new_tree(x), fnc[PROD].ex), NULL, fnc[COS_F].ex), fnc[PROD].ex);
-		L = push_back_map(push_back_map(L, y1), y2);
-		clean_tree(y1);
-		clean_tree(y2);
+		L = push_back_map_s(push_back_map_s(L, y1), y2);
 	}
 	return L;
 }
@@ -353,8 +356,7 @@ static map solve_system(map* L, map* R)
 			Tree* q = simplify(join(clone(tmp_R->tr), b, fnc[SUB].ex));
 			q = simplify(join(q, a, fnc[DIVID].ex));
 			v_ps = push_back_dlist(v_ps, vrs->end->value);
-			rt = push_back_map(rt, q);
-			clean_tree(q);
+			rt = push_back_map_s(rt, q);
 		}
 		else if (vrs == NULL)
 			rt = push_back_map(rt, t);
@@ -440,72 +442,42 @@ static Tree* exp_solution_2(Tree* a, Tree* b, Tree* c, const char* x, Tree* dg, 
 
 static Tree* trig_solution_2(Tree* a, Tree* b, Tree* c, const char* x, Tree* dg, Tree* part, Tree* part1, Tree* trig, Tree* trig1)
 {
-	if (!strcmp(dg->value, "0"))
+	bool k = !strcmp(dg->value, "0"), g = !strcmp(dg->value, "1");
+	clean_tree(dg);
+	if (k || g)
 	{
-		Tree* m1 = NULL, * denom = NULL, * m2 = NULL;
-		Tree* o = new_tree("1");
-		Tree* r = coefficient_gpe(trig->tleft, x, o);
-		clean_tree(o); clean_tree(dg);
-		m1 = join(join(join(clone(a), join(clone(r), new_tree("2"), fnc[POW].ex), fnc[PROD].ex), clone(c), fnc[SUB].ex), clone(part), fnc[PROD].ex);
-		m1 = join(m1, join(join(clone(b), clone(r), fnc[PROD].ex), clone(part1), fnc[PROD].ex), fnc[ADD].ex);
-		m1 = simplify(join(m1, NULL, fnc[NEGATIF].ex));
-		m2 = join(join(join(clone(a), join(clone(r), new_tree("2"), fnc[POW].ex), fnc[PROD].ex), clone(c), fnc[SUB].ex), part1, fnc[PROD].ex);
-		m2 = join(m2, join(join(clone(b), clone(r), fnc[PROD].ex), part, fnc[PROD].ex), fnc[ADD].ex);
-		m2 = simplify(join(m2, NULL, fnc[NEGATIF].ex));
-		denom = join(join(clone(a), new_tree("2"), fnc[POW].ex), join(clone(r), new_tree("4"), fnc[POW].ex), fnc[PROD].ex);
-		denom = join(denom, join(join(join(new_tree("2"), a, fnc[PROD].ex), c, fnc[PROD].ex), join(clone(r), new_tree("2"), fnc[POW].ex), fnc[PROD].ex), fnc[SUB].ex);
-		denom = join(denom, join(join(b, new_tree("2"), fnc[POW].ex), join(r, new_tree("2"), fnc[POW].ex), fnc[PROD].ex), fnc[ADD].ex);
-		denom = simplify(join(denom, join(clone(c), new_tree("2"), fnc[POW].ex), fnc[ADD].ex));
-		m1 = simplify(join(m1, clone(denom), fnc[DIVID].ex));
-		m2 = simplify(join(m2, denom, fnc[DIVID].ex));
-		return join(join(m1, trig, fnc[PROD].ex), join(m2, trig1, fnc[PROD].ex), fnc[ADD].ex);
-	}
-	else if (!strcmp(dg->value, "1"))
-	{
-		Tree* m1 = NULL, * m2 = NULL, * m3 = NULL, * m4 = NULL, * denom = NULL;
-		Tree* z = new_tree("0");
-		Tree* r = coefficient_gpe(trig->tleft, x, dg);
-		Tree* c_x1 = coefficient_gpe(part, x, dg), * c_x0 = coefficient_gpe(part, x, z);
-		Tree* s_x1 = coefficient_gpe(part1, x, dg), * s_x0 = coefficient_gpe(part1, x, z);
-		clean_tree(z); clean_tree(dg); clean_tree(part); clean_tree(part1);
-		m1 = join(join(join(clone(a), join(clone(r), new_tree("2"), fnc[POW].ex), fnc[PROD].ex), clone(c), fnc[SUB].ex), clone(c_x1), fnc[PROD].ex);
-		m1 = join(m1, join(join(clone(b), clone(r), fnc[PROD].ex), clone(s_x1), fnc[PROD].ex), fnc[ADD].ex);
-		m1 = simplify(join(m1, NULL, fnc[NEGATIF].ex));
-		m3 = join(join(join(clone(a), join(clone(r), new_tree("2"), fnc[POW].ex), fnc[PROD].ex), clone(c), fnc[SUB].ex), s_x1, fnc[PROD].ex);
-		m3 = join(m3, join(join(clone(b), clone(r), fnc[PROD].ex), c_x1, fnc[PROD].ex), fnc[ADD].ex);
-		m3 = simplify(join(m3, NULL, fnc[NEGATIF].ex));
-		denom = join(join(clone(a), new_tree("2"), fnc[POW].ex), join(clone(r), new_tree("4"), fnc[POW].ex), fnc[PROD].ex);
-		denom = join(denom, join(join(join(new_tree("2"), clone(a), fnc[PROD].ex), clone(c), fnc[PROD].ex), join(clone(r), new_tree("2"), fnc[POW].ex), fnc[PROD].ex), fnc[SUB].ex);
-		denom = join(denom, join(join(clone(b), new_tree("2"), fnc[POW].ex), join(clone(r), new_tree("2"), fnc[POW].ex), fnc[PROD].ex), fnc[ADD].ex);
-		denom = simplify(join(denom, join(clone(c), new_tree("2"), fnc[POW].ex), fnc[ADD].ex));
-		m1 = simplify(join(m1, clone(denom), fnc[DIVID].ex));
-		m3 = simplify(join(m3, clone(denom), fnc[DIVID].ex));
-
-		m2 = join(join(join(new_tree("2"), join(clone(a), new_tree("2"), fnc[POW].ex), fnc[PROD].ex), join(clone(r), new_tree("3"), fnc[POW].ex), fnc[PROD].ex), clone(m3), fnc[PROD].ex);
-		m2 = join(m2, join(join(join(clone(a), clone(b), fnc[PROD].ex), join(clone(r), new_tree("2"), fnc[POW].ex), fnc[PROD].ex), clone(m1), fnc[PROD].ex), fnc[SUB].ex);
-		m2 = join(m2, join(join(join(join(new_tree("2"), clone(a), fnc[PROD].ex), clone(c), fnc[PROD].ex), clone(r), fnc[PROD].ex), clone(m3), fnc[PROD].ex), fnc[SUB].ex);
-		m2 = join(m2, join(join(clone(a), clone(c_x0), fnc[PROD].ex), join(clone(r), new_tree("2"), fnc[POW].ex), fnc[PROD].ex), fnc[ADD].ex);
-		m2 = join(m2, join(join(clone(r), join(clone(b), new_tree("2"), fnc[POW].ex), fnc[PROD].ex), clone(m3), fnc[PROD].ex), fnc[ADD].ex);
-		m2 = join(m2, join(clone(b), join(clone(c), clone(m1), fnc[PROD].ex), fnc[PROD].ex), fnc[SUB].ex);
-		m2 = join(m2, join(clone(b), join(clone(r), clone(s_x0), fnc[PROD].ex), fnc[PROD].ex), fnc[SUB].ex);
-		m2 = join(m2, join(clone(c), clone(c_x0), fnc[PROD].ex), fnc[ADD].ex);
-		m2 = simplify(join(m2, clone(denom), fnc[DIVID].ex));
-
-		m4 = join(join(join(join(new_tree("2"), NULL, fnc[NEGATIF].ex), join(clone(a), new_tree("2"), fnc[POW].ex), fnc[PROD].ex), join(clone(r), new_tree("3"), fnc[POW].ex), fnc[PROD].ex), clone(m1), fnc[PROD].ex);
-		m4 = join(m4, join(join(join(clone(a), clone(b), fnc[PROD].ex), join(clone(r), new_tree("2"), fnc[POW].ex), fnc[PROD].ex), clone(m3), fnc[PROD].ex), fnc[SUB].ex);
-		m4 = join(m4, join(join(join(join(new_tree("2"), clone(a), fnc[PROD].ex), clone(c), fnc[PROD].ex), clone(r), fnc[PROD].ex), clone(m1), fnc[PROD].ex), fnc[ADD].ex);
-		m4 = join(m4, join(join(a, s_x0, fnc[PROD].ex), join(clone(r), new_tree("2"), fnc[POW].ex), fnc[PROD].ex), fnc[SUB].ex);
-		m4 = join(m4, join(join(r, join(clone(b), new_tree("2"), fnc[POW].ex), fnc[PROD].ex), clone(m1), fnc[PROD].ex), fnc[SUB].ex);
-		m4 = join(m4, join(clone(b), join(clone(c), clone(m3), fnc[PROD].ex), fnc[PROD].ex), fnc[SUB].ex);
-		m4 = join(m4, join(b, join(clone(r), c_x0, fnc[PROD].ex), fnc[PROD].ex), fnc[ADD].ex);
-		m4 = join(m4, join(c, clone(s_x0), fnc[PROD].ex), fnc[ADD].ex);
-		m4 = simplify(join(m4, denom, fnc[DIVID].ex));
+		Tree* o = new_tree("1"), * c_x1 = g ? coefficient_gpe(part, x, o) : part;
+		Tree* s_x1 = g ? coefficient_gpe(part, x, o) : part1, * r = coefficient_gpe(trig->tleft, x, o);
+		clean_tree(o);
+		const char* vr1[] = { "a", "b", "c", "r", "q", "v" };
+		map Li = NULL;
+		Li = push_back_map_s(push_back_map_s(push_back_map_s(push_back_map_s(push_back_map_s(push_back_map_s(Li, a), b), c), r), c_x1), s_x1);
+		Tree* m1 = simplify(sub_ode(to_tree(In2post2("~((a*r^2-c)*q+b*r*v)")), vr1, Li));
+		Tree* m3 = simplify(sub_ode(to_tree(In2post2("~((a*r^2-c)*v+b*r*q)")), vr1, Li));
+		Tree* d = simplify(sub_ode(to_tree(In2post2("a^2*r^4-2*a*c*r^2+b^2*r^2+c^2")), vr1, Li));
+		m1 = simplify(join(m1, clone(d), fnc[DIVID].ex));
+		m3 = simplify(join(m3, clone(d), fnc[DIVID].ex));
+		if (k)
+		{
+			clean_tree(d);
+			Li = clear_map(Li);
+			return join(join(m1, trig, fnc[PROD].ex), join(m3, trig1, fnc[PROD].ex), fnc[ADD].ex);
+		}
+		o = new_tree("0");
+		Tree* c_x0 = coefficient_gpe(part, x, o), * s_x0 = coefficient_gpe(part1, x, o);
+		clean_tree(o);
+		const char* vr2[] = { "a", "b", "c", "r", "m", "n", "p", "u" };
+		Li = push_back_map_s(push_back_map_s(push_back_map(push_back_map(pop_back_map(pop_back_map(Li)), m1), m3), c_x0), s_x0);
+		Tree* m2 = simplify(sub_ode(to_tree(In2post2("2*a^2*n*r^3+a*(p-b*m)*r^2+r*(−b*u-2*a*c*n+b^2*n)-b*c*m+c*p")), vr2, Li));
+		Tree* m4 = simplify(sub_ode(to_tree(In2post2("~2*a^2*m*r^3+r^2*(−a*u-a*b*n)+(2*a*c*m-b^2*m+b*p)*r+c*u-b*c*n")), vr2, Li));
+		Li = clear_map(Li);
+		m2 = simplify(join(m2, clone(d), fnc[DIVID].ex));
+		m4 = simplify(join(m4, d, fnc[DIVID].ex));
 		m1 = join(join(m1, new_tree(x), fnc[PROD].ex), m2, fnc[ADD].ex);
 		m3 = join(join(m3, new_tree(x), fnc[PROD].ex), m4, fnc[ADD].ex);
 		return join(join(m1, trig, fnc[PROD].ex), join(m3, trig1, fnc[PROD].ex), fnc[ADD].ex);
 	}
 	Error = push_back_dlist(Error, "Non géré. No solution.");
-    clean_tree(dg);
 	return NULL; // erreur cas non géré
 }
 
@@ -572,17 +544,12 @@ static Tree* solve_exact_2(Tree* a, Tree* b, Tree* c, Tree* f, map S, const char
 			if (f->tok_type == ADD || f->tok_type == SUB)
 			{
 				map R = map_create_add(f);
+				int k = R->length;
 				clean_tree(f);
-				if (R->length != 2)
-				{
-					R = clear_map(R);
-					Error = push_back_dlist(Error, "Error : excepted form Acos(U)+Bsin(U).");
-					return NULL; //retourner une erreur forme attendu Acos(U)+Bsin(U)
-				}
 				trig = trig_separe(R->begin->tr, x, &part);
 				trig1 = trig_separe(R->end->tr, x, &part1);
 				R = clear_map(R);
-				if (trig == NULL || trig1 == NULL || trig->tok_type == trig1->tok_type || !tree_compare(trig->tleft, trig1->tleft))
+				if (k != 2 || trig == NULL || trig1 == NULL || trig->tok_type == trig1->tok_type || !tree_compare(trig->tleft, trig1->tleft))
 				{
 					clean_tree(trig); clean_tree(trig1); clean_tree(part1); clean_tree(part);
 					Error = push_back_dlist(Error, "Error : excepted form Acos(U)+Bsin(U).");
@@ -656,6 +623,17 @@ static Tree* get_condition(Tree* tr, Tree* cond, const char* x, const char* y, T
 
 #endif // _EZ80
 
+static map solve_ode_system(Tree* b, const char* x, Tree* pt, Tree* cond)
+{
+	b = simplify(remplace_var(b, x, pt));
+	clean_tree(pt);
+	Tree* a = new_tree("1"), * z = new_tree("0");
+	Tree* i = coefficient_gpe(b, "A", a), * j = coefficient_gpe(b, "B", a), * tmp = coefficient_gpe(b, "A", z);
+	Tree* d = simplify(join(clone(cond), coefficient_gpe(tmp, "B", z), fnc[SUB].ex));
+	clean_tree(tmp); clean_tree(a); clean_tree(b); clean_tree(z);
+	return push_back_map_s(push_back_map_s(push_back_map_s(NULL, i), j), d);
+}
+
 static Tree* solve_ode_2(Tree* a, Tree* b, Tree* c, Tree* f, const char* x, const char* y, Tree* cond1, Tree* cond2)
 {
 	map S = NULL;
@@ -695,33 +673,17 @@ static Tree* solve_ode_2(Tree* a, Tree* b, Tree* c, Tree* f, const char* x, cons
 			Error = push_back_dlist(Error, "Error: argument condition.");
 			return NULL;
 		}
-		Tree* v = NULL, * w = NULL, * i = NULL, * j = NULL, * k = NULL, * l = NULL, * num1 = NULL, * num2 = NULL, * denom = NULL;
-		Tree* cst1 = NULL, * cst2 = NULL, * z = new_tree("0"), * tmp = NULL;
-		b = simplify(remplace_var(b, x, p));
-		clean_tree(p);
-		a = new_tree("1");
-		i = coefficient_gpe(b, "A", a);
-		j = coefficient_gpe(b, "B", a);
-		tmp = coefficient_gpe(b, "A", z);
-		cst1 = coefficient_gpe(tmp, "B", z);
-		clean_tree(tmp); clean_tree(b);
-		c = simplify(remplace_var(c, x, q));
-		clean_tree(q);
-		k = coefficient_gpe(c, "A", a);
-		l = coefficient_gpe(c, "B", a);
-		tmp = coefficient_gpe(c, "A", z);
-		cst2 = coefficient_gpe(tmp, "B", z);
-		clean_tree(tmp);  clean_tree(a); clean_tree(c); clean_tree(z);
-		num1 = simplify(join(clone(l), join(clone(cond1->tright), cst1, fnc[SUB].ex), fnc[PROD].ex));
-		num1 = join(num1, simplify(join(clone(j), clone(cond2->tright), fnc[PROD].ex)), fnc[SUB].ex);
-		num2 = simplify(join(clone(i), join(clone(cond2->tright), cst2, fnc[SUB].ex), fnc[PROD].ex));
-		num2 = join(num2, simplify(join(clone(k), clone(cond1->tright), fnc[PROD].ex)), fnc[SUB].ex);
+		Tree* v = NULL, * w = NULL, * num1 = NULL, * num2 = NULL, * denom = NULL;
+		map cf1 = solve_ode_system(b, x, p, cond1->tright), cf2 = solve_ode_system(c, x, q, cond2->tright);
+		num1 = simplify(join(join(clone(cf2->begin->next->tr), clone(cond1->tright), fnc[PROD].ex), join(clone(cf1->begin->next->tr), clone(cf2->end->tr), fnc[PROD].ex), fnc[SUB].ex));
+		num2 = simplify(join(join(clone(cf1->begin->tr), clone(cond2->tright), fnc[PROD].ex), join(clone(cf2->begin->tr), clone(cf1->end->tr), fnc[PROD].ex), fnc[SUB].ex));
 		clean_tree(cond1); clean_tree(cond2);
-		denom = simplify(join(join(l, i, fnc[PROD].ex), join(j, k, fnc[PROD].ex), fnc[SUB].ex));
+		denom = simplify(join(join(clone(cf2->begin->next->tr), clone(cf1->begin->tr), fnc[PROD].ex), join(clone(cf1->begin->next->tr), clone(cf2->begin->tr), fnc[PROD].ex), fnc[SUB].ex));
 		v = simplify(join(num1, clone(denom), fnc[DIVID].ex));
 		w = simplify(join(num2, denom, fnc[DIVID].ex));
 		yh = remplace_var(remplace_var(yh, "A", v), "B", w);
 		clean_tree(v); clean_tree(w);
+		cf1 = clear_map(cf1); cf2 = clear_map(cf2);
 		yh = simplify(yh);
 	}
 	return join(new_tree(y), yh, fnc[EGAL].ex);
@@ -733,8 +695,7 @@ static Tree* solve_ode(Tree* M, Tree* N, Tree* f, const char* x, const char* y, 
 	Tree* r = simplify(join(join(clone(M), clone(N), fnc[DIVID].ex), NULL, fnc[NEGATIF].ex));
 	Tree* R = simplify(integral(r, x));
 	Tree* s = join(new_tree("K"), join(R, NULL, fnc[EXP_F].ex), fnc[PROD].ex);
-	S = push_back_map(S, r);
-	clean_tree(r);
+	S = push_back_map_s(S, r);
 	Tree* a = new_tree("0");
 	Tree* g = solve_exact_2(a, N, M, f, S, x);
 	S = clear_map(S);
@@ -903,7 +864,7 @@ Tree* analyse(Tree* tr)
 			Tree* a = coefficient_gpe(t, y2, un), * b = coefficient_gpe(t, y1, un), * c = coefficient_gpe(t, var_y, un);
 			L = clear_map(L);
 			clean_tree(un);
-			return solve_ode_2(a, b, c, f, var_x, var_y, cond1, cond2);
+			return pow_transform(solve_ode_2(a, b, c, f, var_x, var_y, cond1, cond2));
 		}
 	}
 	else if (tk == EXPAND_F)
