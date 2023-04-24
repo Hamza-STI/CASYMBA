@@ -42,6 +42,7 @@ Il permet de faire :
 
 # Guide
 
+Veuillez mettre la calculatrice en mode `MATHPRINT` c'est plus simple et évite certaines erreurs.
 Saisissez l'expression sous forme de chaîne de caractères, c'est-à-dire commencer la ligne par un guillemet, exemple : `"X+X+X"`
 ensuite exécuter le programme CASYMBA: `prgmCASYMBA`.
 
