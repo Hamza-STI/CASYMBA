@@ -144,6 +144,13 @@ int cisop(char ch)
 	return ch == '+' || ch == '-' || ch == '/' || ch == '*' || ch == '^' || ch == '=' || ch == '>' || ch == '<' || ch == '(' || ch == ')' || ch == '~' || ch == ',' || ch == '!';
 }
 
+int _isop(const char* s)
+{
+	if (!strcmp(s, "and") || !strcmp(s, "or"))
+		return 1;
+	return cisop(s[0]);
+}
+
 int isop(const char* s)
 {
 	token tk = tokens(s, ti_table);
@@ -373,25 +380,24 @@ static DList to_rpn(DList* result, bool ce_parse)
 	DListCell* tmp = (*result)->begin;
 	while (tmp != NULL)
 	{
-
-		if (!((ce_parse && isop(tmp->value)) || cisop(tmp->value[0]) || isfn(tmp->value)))
+		if (!((ce_parse && tokens(tmp->value, ti_table) != TOKEN_INVALID) || _isop(tmp->value) || isfn(tmp->value)))
 			rlt = push_back_dlist(rlt, tmp->value);
 		else
 		{
 			if ((tmp->value)[0] != '(' && (tmp->value)[0] != ')')
 			{
-				while (opless(tmp->value, dlist_last(opstack)) && stklen > 0)
+				while (opstack != NULL && opless(tmp->value, opstack->end->value) && stklen > 0)
 				{
-					rlt = push_back_dlist(rlt, dlist_last(opstack));
+					rlt = push_back_dlist(rlt, opstack->end->value);
 					opstack = pop_back_dlist(opstack);
 					stklen--;
 				}
 			}
 			if ((tmp->value)[0] == ')')
 			{
-				while (dlist_last(opstack)[0] != '(' && stklen > 0)
+				while (opstack != NULL && opstack->end->value[0] != '(' && stklen > 0)
 				{
-					rlt = push_back_dlist(rlt, dlist_last(opstack));
+					rlt = push_back_dlist(rlt, opstack->end->value);
 					opstack = pop_back_dlist(opstack);
 					stklen--;
 				}
@@ -408,7 +414,7 @@ static DList to_rpn(DList* result, bool ce_parse)
 	}
 	while (opstack != NULL)
 	{
-		rlt = push_back_dlist(rlt, dlist_last(opstack));
+		rlt = push_back_dlist(rlt, opstack->end->value);
 		opstack = pop_back_dlist(opstack);
 	}
 	*result = clear_dlist(*result);

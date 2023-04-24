@@ -9,29 +9,17 @@ static Tree* integral_form(Tree* u, const char* x, map* L);
 
 static map separate_factor(Tree* u, const char* x)
 {
-	map L = NULL;
 	if (!found_element(u, x))
-	{
-		Tree* un = new_tree("1");
-		L = push_back_map(push_back_map(L, u), un);
-		clean_tree(un);
-		return L;
-	}
+		return push_back_map_s(push_back_map(NULL, u), new_tree("1"));
 	if (u->tok_type == DIVID || u->tok_type == PROD)
 	{
 		map f = separate_factor(u->tleft, x), g = separate_factor(u->tright, x);
 		Tree* free_of_part = join(clone(f->begin->tr), clone(g->begin->tr), fnc[u->tok_type].ex);
 		Tree* dependent_part = join(clone(f->end->tr), clone(g->end->tr), fnc[u->tok_type].ex);
 		f = clear_map(f); g = clear_map(g);
-		L = push_back_map(push_back_map(L, free_of_part), dependent_part);
-		clean_tree(free_of_part);
-		clean_tree(dependent_part);
-		return L;
+		return push_back_map_s(push_back_map_s(NULL, free_of_part), dependent_part);
 	}
-	Tree* un = new_tree("1");
-	L = push_back_map(push_back_map(L, un), u);
-	clean_tree(un);
-	return L;
+	return push_back_map(push_back_map_s(NULL, new_tree("1")), u);
 }
 
 static int priority_int(Tree* a, const char* x)
@@ -68,8 +56,7 @@ map polycoeffs(Tree* u, const char* x)
 	map cf = NULL;
 	Tree* z = new_tree("0");
 	Tree* r = simplify(remplace_tree(u, x, z)), * d = diff(u, x);
-	cf = push_back_map(cf, r);
-	clean_tree(r);
+	cf = push_back_map_s(cf, r);
 	while (strcmp(d->value, "0"))
 	{
 		r = simplify(remplace_tree(d, x, z));
@@ -364,8 +351,6 @@ static Tree* add_form(Tree* u, const char* x, map* L)
 				else
 					strcpy(int_cond, "b^2<4ac");
 			}
-			else
-				strcpy(int_cond, "b^2>4ac");
 			clean_tree(t);
 			Tree* a = new_tree("a"), * b = new_tree("b"), * c = new_tree("c");
 			*L = push_back_map_if(push_back_map_if(push_back_map_if(*L, a, coefs->begin->tr), b, coefs->end->back->tr), c, coefs->end->tr);
@@ -379,10 +364,8 @@ static Tree* add_form(Tree* u, const char* x, map* L)
 	Tree* f = integral_form(u->tleft, x, L), * g = integral_form(u->tright, x, L);
 	if (f == NULL || g == NULL)
 	{
-		if (f != NULL)
-			clean_tree(f);
-		if (g != NULL)
-			clean_tree(g);
+		clean_tree(f);
+		clean_tree(g);
 		return NULL;
 	}
 	return join(f, g, u->value);
@@ -448,10 +431,8 @@ static Tree* prod_form(Tree* u, Tree* v, const char* x, map* L, token op)
 		}
 		if (f == NULL || g == NULL)
 		{
-			if (f != NULL)
-				clean_tree(f);
-			if (g != NULL)
-				clean_tree(g);
+			clean_tree(f);
+			clean_tree(g);
 			clean_tree(m);clean_tree(n);
 			return NULL;
 		}
@@ -521,6 +502,7 @@ static Tree* prod_form(Tree* u, Tree* v, const char* x, map* L, token op)
 				dg = join(join(p, new_tree("x"), fnc[PROD].ex), q, fnc[ADD].ex);
 				return join(dg, f, fnc[op].ex);
 			}
+			clean_tree(dg);
 			return join(new_tree("x"), f, fnc[op].ex);
 		}
 		if (ismonomial(u, x))
@@ -552,8 +534,7 @@ static Tree* prod_form(Tree* u, Tree* v, const char* x, map* L, token op)
 				Tree* p = new_tree("p"), * q = new_tree("q");
 				*L = push_back_map_if(push_back_map_if(*L, p, cf->begin->tr), q, cf->end->tr);
 				cf = clear_map(cf);
-				dg = join(join(p, new_tree("x"), fnc[PROD].ex), q, fnc[ADD].ex);
-				return join(f, dg, fnc[op].ex);
+				return join(f, join(join(p, new_tree("x"), fnc[PROD].ex), q, fnc[ADD].ex), fnc[op].ex);
 			}
 			return join(f, new_tree("x"), fnc[op].ex);
 		}

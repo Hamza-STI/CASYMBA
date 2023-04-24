@@ -51,11 +51,10 @@
 
 	bool ismonomial(Tree* u, const char* x);
 	Tree* degree_sv(Tree* u, const char* x);
-	Tree* coefficient_gpe(Tree* u, const char* x, Tree* j);
+	Tree* coefficient_gpe(Tree* u, const char* x, unsigned j);
 	map poly_quotient(map u,map v);
 	map poly_remainder(map u, map v);
 	Tree* polyreconstitute(map* Li, const char* x);
-	map coefficient_monomial_gpe(Tree* u, const char* x);
 	map polynomial_division(map* u, map* v, map* rem);
 	map polycoeffs(Tree* u, const char* x);
 	map poly_gcd(map u, map v);
