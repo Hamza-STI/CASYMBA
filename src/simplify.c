@@ -1527,10 +1527,7 @@ static map simplify_sum_fct(Tree* u1, Tree* u2)
 	bool i = strcmp(v->value, "1"), k = strcmp(x->value, "1");
 	clean_tree(v); clean_tree(x);
 	if (ALG_EXPAND && (i || k))
-	{
-		clean_tree(v); clean_tree(x);
-		return push_back_map_s(NULL, simplify(rationalize_sum(u1, u2, fnc[ADD].ex)));
-	}
+		return push_back_map_s(NULL, rationalize_sum(u1, u2, fnc[ADD].ex));
 	map map_u1 = map_create_prod(u1), map_u2 = map_create_prod(u2);
 	Tree* fact_com = NULL;
 	mapCell* tmp0 = map_u1->begin, * tmp1 = NULL;
