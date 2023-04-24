@@ -1,5 +1,6 @@
 #include "calculs.h"
 
+const char* err_msg[] = { "Err: Args", "Err: No solution", "Err: Args Conditions" };
 DList Error = NULL;
 
 static Tree* factor_by_int(Tree* u, const char* x)
@@ -8,14 +9,14 @@ static Tree* factor_by_int(Tree* u, const char* x)
 	{
 		Tree* v = new_tree(tostr(i)), * w = join(new_tree(tostr(i)), NULL, fnc[NEGATIF].ex);
 		Tree* r = simplify(remplace_tree(u, x, v)), * s = simplify(remplace_tree(u, x, w));
-		if (!strcmp(r->value, "0") || !strcmp(s->value, "0"))
+		bool k = !strcmp(s->value, "0");
+		if (!strcmp(r->value, "0") || k)
 		{
 			map cf = polycoeffs(u, x), R = NULL;
-			bool k = !strcmp(s->value, "0");
 			clean_tree(r); clean_tree(s);
 			R = push_back_map(push_back_map_s(R, new_tree("1")), k ? v : w);
 			clean_tree(v); clean_tree(w);
-			map Q = poly_quotient(cf, R);
+			map Q = poly_quotient(cf, R, INT_F);
 			Tree* q = polyreconstitute(&Q, x), * f = polyreconstitute(&R, x);
 			r = square_free_factor(q, x);
 			cf = clear_map(cf);
@@ -44,14 +45,13 @@ Tree* square_free_factor(Tree* u, const char* x)
 	tmp = coef_u->begin;
 	while (i > 0)
 	{
-		Tree* q = simplify(join(clone(tmp->tr), new_tree(tostr(i)), fnc[PROD].ex));
-		coef_v = push_back_map_s(coef_v, q);
+		coef_v = push_back_map_s(coef_v, simplify(join(clone(tmp->tr), new_tree(tostr(i)), fnc[PROD].ex)));
 		i--;
 		tmp = tmp->next;
 	}
 	map R = poly_gcd(coef_u, coef_v);
 	coef_v = clear_map(coef_v);
-	map F = poly_quotient(coef_u, R);
+	map F = poly_quotient(coef_u, R, INT_F);
 	coef_u = clear_map(coef_u);
 	if (R->length == 1 && !strcmp(R->begin->tr->value, "1") && k > 2)
 	{
@@ -64,7 +64,7 @@ Tree* square_free_factor(Tree* u, const char* x)
 	while (R->length > 1 || (R->length == 1 && strcmp(R->begin->tr->value, "1")))
 	{
 		map G = poly_gcd(R, F);
-		map q = poly_quotient(F, G);
+		map q = poly_quotient(F, G, INT_F);
 		Tree* s = polyreconstitute(&q, x);
 		if (j > 1 && strcmp(s->value, "1"))
 			s = join(s, new_tree(tostr(j)), fnc[POW].ex);
@@ -72,7 +72,7 @@ Tree* square_free_factor(Tree* u, const char* x)
 			P = (P == NULL) ? s : join(P, s, fnc[PROD].ex);
 		else
 			clean_tree(s);
-		map tmp = poly_quotient(R, G);
+		map tmp = poly_quotient(R, G, INT_F);
 		R = clear_map(R); F = clear_map(F);
 		R = tmp;
 		F = G;
@@ -125,7 +125,7 @@ static Tree* taylor_usuelle(Tree* u, const char* vr, Tree* ordre, Tree* point)
 	if (s->tok_type == UNDEF)
 	{
 		clean_tree(s);
-		Error = push_back_dlist(Error, "Non géré.");
+		Error = push_back_dlist(Error, err_msg[1]);
 		return NULL;
 	}
 	Tree* dtr = clone(u);
@@ -141,11 +141,11 @@ static Tree* taylor_usuelle(Tree* u, const char* vr, Tree* ordre, Tree* point)
 		if (c->tok_type == UNDEF)
 		{
 			clean_tree(c); clean_tree(s); clean_tree(dtr);
-			Error = push_back_dlist(Error, "Non géré. No solution.");
+			Error = push_back_dlist(Error, err_msg[1]);
 			return NULL; // erreur
 		}
 		if (strcmp(c->value, "0"))
-			s = (s == NULL)? c : join(s, c, fnc[ADD].ex);
+			s = (s == NULL) ? c : join(s, c, fnc[ADD].ex);
 		else
 			clean_tree(c);
 	}
@@ -191,7 +191,7 @@ static Tree* taylor(Tree* u, Tree* vr, Tree* ordre, Tree* point)
 		Tree* v = taylor(u->tleft, vr, ordre, point), * w = taylor(u->tright, vr, ordre, point);
 		if (v == NULL || w == NULL)
 		{
-			Error = push_back_dlist(Error, "Non géré.");
+			Error = push_back_dlist(Error, err_msg[1]);
 			return NULL;
 		}
 		map lv = map_create_add(v), lw = map_create_add(w);
@@ -228,7 +228,7 @@ static Tree* taylor(Tree* u, Tree* vr, Tree* ordre, Tree* point)
 				clean_tree(v);
 			if (w != NULL)
 				clean_tree(w);
-			Error = push_back_dlist(Error, "Non géré.");
+			Error = push_back_dlist(Error, err_msg[1]);
 			return NULL;
 		}
 		return simplify(join(v, w, u->value));
@@ -282,13 +282,13 @@ static map homogenious_2(Tree* a, Tree* b, Tree* c, const char* x, map* S)
 		L = push_back_map_s(push_back_map_s(L, cs), sn);
 		return L;
 	}
-	Tree* D = simplify(join(clone((b->tok_type == NEGATIF)? b->tleft : b), new_tree("2"), fnc[POW].ex));
+	Tree* D = simplify(join(clone((b->tok_type == NEGATIF) ? b->tleft : b), new_tree("2"), fnc[POW].ex));
 	Tree* e = simplify(join(join(new_tree("4"), clone(a), fnc[PROD].ex), clone(c), fnc[PROD].ex));
 	D = simplify(join(D, e, fnc[SUB].ex));
 	double d = Eval(D);
 	if (d > 0)
 	{
-		e = (b->tok_type == NEGATIF)? clone(b->tleft) : join(clone(b), NULL, fnc[NEGATIF].ex);
+		e = (b->tok_type == NEGATIF) ? clone(b->tleft) : join(clone(b), NULL, fnc[NEGATIF].ex);
 		Tree* P = simplify(e), * O = simplify(join(D, NULL, fnc[SQRT_F].ex));
 		Tree* Z = simplify(join(new_tree("2"), clone(a), fnc[PROD].ex));
 		Tree* r1 = simplify(join(join(clone(P), clone(O), fnc[ADD].ex), clone(Z), fnc[DIVID].ex));
@@ -310,7 +310,7 @@ static map homogenious_2(Tree* a, Tree* b, Tree* c, const char* x, map* S)
 	}
 	else if (d < 0)
 	{
-		e = (b->tok_type == NEGATIF)? clone(b->tleft) : join(clone(b), NULL, fnc[NEGATIF].ex);
+		e = (b->tok_type == NEGATIF) ? clone(b->tleft) : join(clone(b), NULL, fnc[NEGATIF].ex);
 		Tree* com = join(e, join(new_tree("2"), clone(a), fnc[PROD].ex), fnc[DIVID].ex);
 		com = simplify(com);
 		*S = push_back_map(*S, com);
@@ -343,7 +343,6 @@ static map solve_system(map* L, map* R)
 	mapCell* tmp_L = (*L)->begin, * tmp_R = (*R)->begin;
 	DList vrs = NULL, v_ps = NULL;
 	map rt = NULL;
-	Tree* z = new_tree("0"), * o = new_tree("1");
 	while (tmp_L != NULL)
 	{
 		Tree* t = clone(tmp_L->tr);
@@ -367,7 +366,6 @@ static map solve_system(map* L, map* R)
 	}
 	v_ps = clear_dlist(v_ps);
 	*L = clear_map(*L); *R = clear_map(*R);
-	clean_tree(z); clean_tree(o);
 	return rt;
 }
 
@@ -461,8 +459,8 @@ static Tree* trig_solution_2(Tree* a, Tree* b, Tree* c, const char* x, Tree* dg,
 		Tree* c_x0 = coefficient_gpe(part, x, 0), * s_x0 = coefficient_gpe(part1, x, 0);
 		const char* vr2[] = { "a", "b", "c", "r", "m", "n", "p", "u" };
 		Li = push_back_map_s(push_back_map_s(push_back_map(push_back_map(pop_back_map(pop_back_map(Li)), m1), m3), c_x0), s_x0);
-		Tree* m2 = simplify(sub_ode(to_tree(In2post2("2*a^2*n*r^3+a*(p-b*m)*r^2+r*(−b*u-2*a*c*n+b^2*n)-b*c*m+c*p")), vr2, Li));
-		Tree* m4 = simplify(sub_ode(to_tree(In2post2("~2*a^2*m*r^3+r^2*(−a*u-a*b*n)+(2*a*c*m-b^2*m+b*p)*r+c*u-b*c*n")), vr2, Li));
+		Tree* m2 = simplify(sub_ode(to_tree(In2post2("2*a^2*n*r^3+a*(p-b*m)*r^2+r*(~b*u-2*a*c*n+b^2*n)-b*c*m+c*p")), vr2, Li));
+		Tree* m4 = simplify(sub_ode(to_tree(In2post2("~2*a^2*m*r^3+r^2*(~a*u-a*b*n)+(2*a*c*m-b^2*m+b*p)*r+c*u-b*c*n")), vr2, Li));
 		Li = clear_map(Li);
 		m2 = simplify(join(m2, clone(d), fnc[DIVID].ex));
 		m4 = simplify(join(m4, d, fnc[DIVID].ex));
@@ -470,7 +468,7 @@ static Tree* trig_solution_2(Tree* a, Tree* b, Tree* c, const char* x, Tree* dg,
 		m3 = join(join(m3, new_tree(x), fnc[PROD].ex), m4, fnc[ADD].ex);
 		return join(join(m1, trig, fnc[PROD].ex), join(m3, trig1, fnc[PROD].ex), fnc[ADD].ex);
 	}
-	Error = push_back_dlist(Error, "Non géré. No solution.");
+	Error = push_back_dlist(Error, err_msg[1]);
 	return NULL; // erreur cas non géré
 }
 
@@ -543,7 +541,7 @@ static Tree* solve_exact_2(Tree* a, Tree* b, Tree* c, Tree* f, map S, const char
 				if (k != 2 || trig == NULL || trig1 == NULL || trig->tok_type == trig1->tok_type || !tree_compare(trig->tleft, trig1->tleft))
 				{
 					clean_tree(trig); clean_tree(trig1); clean_tree(part1); clean_tree(part);
-					Error = push_back_dlist(Error, "Error : excepted form Acos(U)+Bsin(U).");
+					Error = push_back_dlist(Error, "Err: excepted form Acos(U)+Bsin(U).");
 					return NULL; //retourner une erreur forme attendu Acos(U)+Bsin(U)
 				}
 			}
@@ -631,7 +629,7 @@ static Tree* solve_ode_2(Tree* a, Tree* b, Tree* c, Tree* f, const char* x, cons
 	if (par_sol == NULL)
 	{
 		clean_tree(yh);
-		Error = push_back_dlist(Error, "No particular solution.");
+		Error = push_back_dlist(Error, err_msg[1]);
 		return NULL;
 	}
 	if (strcmp(par_sol->value, "0"))
@@ -648,7 +646,7 @@ static Tree* solve_ode_2(Tree* a, Tree* b, Tree* c, Tree* f, const char* x, cons
 		if (b == NULL)
 		{
 			clean_tree(yh); clean_tree(cond1); clean_tree(cond2);
-			Error = push_back_dlist(Error, "Error: argument condition.");
+			Error = push_back_dlist(Error, err_msg[2]);
 			return NULL;
 		}
 		c = get_condition(yh, cond2->tleft, x, y, &q);
@@ -656,7 +654,7 @@ static Tree* solve_ode_2(Tree* a, Tree* b, Tree* c, Tree* f, const char* x, cons
 		{
 			clean_tree(b); clean_tree(p); clean_tree(cond1); clean_tree(cond2);
 			clean_tree(yh);
-			Error = push_back_dlist(Error, "Error: argument condition.");
+			Error = push_back_dlist(Error, err_msg[2]);
 			return NULL;
 		}
 		Tree* v = NULL, * w = NULL, * num1 = NULL, * num2 = NULL, * denom = NULL;
@@ -688,7 +686,7 @@ static Tree* solve_ode(Tree* M, Tree* N, Tree* f, const char* x, const char* y, 
 	if (g == NULL)
 	{
 		clean_tree(s);
-		Error = push_back_dlist(Error, "Error: No particular solution.");
+		Error = push_back_dlist(Error, err_msg[1]);
 		return NULL;
 	}
 	s = simplify(join(s, g, fnc[ADD].ex));
@@ -699,10 +697,10 @@ static Tree* solve_ode(Tree* M, Tree* N, Tree* f, const char* x, const char* y, 
 		if (dr == NULL)
 		{
 			clean_tree(s); clean_tree(cond);
-			Error = push_back_dlist(Error, "Error: argument condition.");
+			Error = push_back_dlist(Error, err_msg[2]);
 			return NULL;
 		}
-		dr = simplify(remplace_var(dr, x, cond->tleft->tright));
+		dr = simplify(remplace_var(dr, x, p));
 		map cf = polycoeffs(dr, x);
 		clean_tree(dr);
 		Tree* k = simplify(join(join(clone(cond->tright), clone(cf->end->tr), fnc[SUB].ex), clone(cf->begin->tr), fnc[DIVID].ex));
@@ -732,11 +730,46 @@ map analyse_separe(Tree* tr)
 Tree* analyse(Tree* tr)
 {
 	token tk = tr->tok_type;
-	if (tk == DERIV_F)
+	if (tk == EXPAND_F)
+	{
+		TRIG_EXPAND = true;
+		LN_EXP_EXPAND = true;
+		ALG_EXPAND = true;
+		Tree* s = algebraic_expand(tr->tleft);
+		clean_noeud(tr);
+		return simplify(s);
+	}
+	else if (tk == FACTOR_F)
+	{
+		if (tr->tleft->tok_type == SEPARATEUR && tr->tleft->tright->gtype == VAR && ispoly(tr->tleft->tleft, tr->tleft->tright->value))
+		{
+			Tree* s = square_free_factor(tr->tleft->tleft, tr->tleft->tright->value);
+			clean_tree(tr);
+			return s;
+		}
+		else
+		{
+			tr->tleft = simplify(tr->tleft);
+			if (tr->tleft->gtype == ENT)
+			{
+				Tree* u = factorn(tonumber(tr->tleft->value));
+				clean_tree(tr);
+				return u;
+			}
+			if (tr->tleft->tok_type == NEGATION && tr->tleft->tleft->gtype == ENT)
+			{
+				Tree* u = factorn(tonumber(tr->tleft->tleft->value));
+				clean_tree(tr);
+				return join(u, NULL, fnc[NEGATIF].ex);
+			}
+		}
+		return tr;
+	}
+	else if (DERIV_F <= tk && tk <= TAYLOR_F)
 	{
 		map L = analyse_separe(tr->tleft);
 		clean_tree(tr);
-		if ((L->length == 2 && L->end->tr->gtype == VAR) || (L->length == 3 && L->end->back->tr->gtype == VAR && (L->end->tr->gtype == VAR || L->end->tr->gtype == ENT)))
+		if (tk == DERIV_F && ((L->length == 2 && L->end->tr->gtype == VAR) || (L->length == 3 && L->end->back->tr->gtype == VAR && (L->end->tr->gtype == VAR || L->end->tr->gtype == ENT))))
 		{
 			Tree* res = NULL;
 			if (L->end->tr->gtype == ENT)
@@ -748,66 +781,31 @@ Tree* analyse(Tree* tr)
 			L = clear_map(L);
 			return pow_transform(res);
 		}
-		if (L != NULL)
-			L = clear_map(L);
-		Error = push_back_dlist(Error, "Error: arguments.");
-		return NULL;
-	}
-	else if (tk == TAYLOR_F)
-	{
-		map L = analyse_separe(tr->tleft);
-		clean_tree(tr);
-		if (L->length == 4 && L->begin->next->tr->gtype == VAR  && L->end->back->tr->gtype == ENT)
+		else if (tk == TAYLOR_F && L->length == 4 && L->begin->next->tr->gtype == VAR && L->end->back->tr->gtype == ENT)
 		{
 			Tree* res = taylor(L->begin->tr, L->begin->next->tr, L->end->back->tr, L->end->tr);
 			L = clear_map(L);
 			return res;
 		}
-		if (L != NULL)
-			L = clear_map(L);
-		Error = push_back_dlist(Error, "Error: arguments.");
-		return NULL;
-	}
-	else if (tk == TANG_F)
-	{
-		map L = analyse_separe(tr->tleft);
-		clean_tree(tr);
-		if (L->length == 3 && L->begin->next->tr->gtype == VAR)
+		else if (tk == TANG_F && L->length == 3 && L->begin->next->tr->gtype == VAR)
 		{
 			Tree* res = tangline(L->begin->tr, L->begin->next->tr->value, L->end->tr);
 			L = clear_map(L);
 			return pow_transform(simplify(res));
 		}
-		if (L != NULL)
-			L = clear_map(L);
-		Error = push_back_dlist(Error, "Error: arguments.");
-		return NULL;
-	}
-	else if (tk == INTEGRAL_F)
-	{
-		map L = analyse_separe(tr->tleft);
-		clean_tree(tr);
-		if (L->length >=2  && L->begin->next->tr->gtype == VAR)
+		else if (tk == INTEGRAL_F && L->length >= 2 && L->begin->next->tr->gtype == VAR)
 		{
 			Tree* res = integral(L->begin->tr, L->begin->next->tr->value);
 			L = clear_map(L);
 			if (res == NULL)
 			{
-				Error = push_back_dlist(Error, "No solution.");
+				Error = push_back_dlist(Error, err_msg[1]);
 				return NULL;
 			}
 			return pow_transform(simplify(res));
 		}
-		if (L != NULL)
-			L = clear_map(L);
-		Error = push_back_dlist(Error, "Error: arguments.");
-		return NULL;
-	}
-	else if (tk == DESOLVE_F)
-	{
-		map L = analyse_separe(tr->tleft);
-		clean_tree(tr);
-		if (L->length == 3 && L->begin->next->tr->gtype == VAR && L->end->tr->gtype == VAR)
+		else if (tk == DESOLVE_F && L->length == 3 && L->begin->next->tr->gtype == VAR && L->end->tr->gtype == VAR)
+
 		{
 			Tree* t = L->begin->tr, * x = L->begin->next->tr, * y = L->end->tr, * cond1 = NULL, * cond2 = NULL;
 			char y2[5], y1[5], var_y[5], var_x[5];
@@ -828,14 +826,14 @@ Tree* analyse(Tree* tr)
 			}
 			if (t->tok_type == LOGIC_AND)
 			{
-				cond2 = clone(t->tright);
-				t = t->tleft;
-				if (t->tok_type != LOGIC_AND)
+				if (t->tleft->tok_type != LOGIC_AND)
 				{
 					L = clear_map(L);
-					Error = push_back_dlist(Error, "Error: arguments conditions.");
+					Error = push_back_dlist(Error, err_msg[2]);
 					return NULL;
 				}
+				cond2 = clone(t->tright);
+				t = t->tleft;
 				cond1 = clone(t->tright);
 				t = t->tleft;
 			}
@@ -845,95 +843,27 @@ Tree* analyse(Tree* tr)
 			L = clear_map(L);
 			return pow_transform(solve_ode_2(a, b, c, f, var_x, var_y, cond1, cond2));
 		}
-	}
-	else if (tk == EXPAND_F)
-	{
-		if (tr->tleft->tok_type == SEPARATEUR)
-		{
-			clean_tree(tr);
-			Error = push_back_dlist(Error, "Error: arguments.");
-			return NULL;
-		}
-		TRIG_EXPAND = true;
-		LN_EXP_EXPAND = true;
-		ALG_EXPAND = true;
-		Tree* s = algebraic_expand(tr->tleft);
-		clean_noeud(tr);
-		return simplify(s);
-	}
-	else if (tk == FACTOR_F)
-	{
-		if (tr->tleft->tok_type == SEPARATEUR && tr->tleft->tright->gtype == VAR)
-		{
-			if (ispoly(tr->tleft->tleft, tr->tleft->tright->value))
-			{
-				Tree* s = square_free_factor(tr->tleft->tleft, tr->tleft->tright->value);
-				clean_tree(tr);
-				return s;
-			}
-			return tr;
-		}
-		else
-		{
-			tr->tleft = simplify(tr->tleft);
-			if (tr->tleft->gtype == ENT)
-			{
-				Tree* u = factorn(tonumber(tr->tleft->value));
-				clean_tree(tr);
-				return u;
-			}
-			if (is_int(tr->tleft))
-			{
-				Tree* u = factorn(tonumber(tr->tleft->tleft->value));
-				clean_tree(tr);
-				return join(u, NULL, fnc[NEGATIF].ex);
-			}
-			if (isconstant(tr->tleft))
-			{
-				Tree* u = clone(tr->tleft);
-				clean_tree(tr);
-				return u;
-			}
-			string vr = variable(tr->tleft);
-			if (vr != NULL && ispoly(tr->tleft, vr))
-			{
-				Tree* s = square_free_factor(tr->tleft->tleft, vr);
-				clean_tree(tr); free(vr);
-				return s;
-			}
-			clean_tree(tr);
-			Error = push_back_dlist(Error, "Error: Argument : entier/int.");
-			return NULL;
-		}
-	}
-	else if (tk == REMAINDER_F || tk == INT_F || tk == GCD_F || tk == POLYSIMP_F)
-	{
-		map L = analyse_separe(tr->tleft);
-		clean_tree(tr);
-		if (L->length == 3 && L->end->tr->gtype == VAR)
+		else if (REMAINDER_F <= tk && tk <= POLYSIMP_F && L->length == 3 && L->end->tr->gtype == VAR)
 		{
 			map coef_t = polycoeffs(L->begin->tr, L->end->tr->value), coef_a = polycoeffs(L->begin->next->tr, L->end->tr->value), r = NULL;
 			clean_tree(tr);
-			if (tk == REMAINDER_F)
-				r = poly_remainder(coef_t, coef_a);
-			else if (tk == INT_F)
-				r = poly_quotient(coef_t, coef_a);
-			else if (tk == GCD_F)
-				r = poly_gcd(coef_t, coef_a);
-			else if (tk == POLYSIMP_F)
+			if (tk == POLYSIMP_F)
 			{
 				Tree* ret = poly_simp(coef_t, coef_a, L->end->tr->value);
 				L = clear_map(L);
 				return ret;
 			}
+			else if (tk == GCD_F)
+				r = poly_gcd(coef_t, coef_a);
+			else
+				r = poly_quotient(coef_t, coef_a, tk);
 			coef_t = clear_map(coef_t); coef_a = clear_map(coef_a);
 			Tree* ret = polyreconstitute(&r, L->end->tr->value);
 			L = clear_map(L);
 			return pow_transform(ret);
 		}
-		if (L != NULL)
-			L = clear_map(L);
-		Error = push_back_dlist(Error, "Error: arguments.");
+		L = clear_map(L);
+		Error = push_back_dlist(Error, err_msg[0]);
 		return NULL;
 	}
 	ALG_EXPAND = true;
