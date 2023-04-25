@@ -75,40 +75,6 @@ map polycoeffs(Tree* u, const char* x)
 
 /* calcul derivee */
 
-static Tree* form_integral(const char* s_form, struct Integral* w, int size)
-{
-	for (const Integral* element = w; element != w + size; element++)
-	{
-		unsigned i = strlen(element->condt);
-		if (!strcmp(element->expr, s_form) && (i == 0 || (i && (strstr(element->condt, int_cond) != NULL || strstr(int_cond, element->condt) != NULL))))
-			return to_tree(In2post2(element->calc));
-	}
-	return NULL;
-}
-
-struct Integral Derivtable[] =
-{
-	{ fnc[NEGATIF].ex, "~u", "" },
-	{ fnc[LN_F].ex, "u/U", "" },
-	{ fnc[LOG_F].ex, "u/(U*ln(10))", "" },
-	{ fnc[EXP_F].ex, "u*exp(U)", "" },
-	{ fnc[ABS_F].ex, "u*sign(U)", "" },
-	{ fnc[SQRT_F].ex, "u/(2*sqrt(U))", "" },
-	{ fnc[COS_F].ex, "~u*sin(U)", "" },
-	{ fnc[SIN_F].ex, "u*cos(U)", "" },
-	{ fnc[TAN_F].ex, "u/cos(U)^2", "" },
-	{ fnc[COSH_F].ex, "u*sinh(U)", "" },
-	{ fnc[SINH_F].ex, "u*cosh(U)", "" },
-	{ fnc[TANH_F].ex, "u/cosh(U)^2", "" },
-	{ fnc[ACOS_F].ex, "~u/sqrt(1-U^2)", "" },
-	{ fnc[ASIN_F].ex, "u/sqrt(1-U^2)", "" },
-	{ fnc[ATAN_F].ex, "u/(U^2+1)", "" },
-	{ fnc[ACOSH_F].ex, "u/sqrt(U^2-1)", "" },
-	{ fnc[ASINH_F].ex, "u/sqrt(1+U^2)", "" },
-	{ fnc[ATANH_F].ex, "u/(1-U^2)", "" },
-	{ fnc[CBRT_F].ex, "u/(3*U^(2/3))", "" }
-};
-
 Tree* diff(Tree* tr, const char* vr)
 {
 	if (!found_element(tr, vr))
@@ -123,35 +89,53 @@ Tree* diff(Tree* tr, const char* vr)
 		if (tok == PROD)
 		{
 			Tree* w = denominator_fun(tr);
-			if (found_element(w, vr))
+			if (!isconstant(w))
 			{
 				Tree* v = numerator_fun(tr);
-				Tree* dl = diff(v, vr), * dr = diff(w, vr);
+				Tree* dl = diff(v, vr);
+				Tree* dr = diff(w, vr);
 				return join(join(join(dl, clone(w), fnc[PROD].ex), join(dr, v, fnc[PROD].ex), fnc[SUB].ex), join(w, new_tree("2"), fnc[POW].ex), fnc[DIVID].ex);
 			}
 			clean_tree(w);
 		}
-		Tree* dl = diff(tr->tleft, vr), * dr = diff(tr->tright, vr);
+		Tree* dl = diff(tr->tleft, vr);
+		Tree* dr = diff(tr->tright, vr);
 		if (tok == ADD || tok == SUB)
 			return simplify(join(dl, dr, sig));
-		if (tok == PROD || tok == DIVID)
+		if (tok == PROD)
 		{
-			Tree* t = simplify(join(join(dl, clone(tr->tright), fnc[PROD].ex), join(dr, clone(tr->tleft), fnc[PROD].ex), fnc[(tok == PROD) ? ADD : SUB].ex));
-			return (tok == PROD)? t : join(t, join(clone(tr->tright), new_tree("2"), fnc[POW].ex), fnc[DIVID].ex);;
+			Tree* t = join(join(dl, clone(tr->tright), fnc[PROD].ex), join(dr, clone(tr->tleft), fnc[PROD].ex), fnc[ADD].ex);
+			t->tleft = simplify(t->tleft);
+			t->tright = simplify(t->tright);
+			return simplify(t);
+		}
+		if (tok == DIVID)
+		{
+			Tree* t = join(join(dl, clone(tr->tright), fnc[PROD].ex), join(dr, clone(tr->tleft), fnc[PROD].ex), fnc[SUB].ex);
+			t->tleft = simplify(t->tleft);
+			t->tright = simplify(t->tright);
+			t = join(t, join(clone(tr->tright), new_tree("2"), fnc[POW].ex), fnc[DIVID].ex);
+			return t;
 		}
 		if (tok == POW)
 		{
-			Tree* sol = NULL;
-			bool v = !strcmp(dr->value, "0");
-			if (v || !strcmp(dl->value, "0"))
-				sol = remplace_var(remplace_var(remplace_var(to_tree(In2post2(v ? "c*u*U^(c-1)" : "ln(c)*c^U")), "U", v ? tr->tleft : tr->tright), "u", v ? dl : dr), "c", v ? tr->tright : tr->tleft);
-			else
-				sol = remplace_var(remplace_var(remplace_var(remplace_var(to_tree(In2post2("(u*V/U+ln(U)*v)*U^V")), "U", tr->tleft), "V", tr->tright), "u", dl), "v", dr);
-			clean_tree(dr); clean_tree(dl);
-			return sol;
+			if (!strcmp(dr->value, "0"))
+			{
+				Tree* dtl = simplify(join(clone(tr->tright), dl, fnc[PROD].ex));
+				Tree* t = join(clone(tr->tright), new_tree("1"), fnc[SUB].ex);
+				Tree* dtr = simplify(join(clone(tr->tleft), t, fnc[POW].ex));
+				clean_tree(dr);
+				return simplify(join(dtl, dtr, fnc[PROD].ex));
+			}
+			Tree* dtl = join(clone(tr->tright), join(clone(tr->tleft), join(clone(tr->tright), new_tree("1"), fnc[SUB].ex), fnc[POW].ex), fnc[PROD].ex);
+			dtl = join(dtl, dl, fnc[PROD].ex);
+			Tree* dtr = join(join(dr, clone(tr), fnc[PROD].ex), join(clone(tr->tleft), NULL, fnc[LN_F].ex), fnc[PROD].ex);
+			return simplify(join(dtl, dtr, fnc[ADD].ex));
 		}
 	}
-	else if (op == FUNCTION || op == NEGATION)
+	else if (op == NEGATION)
+		return join(simplify(diff(tr->tleft, vr)), NULL, sig);
+	else if (op == FUNCTION)
 	{
 		if (tok == INTEGRAL_F)
 		{
@@ -160,27 +144,63 @@ Tree* diff(Tree* tr, const char* vr)
 				t = t->tleft;
 			return clone(t->tleft);
 		}
-		if (tok == LOGBASE_F || tok == ROOT_F)
+		if (tok == LOGBASE_F)
 		{
-			Tree* dl = simplify(diff(tr->tleft->tleft, vr)), * sol = to_tree(In2post2((tok == LOGBASE_F) ? "u/(U*ln(c))" : "u/(c*U^((c-1)/c))"));
-			sol = remplace_var(remplace_var(remplace_var(sol, "U", tr->tleft->tleft), "u", dl), "c", tr->tleft->tright);
-			clean_tree(dl);
-			return sol;
+			Tree* dleft = simplify(diff(tr->tleft->tleft, vr));
+			Tree* b = tr->tleft->tright;
+			return join(dleft, join(clone(tr->tleft->tleft), join(clone(b), NULL, fnc[LN_F].ex), fnc[PROD].ex), fnc[DIVID].ex);
 		}
 		Tree* dl = simplify(diff(tr->tleft, vr));
-		Tree* sol = form_integral(sig, Derivtable, AMOUNT_DERIV);
-		if (sol != NULL)
-		{
-			sol = remplace_var(remplace_var(sol, "U", tr->tleft), "u", dl);
-			clean_tree(dl);
-			return sol;
-		}
-		clean_tree(dl);
+		if (tok == LN_F)
+			return join(dl, clone(tr->tleft), fnc[DIVID].ex);
+		if (tok == LOG_F)
+			return join(dl, join(clone(tr->tleft->tleft), join(new_tree("10"), NULL, fnc[LN_F].ex), fnc[PROD].ex), fnc[DIVID].ex);
+		else if (tok == EXP_F)
+			return join(dl, clone(tr), fnc[PROD].ex);
+		else if (tok == SQRT_F)
+			return join(join(new_tree("1"), new_tree("2"), fnc[DIVID].ex), join(dl, clone(tr), fnc[DIVID].ex), fnc[PROD].ex);
+		else if (tok == COS_F)
+			return join(join(dl, NULL, fnc[NEGATIF].ex), join(clone(tr->tleft), NULL, fnc[SIN_F].ex), fnc[PROD].ex);
+		else if (tok == SIN_F)
+			return join(dl, join(clone(tr->tleft), NULL, fnc[COS_F].ex), fnc[PROD].ex);
+		else if (tok == TAN_F)
+			return join(dl, join(join(clone(tr->tleft), NULL, fnc[COS_F].ex), new_tree("2"), fnc[POW].ex), fnc[DIVID].ex);
+		else if (tok == COSH_F)
+			return join(dl, join(clone(tr->tleft), NULL, fnc[SINH_F].ex), fnc[PROD].ex);
+		else if (tok == SINH_F)
+			return join(dl, join(clone(tr->tleft), NULL, fnc[COSH_F].ex), fnc[PROD].ex);
+		else if (tok == TANH_F)
+			return join(dl, join(join(clone(tr->tleft), NULL, fnc[COSH_F].ex), new_tree("2"), fnc[POW].ex), fnc[DIVID].ex);
+		else if (tok == ACOS_F)
+			return join(join(dl, NULL, fnc[NEGATIF].ex), join(join(new_tree("1"), join(clone(tr->tleft), new_tree("2"), fnc[POW].ex), fnc[SUB].ex), NULL, fnc[SQRT_F].ex), fnc[DIVID].ex);
+		else if (tok == ASIN_F)
+			return join(dl, join(join(new_tree("1"), join(clone(tr->tleft), new_tree("2"), fnc[POW].ex), fnc[SUB].ex), NULL, fnc[SQRT_F].ex), fnc[DIVID].ex);
+		else if (tok == ATAN_F)
+			return join(dl, join(join(clone(tr->tleft), new_tree("2"), fnc[POW].ex), new_tree("1"), fnc[ADD].ex), fnc[DIVID].ex);
+		else if (tok == ACOSH_F)
+			return join(dl, join(join(join(clone(tr->tleft), new_tree("1"), fnc[SUB].ex), NULL, fnc[SQRT_F].ex), join(join(clone(tr->tleft), new_tree("1"), fnc[ADD].ex), NULL, fnc[SQRT_F].ex), fnc[PROD].ex), fnc[DIVID].ex);
+		else if (tok == ASINH_F)
+			return join(dl, join(join(join(clone(tr->tleft), new_tree("2"), fnc[POW].ex), new_tree("1"), fnc[ADD].ex), NULL, fnc[SQRT_F].ex), fnc[DIVID].ex);
+		else if (tok == ATANH_F)
+			return join(join(dl, NULL, fnc[NEGATIF].ex), join(join(clone(tr->tleft), new_tree("2"), fnc[POW].ex), new_tree("1"), fnc[SUB].ex), fnc[DIVID].ex);
+		else if (tok == ABS_F)
+			return join(dl, join(clone(tr->tleft), NULL, fnc[SIGN_F].ex), fnc[PROD].ex);
 	}
 	return join(join(clone(tr), new_tree(vr), fnc[SEPARATEUR].ex), NULL, fnc[DERIV_F].ex);
 }
 
 /* primitive */
+
+static Tree* form_integral(const char* s_form, struct Integral* w, int size)
+{
+	for (const Integral* element = w; element != w + size; element++)
+	{
+		unsigned i = strlen(element->condt);
+		if (!strcmp(element->expr, s_form) && (i == 0 || (i && (strstr(element->condt, int_cond) != NULL || strstr(int_cond, element->condt) != NULL))))
+			return to_tree(In2post2(element->calc));
+	}
+	return NULL;
+}
 
 static Tree* function_form(int var, Tree* u, const char* x, map* L)
 {
