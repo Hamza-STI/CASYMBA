@@ -2474,7 +2474,7 @@ map poly_gcd(map u, map v)
 		U = clone_map(u);
 		V = clone_map(v);
 	}
-	while (V->length > 1 || strcmp(V->begin->tr->value, "0"))
+	while (strcmp(V->begin->tr->value, "0"))
 	{
 		map R = poly_quotient(U, V, REMAINDER_F);
 		U = clear_map(U);
