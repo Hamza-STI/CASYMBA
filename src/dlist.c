@@ -54,25 +54,6 @@ DList pop_back_dlist(DList li)
 	return li;
 }
 
-int dlist_length(DList li)
-{
-	if(li == NULL)
-		return 0;
-
-	return li->length;
-}
-
-string dlist_last(DList li)
-{
-	if(li == NULL)
-	{
-		static char r[2] = "\0";
-		return r;
-	}
-
-	return li->end->value;
-}
-
 DList clear_dlist(DList li)
 {
 	if(li == NULL)
@@ -126,7 +107,9 @@ DList dlist_sub(DList li, int start, int length)
 	while(compte < start + length)
 	{
 		if (start <= compte && compte < start + length)
+		{
 			list = push_back_dlist(list, tmp->value);
+		}
 		tmp = tmp->next;
 		compte++;
 	}

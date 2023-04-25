@@ -210,7 +210,7 @@ Tree* exponent(Tree* u)
 long long int factoriel(long long int a)
 {
 	long long int s = 1, i;
-	for (i = 1; i <= a; i++)
+	for (i = 1; i <= a; ++i)
 		s *= i;
 	return s;
 }
@@ -234,7 +234,7 @@ Tree* expand_power(Tree* u, double n)
 	if (u->tok_type == ADD || u->tok_type == SUB)
 	{
 		Tree* f = u->tleft, * r = u->tright, * s = NULL;
-		for (int i = 0; i <= n; i++)
+		for (int i = 0; i <= n; ++i)
 		{
 			Tree* g = join(clone(f), new_tree(tostr(n - i)), fnc[POW].ex);
 			double c = (double)factoriel(n) / (factoriel(i) * factoriel(n - i));
@@ -377,7 +377,7 @@ int cmpvar(Tree* u, Tree* v)
 	int a = strlen(p), b = strlen(q), k = 0;
 	int i = (a >= b) ? a : b;
 	while (k < i && p[k] == q[k])
-		k++;
+		++k;
 	return k < i && p[k] < q[k];
 }
 
@@ -487,7 +487,7 @@ char* zero_untile(const char* a)
 	while (a[i] == '0' || (a[k] == '0' && c != NULL))
 	{
 		if (a[i] == '0')
-			i++;
+			++i;
 		if (a[k] == '0' && c != NULL)
 			k--;
 	}
@@ -501,7 +501,7 @@ char* zero_untile(const char* a)
 		if (i <= j && j <= k)
 		{
 			b[pos] = a[j];
-			pos++;
+			++pos;
 		}
 		if (j >= k)
 			break;
@@ -509,7 +509,7 @@ char* zero_untile(const char* a)
 	if (pos == 0)
 	{
 		b[pos] = '0';
-		pos++;
+		++pos;
 	}
 	b[pos] = '\0';
 	return b;
@@ -523,7 +523,7 @@ bool greater(const char* a, const char* b)
 	int n = (len_c < len_d) ? len_c : len_d;
 	if (len_a != len_b)
 		return len_a > len_b;
-	for (int i = 0; i < len_a + n; i++)
+	for (int i = 0; i < len_a + n; ++i)
 	{
 		if (a[i] != b[i])
 			return a[i] > b[i];
@@ -537,9 +537,9 @@ char* new_value(const char* a, unsigned size_int_a, unsigned size_dec_a, unsigne
 		return strdup(a);
 	char* ret = malloc(new_size_int + new_size_dec + 1);
 	int length = new_size_int - size_int_a;
-	for (int i = 0; i < length; i++)
+	for (int i = 0; i < length; ++i)
 		ret[i] = '0';
-	for (unsigned i = 0; i < strlen(a); i++)
+	for (unsigned i = 0; i < strlen(a); ++i)
 	{
 		ret[length] = a[i];
 		length++;
@@ -549,7 +549,7 @@ char* new_value(const char* a, unsigned size_int_a, unsigned size_dec_a, unsigne
 		ret[length] = '.';
 		length++;
 	}
-	for (unsigned i = 1; i <= new_size_dec - size_dec_a; i++)
+	for (unsigned i = 1; i <= new_size_dec - size_dec_a; ++i)
 	{
 		ret[length] = '0';
 		length++;
@@ -597,7 +597,7 @@ char* adds(const char* left, const char* right, int op)
 			clc[pos] = '.';
 		else
 			clc[pos] = '0' + ((op == 1) ? add_cc(new_a[i], new_b[i], &retenue) : sub_cc(new_a[i], new_b[i], &retenue));
-		pos++;
+		++pos;
 	}
 	if (op == 1 && retenue == 1)
 		clc[pos] = '1';
@@ -645,10 +645,10 @@ char* prod(const char* left, const char* right)
 		{
 			pos = 0;
 			retenue = 0;
-			for (int k = 0; k < s; k++)
+			for (int k = 0; k < s; ++k)
 			{
 				clc[pos] = '0';
-				pos++;
+				++pos;
 			}
 			s++;
 			for (int k = len_b - 1; k >= 0; k--)
@@ -660,7 +660,7 @@ char* prod(const char* left, const char* right)
 					if (retenue > 0)
 						w -= retenue * 10;
 					clc[pos] = '0' + w;
-					pos++;
+					++pos;
 				}
 			}
 			if (retenue > 0)
@@ -687,14 +687,14 @@ char* prod(const char* left, const char* right)
 	pos = 0;
 	s = strlen(tmp);
 	char* ret = malloc((s + 2) * sizeof(char));
-	for (int i = 0; i < s; i++)
+	for (int i = 0; i < s; ++i)
 	{
 		ret[pos] = tmp[i];
-		pos++;
+		++pos;
 		if (s - (i + 1) == len_c + len_d)
 		{
 			ret[pos] = '.';
-			pos++;
+			++pos;
 		}
 	}
 	if (ret[s - 1] == '.')
@@ -709,15 +709,15 @@ char* int_divid(const char* num, const char* denom, char** rem)
 {
 	int len_a = strlen(num), len_b = strlen(denom), pos = 0, p = 0;
 	char tmp[50] = { 0 }, quot[50] = { 0 };
-	for (int i = 0; i < len_b; i++)
+	for (int i = 0; i < len_b; ++i)
 	{
 		if (i == len_a)
 		{
-			pos++;
+			++pos;
 			break;
 		}
 		tmp[pos] = num[i];
-		pos++;
+		++pos;
 	}
 	do {
 		int k = 1;
@@ -726,16 +726,10 @@ char* int_divid(const char* num, const char* denom, char** rem)
 			char w[2] = { '0' + k, '\0' };
 			char* n = prod(denom, w);
 			bool sup = greater(n, tmp);
-			if (!strcmp(n, tmp))
-			{
-				k++;
-				free(n);
-				break;
-			}
 			free(n);
 			if (sup)
 				break;
-			k++;
+			++k;
 		}
 		k--;
 		char u[2] = { '0' + k, '\0' };
@@ -748,11 +742,11 @@ char* int_divid(const char* num, const char* denom, char** rem)
 		if ((k == 0 && p > 0) || k > 0)
 		{
 			quot[p] = '0' + k;
-			p++;
+			++p;
 		}
 		if (pos < len_a)
 			tmp[strlen(tmp)] = num[pos];
-		pos++;
+		++pos;
 	} while (pos <= len_a);
 	char* t = zero_untile(quot);
 	char* ret = strdup(t);
@@ -780,13 +774,13 @@ char* divid(const char* num, const char* denom)
 		if (!len_c)
 		{
 			strcpy(new_a, num);
-			for (int i = 0; i < len_d; i++)
+			for (int i = 0; i < len_d; ++i)
 				new_a[len_a + i] = '0';
 		}
 		else
 		{
 			pos = 0;
-			for (int i = 0; i < len_a; i++)
+			for (int i = 0; i < len_a; ++i)
 			{
 				if (num[i] == '.')
 					digit = true;
@@ -795,32 +789,32 @@ char* divid(const char* num, const char* denom)
 					if (len_d == 0)
 					{
 						new_a[pos] = '.';
-						pos++;
+						++pos;
 					}
 					new_a[pos] = num[i];
-					pos++;
+					++pos;
 					len_d--;
 				}
 				else
 				{
 					new_a[pos] = num[i];
-					pos++;
+					++pos;
 				}
 			}
 			while (len_d > 0)
 			{
 				new_a[pos] = '0';
-				pos++;
+				++pos;
 				len_d--;
 			}
 		}
 		pos = 0;
-		for (int i = 0; i < len_b; i++)
+		for (int i = 0; i < len_b; ++i)
 		{
 			if (denom[i] != '.')
 			{
 				new_b[pos] = denom[i];
-				pos++;
+				++pos;
 			}
 		}
 	}
@@ -833,7 +827,7 @@ char* divid(const char* num, const char* denom)
 	len_b = strlen(new_b);
 	len_a = strlen(new_a);
 	digit = false;
-	for (int i = 0; i < len_b; i++)
+	for (int i = 0; i < len_b; ++i)
 	{
 		if (new_a[i] == '.')
 			digit = true;
@@ -847,7 +841,7 @@ char* divid(const char* num, const char* denom)
 			break;
 		}
 		tmp[pos] = new_a[i];
-		pos++;
+		++pos;
 	}
 	while (prec < 15)
 	{
@@ -860,7 +854,7 @@ char* divid(const char* num, const char* denom)
 			free(n);
 			if (sup)
 				break;
-			k++;
+			++k;
 		}
 		k--;
 		char u[2] = { '0' + k, '\0' };
@@ -871,20 +865,20 @@ char* divid(const char* num, const char* denom)
 			strcpy(tmp, v);
 		free(v); free(m);
 		quot[p] = '0' + k;
-		p++;
+		++p;
 		if (!strcmp(tmp, "0") && pos >= len_a)
 			break;
 		if ((pos < len_a && new_a[pos] == '.') || pos == len_a)
 		{
 			digit = true;
-			pos++;
+			++pos;
 			quot[p] = '.';
-			p++;
+			++p;
 		}
 		else if (digit)
 			prec++;
 		tmp[strlen(tmp)] = (pos >= len_a) ? '0' : new_a[pos];
-		pos++;
+		++pos;
 	}
 	return strdup(quot);
 }
@@ -1379,47 +1373,33 @@ static Tree* simplify_power(Tree* v, Tree* w)
 		v->tleft = join(w, v->tleft, fnc[PROD].ex);
 		return simplify(v);
 	}
-	else if (v->tok_type == PROD)
+	else if (v->tok_type == PROD || v->tok_type == DIVID)
 	{
-		Tree* v1 = simplify_power(clone(v->tleft), clone(w)), * v2 = simplify_power(clone(v->tright), w);
-		clean_tree(v);
-		return join(v1, v2, fnc[PROD].ex);
+		v->tleft = simplify_power(v->tleft, clone(w));
+		v->tright = simplify_power(v->tright, w);
+		return v;
 	}
 	else if (v->tok_type == POW)
 	{
-		Tree* r = v->tleft;
-		w = simplify(join(v->tright, w, fnc[PROD].ex));
-		clean_noeud(v);
-		return join(r, w, fnc[POW].ex);
-	}
-	else if (v->tok_type == DIVID)
-	{
-		v->tleft = simplify(join(v->tleft, clone(w), fnc[POW].ex));
-		v->tright = simplify(join(v->tright, w, fnc[POW].ex));
+		v->tright = simplify(join(v->tright, w, fnc[PROD].ex));
 		return v;
 	}
 	else if (w->gtype == ENT && ALG_EXPAND)
 		return simplify_integer_power(v, w);
 	else if (w->gtype == NEGATION)
 	{
-		Tree* tr = simplify(join(v, w->tleft, fnc[POW].ex));
-		clean_noeud(w);
-		if (tr->tok_type == POW)
-		{
-			if (isdemi(tr->tright) && tr->tleft->gtype == ENT)
-				return join(join(clone(tr->tleft), join(new_tree("1"), NULL, fnc[NEGATIF].ex), fnc[POW].ex), tr, fnc[PROD].ex);
-			Tree* p = simplify(join(tr->tright, NULL, fnc[NEGATIF].ex));
-			Tree* r = join(tr->tleft, p, fnc[POW].ex);
-			clean_noeud(tr);
-			return r;
-		}
+		Tree* tr = simplify(join(v, clone(w->tleft), fnc[POW].ex));
+		clean_tree(w);
+		if (tr->tok_type == POW && isdemi(tr->tright) && tr->tleft->gtype == ENT)
+			return join(join(clone(tr->tleft), join(new_tree("1"), NULL, fnc[NEGATIF].ex), fnc[POW].ex), tr, fnc[PROD].ex);
 		if (tr->tok_type == DIVID)
 		{
-			Tree* r = join(tr->tright, tr->tleft, fnc[DIVID].ex);
-			clean_noeud(tr);
-			return r;
+			w = tr->tleft;
+			tr->tleft = tr->tright;
+			tr->tright = w;
+			return tr;
 		}
-		return join(tr, join(new_tree("1"), NULL, fnc[NEGATIF].ex), fnc[POW].ex);
+		return join(new_tree("1"), tr, fnc[DIVID].ex);
 	}
 	else if (v->gtype == ENT)
 	{
@@ -1432,9 +1412,9 @@ static Tree* simplify_power(Tree* v, Tree* w)
 		}
 		else if (f->tok_type == PROD)
 		{
+			clean_tree(v);
 			map L = map_create_prod(f);
 			clean_tree(f);
-			clean_tree(v);
 			Tree* s = new_tree("1"), * q = NULL;
 			mapCell* item = L->begin;
 			while (item != NULL)
@@ -1852,8 +1832,8 @@ Tree* simplify(Tree* u)
 			if (tr->tok_type == DIVID && found_element(tr->tright, fnc[IMAGE].ex))
 			{
 				map cf = polycoeffs(tr->tright, fnc[IMAGE].ex);
-				Tree* z = join(clone(tr->tleft), join(clone(cf->begin->tr), join(clone(cf->end->tr), new_tree(fnc[IMAGE].ex), fnc[PROD].ex), fnc[SUB].ex), fnc[PROD].ex);
-				Tree* o = join(join(clone(cf->begin->tr), new_tree("2"), fnc[POW].ex), join(clone(cf->end->tr), new_tree("2"), fnc[POW].ex), fnc[ADD].ex);
+				Tree* z = simplify(join(clone(tr->tleft), join(clone(cf->begin->tr), join(clone(cf->end->tr), new_tree(fnc[IMAGE].ex), fnc[PROD].ex), fnc[SUB].ex), fnc[PROD].ex));
+				Tree* o = simplify(join(join(clone(cf->begin->tr), new_tree("2"), fnc[POW].ex), join(clone(cf->end->tr), new_tree("2"), fnc[POW].ex), fnc[ADD].ex));
 				clean_tree(tr); cf = clear_map(cf);
 				return simplify(join(z, o, fnc[DIVID].ex));
 			}
@@ -2453,7 +2433,7 @@ map polynomial_division(map* divd, map* divr, map* rem)
 		}
 		if (z && (*divd) != NULL)
 		{
-			for (int i = 0; i < (*divd)->length - 1; i++)
+			for (int i = 0; i < (*divd)->length - 1; ++i)
 				quot = push_back_map_s(quot, new_tree("0"));
 			(*divd) = clear_map(*divd);
 			break;
