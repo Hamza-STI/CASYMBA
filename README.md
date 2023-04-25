@@ -42,12 +42,13 @@ Il permet de faire :
 
 # Guide
 
+Veuillez mettre la calculatrice en mode `MATHPRINT` c'est plus simple et évite certaines erreurs.
 Saisissez l'expression sous forme de chaîne de caractères, c'est-à-dire commencer la ligne par un guillemet, exemple : `"X+X+X"`
 ensuite exécuter le programme CASYMBA: `prgmCASYMBA`.
 
 ## Calcul de dérivées 
 
-Utilisez la fonction `nDeriv(` ***calculatrice en anglais*** ou `nbreDérivé(` ***calculatrice en Français*** accessible dans la touche `math`.
+Utilisez la fonction `nDeriv(` ***calculatrice en anglais*** ou `nbreDérivé(` ***calculatrice en Français*** accessible en appuyant sur la touche `math`.
 
 La fonction prend 3 arguments : `nDeriv(EXPRESSION,VARIABLE,VARIABLE)` ou `nDeriv(EXPRESSION,VARIABLE1,VARIABLE2)` ou `nDeriv(EXPRESSION,VARIABLE,ENTIER_POSITIF)`
 
@@ -91,7 +92,7 @@ prgmCASYMBA
 
 ***C'est un trop gros programme qui demande de la patience et des connaissances, je n'ai pas encore les moyens de créer quelque chose de complet pour ces modèles***
 
-Utilisez la fonction `fnInt(` ***calculatrice en anglais*** ou `intégrFonct(` ***calculatrice en Français*** accessible dans la touche `math`
+Utilisez la fonction `fnInt(` ***calculatrice en anglais*** ou `intégrFonct(` ***calculatrice en Français*** accessible en appuyant sur la touche `math`
 
 La fonction prend 4 arguments  : `fnInt(EXPRESSION,VARIABLE,VARIABLE,VARIABLE)`
 
@@ -141,7 +142,7 @@ La résolution d'équation différentielle linéaire d'ordre 1 et 2.
 
 Utilisez la fonction `solve(` ***calculatrice en anglais*** ou `résoudre(` ***calculatrice en Français***
 
-La fonction prend 3 arguments : `solve(EXPRESSION,VARIABLE,VARIABLE1)`
+La fonction prend 3 arguments : `solve(EXPRESSION,VARIABLE1,VARIABLE2)`
 
 **Remarques : les équations doivent être sous la forme suivante AY'+BY=f(X) ou AY''+BY'+CY=f(X)**
 
