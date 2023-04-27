@@ -1,7 +1,7 @@
 #include "integral.h"
 
 #define AMOUNT_INTEGRAL 166
-#define AMOUNT_DERIV 19
+#define AMOUNT_DERIV 18
 int ipp_loop = 10;
 char int_cond[10] = { 0 };
 
@@ -75,122 +75,6 @@ map polycoeffs(Tree* u, const char* x)
 
 /* calcul derivee */
 
-Tree* diff(Tree* tr, const char* vr)
-{
-	if (!found_element(tr, vr))
-		return new_tree("0");
-	if (!strcmp(tr->value, vr))
-		return new_tree("1");
-	optype op = tr->gtype;
-	string sig = tr->value;
-	token tok = tr->tok_type;
-	if (op == OPERAT)
-	{
-		if (tok == PROD)
-		{
-			Tree* w = denominator_fun(tr);
-			if (!isconstant(w))
-			{
-				Tree* v = numerator_fun(tr);
-				Tree* dl = diff(v, vr);
-				Tree* dr = diff(w, vr);
-				return join(join(join(dl, clone(w), fnc[PROD].ex), join(dr, v, fnc[PROD].ex), fnc[SUB].ex), join(w, new_tree("2"), fnc[POW].ex), fnc[DIVID].ex);
-			}
-			clean_tree(w);
-		}
-		Tree* dl = diff(tr->tleft, vr);
-		Tree* dr = diff(tr->tright, vr);
-		if (tok == ADD || tok == SUB)
-			return simplify(join(dl, dr, sig));
-		if (tok == PROD)
-		{
-			Tree* t = join(join(dl, clone(tr->tright), fnc[PROD].ex), join(dr, clone(tr->tleft), fnc[PROD].ex), fnc[ADD].ex);
-			t->tleft = simplify(t->tleft);
-			t->tright = simplify(t->tright);
-			return simplify(t);
-		}
-		if (tok == DIVID)
-		{
-			Tree* t = join(join(dl, clone(tr->tright), fnc[PROD].ex), join(dr, clone(tr->tleft), fnc[PROD].ex), fnc[SUB].ex);
-			t->tleft = simplify(t->tleft);
-			t->tright = simplify(t->tright);
-			t = join(t, join(clone(tr->tright), new_tree("2"), fnc[POW].ex), fnc[DIVID].ex);
-			return t;
-		}
-		if (tok == POW)
-		{
-			if (!strcmp(dr->value, "0"))
-			{
-				Tree* dtl = simplify(join(clone(tr->tright), dl, fnc[PROD].ex));
-				Tree* t = join(clone(tr->tright), new_tree("1"), fnc[SUB].ex);
-				Tree* dtr = simplify(join(clone(tr->tleft), t, fnc[POW].ex));
-				clean_tree(dr);
-				return simplify(join(dtl, dtr, fnc[PROD].ex));
-			}
-			Tree* dtl = join(clone(tr->tright), join(clone(tr->tleft), join(clone(tr->tright), new_tree("1"), fnc[SUB].ex), fnc[POW].ex), fnc[PROD].ex);
-			dtl = join(dtl, dl, fnc[PROD].ex);
-			Tree* dtr = join(join(dr, clone(tr), fnc[PROD].ex), join(clone(tr->tleft), NULL, fnc[LN_F].ex), fnc[PROD].ex);
-			return simplify(join(dtl, dtr, fnc[ADD].ex));
-		}
-	}
-	else if (op == NEGATION)
-		return join(simplify(diff(tr->tleft, vr)), NULL, sig);
-	else if (op == FUNCTION)
-	{
-		if (tok == INTEGRAL_F)
-		{
-			Tree* t = tr;
-			while (t->tleft->tok_type == SEPARATEUR)
-				t = t->tleft;
-			return clone(t->tleft);
-		}
-		if (tok == LOGBASE_F)
-		{
-			Tree* dleft = simplify(diff(tr->tleft->tleft, vr));
-			Tree* b = tr->tleft->tright;
-			return join(dleft, join(clone(tr->tleft->tleft), join(clone(b), NULL, fnc[LN_F].ex), fnc[PROD].ex), fnc[DIVID].ex);
-		}
-		Tree* dl = simplify(diff(tr->tleft, vr));
-		if (tok == LN_F)
-			return join(dl, clone(tr->tleft), fnc[DIVID].ex);
-		if (tok == LOG_F)
-			return join(dl, join(clone(tr->tleft->tleft), join(new_tree("10"), NULL, fnc[LN_F].ex), fnc[PROD].ex), fnc[DIVID].ex);
-		else if (tok == EXP_F)
-			return join(dl, clone(tr), fnc[PROD].ex);
-		else if (tok == SQRT_F)
-			return join(join(new_tree("1"), new_tree("2"), fnc[DIVID].ex), join(dl, clone(tr), fnc[DIVID].ex), fnc[PROD].ex);
-		else if (tok == COS_F)
-			return join(join(dl, NULL, fnc[NEGATIF].ex), join(clone(tr->tleft), NULL, fnc[SIN_F].ex), fnc[PROD].ex);
-		else if (tok == SIN_F)
-			return join(dl, join(clone(tr->tleft), NULL, fnc[COS_F].ex), fnc[PROD].ex);
-		else if (tok == TAN_F)
-			return join(dl, join(join(clone(tr->tleft), NULL, fnc[COS_F].ex), new_tree("2"), fnc[POW].ex), fnc[DIVID].ex);
-		else if (tok == COSH_F)
-			return join(dl, join(clone(tr->tleft), NULL, fnc[SINH_F].ex), fnc[PROD].ex);
-		else if (tok == SINH_F)
-			return join(dl, join(clone(tr->tleft), NULL, fnc[COSH_F].ex), fnc[PROD].ex);
-		else if (tok == TANH_F)
-			return join(dl, join(join(clone(tr->tleft), NULL, fnc[COSH_F].ex), new_tree("2"), fnc[POW].ex), fnc[DIVID].ex);
-		else if (tok == ACOS_F)
-			return join(join(dl, NULL, fnc[NEGATIF].ex), join(join(new_tree("1"), join(clone(tr->tleft), new_tree("2"), fnc[POW].ex), fnc[SUB].ex), NULL, fnc[SQRT_F].ex), fnc[DIVID].ex);
-		else if (tok == ASIN_F)
-			return join(dl, join(join(new_tree("1"), join(clone(tr->tleft), new_tree("2"), fnc[POW].ex), fnc[SUB].ex), NULL, fnc[SQRT_F].ex), fnc[DIVID].ex);
-		else if (tok == ATAN_F)
-			return join(dl, join(join(clone(tr->tleft), new_tree("2"), fnc[POW].ex), new_tree("1"), fnc[ADD].ex), fnc[DIVID].ex);
-		else if (tok == ACOSH_F)
-			return join(dl, join(join(join(clone(tr->tleft), new_tree("1"), fnc[SUB].ex), NULL, fnc[SQRT_F].ex), join(join(clone(tr->tleft), new_tree("1"), fnc[ADD].ex), NULL, fnc[SQRT_F].ex), fnc[PROD].ex), fnc[DIVID].ex);
-		else if (tok == ASINH_F)
-			return join(dl, join(join(join(clone(tr->tleft), new_tree("2"), fnc[POW].ex), new_tree("1"), fnc[ADD].ex), NULL, fnc[SQRT_F].ex), fnc[DIVID].ex);
-		else if (tok == ATANH_F)
-			return join(join(dl, NULL, fnc[NEGATIF].ex), join(join(clone(tr->tleft), new_tree("2"), fnc[POW].ex), new_tree("1"), fnc[SUB].ex), fnc[DIVID].ex);
-		else if (tok == ABS_F)
-			return join(dl, join(clone(tr->tleft), NULL, fnc[SIGN_F].ex), fnc[PROD].ex);
-	}
-	return join(join(clone(tr), new_tree(vr), fnc[SEPARATEUR].ex), NULL, fnc[DERIV_F].ex);
-}
-
-/* primitive */
-
 static Tree* form_integral(const char* s_form, struct Integral* w, int size)
 {
 	for (const Integral* element = w; element != w + size; element++)
@@ -202,15 +86,104 @@ static Tree* form_integral(const char* s_form, struct Integral* w, int size)
 	return NULL;
 }
 
+struct Integral Derivtable[] =
+{
+	{ fnc[LN_F].ex, "V/U", "" },
+	{ fnc[LOG_F].ex, "V/(U*ln(10))", "" },
+	{ fnc[EXP_F].ex, "V*exp(U)", "" },
+	{ fnc[ABS_F].ex, "V*sign(U)", "" },
+	{ fnc[SQRT_F].ex, "V/(2*sqrt(U))", "" },
+	{ fnc[COS_F].ex, "~V*sin(U)", "" },
+	{ fnc[SIN_F].ex, "V*cos(U)", "" },
+	{ fnc[TAN_F].ex, "V/cos(U)^2", "" },
+	{ fnc[COSH_F].ex, "V*sinh(U)", "" },
+	{ fnc[SINH_F].ex, "V*cosh(U)", "" },
+	{ fnc[TANH_F].ex, "V/cosh(U)^2", "" },
+	{ fnc[ACOS_F].ex, "~V/sqrt(1-U^2)", "" },
+	{ fnc[ASIN_F].ex, "V/sqrt(1-U^2)", "" },
+	{ fnc[ATAN_F].ex, "V/(U^2+1)", "" },
+	{ fnc[ACOSH_F].ex, "V/sqrt(U^2-1)", "" },
+	{ fnc[ASINH_F].ex, "V/sqrt(1+U^2)", "" },
+	{ fnc[ATANH_F].ex, "V/(1-U^2)", "" },
+	{ fnc[CBRT_F].ex, "V/(3*U^(2/3))", "" }
+};
+
+Tree* diff(Tree* tr, const char* vr)
+{
+	if (!found_element(tr, vr))
+		return new_tree("0");
+	if (!strcmp(tr->value, vr))
+		return new_tree("1");
+	optype op = tr->gtype;
+	string sig = tr->value;
+	token tok = tr->tok_type;
+	if (op == OPERAT)
+	{
+		Tree* dl = diff(tr->tleft, vr), * dr = diff(tr->tright, vr);
+		if (tok == ADD || tok == SUB)
+			return simplify(join(dl, dr, sig));
+		if (tok == PROD || tok == DIVID)
+		{
+			Tree* t = simplify(join(join(dl, clone(tr->tright), fnc[PROD].ex), join(dr, clone(tr->tleft), fnc[PROD].ex), fnc[(tok == PROD) ? ADD : SUB].ex));
+			return (tok == PROD) ? t : join(t, join(clone(tr->tright), new_tree("2"), fnc[POW].ex), fnc[DIVID].ex);
+		}
+		if (tok == POW)
+		{
+			Tree* sol = NULL;
+			bool v = !strcmp(dr->value, "0");
+			if (v || !strcmp(dl->value, "0"))
+			{
+				sol = to_tree(In2post2(v ? "C*V*U^(C-1)" : "ln(C)*C^U"));
+				sol = remplace_var(remplace_var(remplace_var(sol, "U", v ? tr->tleft : tr->tright), "V", v ? dl : dr), "C", v ? tr->tright : tr->tleft);
+			}
+			else
+				sol = remplace_var(remplace_var(remplace_var(remplace_var(to_tree(In2post2("(T*V/U+ln(U)*W)*U^V")), "U", tr->tleft), "V", tr->tright), "T", dl), "W", dr);
+			clean_tree(dr); clean_tree(dl);
+			return sol;
+		}
+	}
+	else if (tok == NEGATIF)
+		return join(simplify(diff(tr->tleft, vr)), NULL, sig);
+	if (tok == INTEGRAL_F)
+	{
+		Tree* t = tr;
+		while (t->tleft->tok_type == SEPARATEUR)
+			t = t->tleft;
+		return clone(t->tleft);
+	}
+	if (tok == LOGBASE_F || tok == ROOT_F)
+	{
+		Tree* dl = simplify(diff(tr->tleft->tleft, vr)), * sol = to_tree(In2post2((tok == LOGBASE_F) ? "V/(U*ln(C))" : "V/(C*U^((C-1)/C))"));
+		sol = remplace_var(remplace_var(remplace_var(sol, "U", tr->tleft->tleft), "V", dl), "C", tr->tleft->tright);
+		clean_tree(dl);
+		return sol;
+		Tree* dleft = simplify(diff(tr->tleft->tleft, vr));
+		Tree* b = tr->tleft->tright;
+		return join(dleft, join(clone(tr->tleft->tleft), join(clone(b), NULL, fnc[LN_F].ex), fnc[PROD].ex), fnc[DIVID].ex);
+	}
+	Tree* dl = simplify(diff(tr->tleft, vr));
+	Tree* sol = form_integral(sig, Derivtable, AMOUNT_DERIV);
+	if (sol != NULL)
+	{
+		sol = remplace_var(remplace_var(sol, "U", tr->tleft), "V", dl);
+		clean_tree(dl);
+		return sol;
+	}
+	clean_tree(dl);
+	return join(join(clone(tr), new_tree(vr), fnc[SEPARATEUR].ex), NULL, fnc[DERIV_F].ex);
+}
+
+/* primitive */
+
 static Tree* function_form(int var, Tree* u, const char* x, map* L)
 {
 	map cf1 = polycoeffs(u->tleft, x);
 	if (cf1->length == 2)
 	{
-		Tree* a = new_tree((var == 1) ? "a" : "b");
+		Tree* a = new_tree((var == 1) ? "A" : "B");
 		if (!ismonomial(u->tleft, x))
 		{
-			Tree* b = join(clone(a), new_tree("x"), fnc[PROD].ex);
+			Tree* b = join(clone(a), new_tree("X"), fnc[PROD].ex);
 			*L = push_back_map_if(*L, b, u->tleft);
 		}
 		Tree* tr = cf1->begin->tr;
@@ -219,11 +192,11 @@ static Tree* function_form(int var, Tree* u, const char* x, map* L)
 		{
 			*L = push_back_map_if(*L, a, tr->tright);
 			cf1 = clear_map(cf1);
-			return join(join(new_tree("x"), a, fnc[DIVID].ex), NULL, u->value);
+			return join(join(new_tree("X"), a, fnc[DIVID].ex), NULL, u->value);
 		}
 		*L = push_back_map_if(*L, a, tr);
 		cf1 = clear_map(cf1);
-		return join(join(a, new_tree("x"), fnc[PROD].ex), NULL, u->value);
+		return join(join(a, new_tree("X"), fnc[PROD].ex), NULL, u->value);
 	}
 	cf1 = clear_map(cf1);
 	return NULL;
@@ -287,16 +260,16 @@ static Tree* add_form(Tree* u, const char* x, map* L)
 		if (coefs->length == 2)
 		{
 			int k = (*L == NULL) ? 0 : (*L)->length;
-			Tree* a = new_tree("a"), * b = new_tree("b");
+			Tree* a = new_tree("A"), * b = new_tree("B");
 			*L = push_back_map_if(*L, a, coefs->begin->tr);
 			if (k == (*L)->length)
 			{
 				clean_tree(a); clean_tree(b);
-				a = new_tree("p"); b = new_tree("q");
+				a = new_tree("P"); b = new_tree("Q");
 			}
 			*L = push_back_map_if(push_back_map_if(*L, a, coefs->begin->tr), b, coefs->end->tr);
 			coefs = clear_map(coefs);
-			return join(join(a, new_tree("x"), fnc[PROD].ex), b, fnc[ADD].ex);
+			return join(join(a, new_tree("X"), fnc[PROD].ex), b, fnc[ADD].ex);
 		}
 
 		if (ismonomial(u->tleft, x) && ismonomial(u->tright, x))
@@ -304,21 +277,21 @@ static Tree* add_form(Tree* u, const char* x, map* L)
 			if (strcmp(coefs->begin->next->tr->value, "0"))
 			{
 				int k = coefs->length - 2;
-				Tree* a = new_tree("a"), * b = new_tree("b");
+				Tree* a = new_tree("A"), * b = new_tree("B");
 				*L = push_back_map_if(push_back_map_if(*L, a, coefs->begin->tr), b, coefs->begin->next->tr);
 				coefs = clear_map(coefs);
 				if (k == 1)
-					return join(new_tree("x"), join(join(a, new_tree("x"), fnc[PROD].ex), b, fnc[ADD].ex), fnc[PROD].ex);
-				Tree* m = new_tree("m"), * m_value = new_tree(tostr(k));
+					return join(new_tree("X"), join(join(a, new_tree("X"), fnc[PROD].ex), b, fnc[ADD].ex), fnc[PROD].ex);
+				Tree* m = new_tree("M"), * m_value = new_tree(tostr(k));
 				*L = push_back_map_if(*L, m, m_value);
 				clean_tree(m_value);
-				Tree* q = join(new_tree("x"), m, fnc[POW].ex);
-				return join(q, join(join(a, new_tree("x"), fnc[PROD].ex), b, fnc[ADD].ex), fnc[PROD].ex);
+				Tree* q = join(new_tree("X"), m, fnc[POW].ex);
+				return join(q, join(join(a, new_tree("X"), fnc[PROD].ex), b, fnc[ADD].ex), fnc[PROD].ex);
 			}
 			if (strcmp(coefs->begin->tr->value, "0") && strcmp(coefs->end->tr->value, "0"))
 			{
 				int k = coefs->length;
-				Tree* a = new_tree("a"), * c = new_tree("c"), * n = new_tree((k == 3) ? "2" : "n");
+				Tree* a = new_tree("A"), * c = new_tree("C"), * n = new_tree((k == 3) ? "2" : "N");
 				if (k > 3)
 				{
 					Tree* val = new_tree(tostr(k - 1));
@@ -328,7 +301,7 @@ static Tree* add_form(Tree* u, const char* x, map* L)
 				*L = push_back_map_if(push_back_map_if(*L, a, coefs->begin->tr), c, coefs->end->tr);
 				sprintf(int_cond, "a%s0 c%s0", (coefs->begin->tr->tok_type == NEGATIF) ? "<" : ">", (coefs->end->tr->tok_type == NEGATIF) ? "<" : ">");
 				coefs = clear_map(coefs);
-				return join(c, join(a, join(new_tree("x"), n, fnc[POW].ex), fnc[PROD].ex), fnc[ADD].ex);
+				return join(c, join(a, join(new_tree("X"), n, fnc[POW].ex), fnc[PROD].ex), fnc[ADD].ex);
 			}
 		}
 		if (coefs->length == 3)
@@ -340,21 +313,21 @@ static Tree* add_form(Tree* u, const char* x, map* L)
 				{
 					coefs = clear_map(coefs);
 					coefs = polycoeffs(fct->tleft, x);
-					Tree* a = new_tree("a"), * b = new_tree("b"), * n = new_tree("n");
+					Tree* a = new_tree("A"), * b = new_tree("B"), * n = new_tree("N");
 					*L = push_back_map_if(push_back_map_if(push_back_map_if(*L, n, fct->tright), a, coefs->begin->tr), b, coefs->end->tr);
 					coefs = clear_map(coefs);
-					return join(join(join(a, new_tree("x"), fnc[PROD].ex), b, fnc[ADD].ex), n, fnc[POW].ex);
+					return join(join(join(a, new_tree("X"), fnc[PROD].ex), b, fnc[ADD].ex), n, fnc[POW].ex);
 				}
 				if (fct->tok_type == PROD && (fct->tleft->tok_type == ADD || fct->tleft->tok_type == SUB) && (fct->tright->tok_type == ADD || fct->tright->tok_type == SUB))
 				{
 					coefs = clear_map(coefs);
 					map cfs = polycoeffs(fct->tright, x);
 					coefs = polycoeffs(fct->tleft, x);
-					Tree* a = new_tree("a"), * b = new_tree("b"), * p = new_tree("p"), * q = new_tree("q");
+					Tree* a = new_tree("A"), * b = new_tree("B"), * p = new_tree("P"), * q = new_tree("Q");
 					*L = push_back_map_if(push_back_map_if(*L, a, coefs->begin->tr), b, coefs->end->tr);
 					*L = push_back_map_if(push_back_map_if(*L, p, cfs->begin->tr), q, cfs->end->tr);
 					coefs = clear_map(coefs); cfs = clear_map(cfs);
-					return join(join(join(a, new_tree("x"), fnc[PROD].ex), b, fnc[ADD].ex), join(join(p, new_tree("x"), fnc[PROD].ex), q, fnc[ADD].ex), fnc[PROD].ex);
+					return join(join(join(a, new_tree("X"), fnc[PROD].ex), b, fnc[ADD].ex), join(join(p, new_tree("X"), fnc[PROD].ex), q, fnc[ADD].ex), fnc[PROD].ex);
 				}
 			}
 			clean_tree(fct);
@@ -365,18 +338,18 @@ static Tree* add_form(Tree* u, const char* x, map* L)
 			{
 				double n = Eval(t);
 				if (n > 0)
-					strcpy(int_cond, "b^2>4ac");
+					strcpy(int_cond, "B^2>4AC");
 				else if (n == 0)
-					strcpy(int_cond, "b^2=4ac");
+					strcpy(int_cond, "B^2=4AC");
 				else
-					strcpy(int_cond, "b^2<4ac");
+					strcpy(int_cond, "B^2<4AC");
 			}
 			clean_tree(t);
-			Tree* a = new_tree("a"), * b = new_tree("b"), * c = new_tree("c");
+			Tree* a = new_tree("A"), * b = new_tree("B"), * c = new_tree("C");
 			*L = push_back_map_if(push_back_map_if(push_back_map_if(*L, a, coefs->begin->tr), b, coefs->end->back->tr), c, coefs->end->tr);
 			coefs = clear_map(coefs);
-			a = join(a, join(new_tree("x"), new_tree("2"), fnc[POW].ex), fnc[PROD].ex);
-			b = join(b, new_tree("x"), fnc[PROD].ex);
+			a = join(a, join(new_tree("X"), new_tree("2"), fnc[POW].ex), fnc[PROD].ex);
+			b = join(b, new_tree("X"), fnc[PROD].ex);
 			return join(join(a, b, fnc[ADD].ex), c, fnc[ADD].ex);
 		}
 		coefs = clear_map(coefs);
@@ -405,8 +378,8 @@ static Tree* prod_form(Tree* u, Tree* v, const char* x, map* L, token op)
 				clean_tree(h);
 				return NULL;
 			}
-			Tree* n = (!strcmp(u->tright->value, "2") && ((tk == SINH_F && tk0 == COSH_F) || (tk0 == SINH_F && tk == COSH_F))) ? clone(u->tright) : new_tree("n");
-			if (!strcmp(n->value, "n"))
+			Tree* n = (!strcmp(u->tright->value, "2") && ((tk == SINH_F && tk0 == COSH_F) || (tk0 == SINH_F && tk == COSH_F))) ? clone(u->tright) : new_tree("N");
+			if (!strcmp(n->value, "N"))
 				*L = push_back_map_if(*L, n, u->tright);
 			return join(join(g, n, fnc[POW].ex), join(h, n, fnc[POW].ex), fnc[op].ex);
 		}
@@ -425,13 +398,13 @@ static Tree* prod_form(Tree* u, Tree* v, const char* x, map* L, token op)
 			if (!strcmp(f->value, "2"))
 			{
 				clean_tree(f);
-				Tree* n = new_tree("n");
+				Tree* n = new_tree("N");
 				*L = push_back_map_if(*L, n, u->tright);
 				return join(join(g, n, fnc[POW].ex), join(h, join(n, new_tree("2"), fnc[ADD].ex), fnc[POW].ex), fnc[op].ex);
 			}
 			clean_tree(f);
 		}
-		Tree* m = new_tree("m"), * n = new_tree("n");
+		Tree* m = new_tree("M"), * n = new_tree("N");
 		*L = push_back_map_if(*L, m, u->tright);
 		int b = (*L == NULL) ? 0 : (*L)->length;
 		*L = push_back_map_if(*L, n, v->tright);
@@ -467,7 +440,7 @@ static Tree* prod_form(Tree* u, Tree* v, const char* x, map* L, token op)
 			clean_tree(h);
 			return NULL;
 		}
-		Tree* n = new_tree("n");
+		Tree* n = new_tree("N");
 		*L = push_back_map_if(*L, n, u->tright);
 		return join(join(g, n, fnc[POW].ex), h, fnc[op].ex);
 	}
@@ -480,7 +453,7 @@ static Tree* prod_form(Tree* u, Tree* v, const char* x, map* L, token op)
 			clean_tree(h);
 			return NULL;
 		}
-		Tree* n = new_tree("n");
+		Tree* n = new_tree("N");
 		*L = push_back_map_if(*L, n, u->tright);
 		return join( g, join(h, n, fnc[POW].ex), fnc[op].ex);
 	}
@@ -516,21 +489,21 @@ static Tree* prod_form(Tree* u, Tree* v, const char* x, map* L, token op)
 			if (!ismonomial(u, x))
 			{
 				map cf = polycoeffs(u, x);
-				Tree* p = new_tree("p"), * q = new_tree("q");
+				Tree* p = new_tree("P"), * q = new_tree("Q");
 				*L = push_back_map_if(push_back_map_if(*L, p, cf->begin->tr), q, cf->end->tr);
 				cf = clear_map(cf); clean_tree(dg);
-				dg = join(join(p, new_tree("x"), fnc[PROD].ex), q, fnc[ADD].ex);
+				dg = join(join(p, new_tree("X"), fnc[PROD].ex), q, fnc[ADD].ex);
 				return join(dg, f, fnc[op].ex);
 			}
 			clean_tree(dg);
-			return join(new_tree("x"), f, fnc[op].ex);
+			return join(new_tree("X"), f, fnc[op].ex);
 		}
 		if (ismonomial(u, x))
 		{
-			Tree* m = new_tree("m");
+			Tree* m = new_tree("M");
 			*L = push_back_map_if(*L, m, dg);
 			clean_tree(dg);
-			return join(join(new_tree("x"), m, fnc[POW].ex), f, fnc[op].ex);
+			return join(join(new_tree("X"), m, fnc[POW].ex), f, fnc[op].ex);
 		}
 		clean_tree(dg);
 	}
@@ -551,21 +524,21 @@ static Tree* prod_form(Tree* u, Tree* v, const char* x, map* L, token op)
 			if (!ismonomial(v, x))
 			{
 				map cf = polycoeffs(v, x);
-				Tree* p = new_tree("p"), * q = new_tree("q");
+				Tree* p = new_tree("P"), * q = new_tree("Q");
 				*L = push_back_map_if(push_back_map_if(*L, p, cf->begin->tr), q, cf->end->tr);
 				cf = clear_map(cf);
-				return join(f, join(join(p, new_tree("x"), fnc[PROD].ex), q, fnc[ADD].ex), fnc[op].ex);
+				return join(f, join(join(p, new_tree("X"), fnc[PROD].ex), q, fnc[ADD].ex), fnc[op].ex);
 			}
-			return join(f, new_tree("x"), fnc[op].ex);
+			return join(f, new_tree("X"), fnc[op].ex);
 		}
 		if (ismonomial(v, x))
 		{
-			Tree* m = new_tree("m");
+			Tree* m = new_tree("M");
 			*L = push_back_map_if(*L, m, dg);
 			clean_tree(dg);
 			if (op == PROD)
-				return join(join(new_tree("x"), m, fnc[POW].ex), f, fnc[op].ex);
-			return join(f, join(new_tree("x"), m, fnc[POW].ex), fnc[op].ex);
+				return join(join(new_tree("X"), m, fnc[POW].ex), f, fnc[op].ex);
+			return join(f, join(new_tree("X"), m, fnc[POW].ex), fnc[op].ex);
 		}
 		clean_tree(dg);
 	}
@@ -574,11 +547,11 @@ static Tree* prod_form(Tree* u, Tree* v, const char* x, map* L, token op)
 		map cf = polycoeffs(u, x), cf1 = polycoeffs(v, x);
 		if (cf->length == 2 && cf1->length == 2)
 		{
-			Tree* a = new_tree("a"), * b = new_tree("b"), * p = new_tree("p"), * q = new_tree("q");
+			Tree* a = new_tree("A"), * b = new_tree("B"), * p = new_tree("P"), * q = new_tree("Q");
 			*L = push_back_map_if(push_back_map_if(*L, p, cf1->begin->tr), q, cf1->end->tr);
 			*L = push_back_map_if(push_back_map_if(*L, a, cf->begin->tr), b, cf->end->tr);
 			cf = clear_map(cf); cf1 = clear_map(cf1);
-			return join(join(join(a, new_tree("x"), fnc[PROD].ex), b, fnc[ADD].ex), join(join(p, new_tree("x"), fnc[PROD].ex), q, fnc[ADD].ex), fnc[op].ex);
+			return join(join(join(a, new_tree("X"), fnc[PROD].ex), b, fnc[ADD].ex), join(join(p, new_tree("X"), fnc[PROD].ex), q, fnc[ADD].ex), fnc[op].ex);
 		}
 		cf = clear_map(cf); cf1 = clear_map(cf1);
 	}
@@ -606,13 +579,13 @@ Tree* integral_form(Tree* u, const char* x, map* L)
 		Tree* v = simplify(clone(u));
 		if (!strcmp(v->value, "1"))
 			return v;
-		Tree* c = new_tree("c");
+		Tree* c = new_tree("C");
 		*L = push_back_map_if(*L, c, v);
 		clean_tree(v);
 		return c;
 	}
 	if (!strcmp(u->value, x))
-		return new_tree("x");
+		return new_tree("X");
 	token utok = u->tok_type;
 	if ((utok == COS_F || utok == SIN_F) && u->tleft->tok_type == LN_F && ispoly(u->tleft->tleft, x))
 	{
@@ -626,11 +599,11 @@ Tree* integral_form(Tree* u, const char* x, map* L)
 		if (ismonomial(u->tleft, x))
 		{
 			map cf = polycoeffs(u->tleft, x);
-			Tree* a = new_tree("a"), * v = new_tree("x");
+			Tree* a = new_tree("A"), * v = new_tree("X");
 			*L = push_back_map_if(*L, a, cf->begin->tr);
 			if (cf->length > 2)
 			{
-				Tree* m = new_tree("m"), * vl = new_tree(tostr(cf->length - 1));
+				Tree* m = new_tree("M"), * vl = new_tree(tostr(cf->length - 1));
 				v = join(v, vl, fnc[POW].ex);
 				*L = push_back_map_if(*L, m, vl);
 				clean_tree(vl);
@@ -648,19 +621,19 @@ Tree* integral_form(Tree* u, const char* x, map* L)
 		{
 			if (!strcmp(v->value, x))
 			{
-				Tree* a = new_tree("a");
+				Tree* a = new_tree("A");
 				*L = push_back_map_if(*L, a, u->tleft);
-				return join(a, new_tree("x"), fnc[POW].ex);
+				return join(a, new_tree("X"), fnc[POW].ex);
 			}
 			else if (ispoly(v, x))
 			{
 				map cf = polycoeffs(v, x);
 				if (cf->length == 2)
 				{
-					Tree* a = new_tree("a") , * p = new_tree("p"), * q = new_tree("q");
+					Tree* a = new_tree("A") , * p = new_tree("P"), * q = new_tree("Q");
 					*L = push_back_map_if(push_back_map_if(push_back_map_if(*L, a, u->tleft), p, cf->begin->tr), q, cf->end->tr);
 					cf = clear_map(cf);
-					return join(a, join(join(p, new_tree("x"), fnc[PROD].ex), q, fnc[ADD].ex), fnc[POW].ex);
+					return join(a, join(join(p, new_tree("X"), fnc[PROD].ex), q, fnc[ADD].ex), fnc[POW].ex);
 				}
 				cf = clear_map(cf);
 			}
@@ -669,24 +642,24 @@ Tree* integral_form(Tree* u, const char* x, map* L)
 		{
 			if (!strcmp(u->tleft->value, x) && strcmp(v->tleft->value, "1"))
 			{
-				Tree* m = new_tree("m");
+				Tree* m = new_tree("M");
 				*L = push_back_map_if(*L, m, v->tleft);
-				return join(new_tree("1"), join(new_tree("x"), m, fnc[POW].ex), fnc[DIVID].ex);
+				return join(new_tree("1"), join(new_tree("X"), m, fnc[POW].ex), fnc[DIVID].ex);
 			}
 			Tree* f = integral_form(u->tleft, x, L);
 			if (f == NULL)
 				return NULL;
 			if (!strcmp(v->tleft->value, "1"))
 				return join(new_tree("1"), f, fnc[DIVID].ex);
-			Tree* n = new_tree("n");
+			Tree* n = new_tree("N");
 			*L = push_back_map_if(*L, n, v->tleft);
 			return join(new_tree("1"), join(f, n, fnc[POW].ex), fnc[DIVID].ex);
 		}
 		if (!strcmp(u->tleft->value, x))
 		{
-			Tree* m = new_tree("m");
+			Tree* m = new_tree("M");
 			*L = push_back_map_if(*L, m, v);
-			return join(new_tree("x"), m, u->value);
+			return join(new_tree("X"), m, u->value);
 		}
 		token tk = u->tleft->tok_type;
 		if (trig_tok(tk) && ispoly(u->tleft->tleft, x))
@@ -694,8 +667,8 @@ Tree* integral_form(Tree* u, const char* x, map* L)
 			Tree* f = function_form(1, u->tleft, x, L);
 			if (!f)
 				return f;
-			Tree* n = (!strcmp(v->value, "2") && ACOS_F <= tk && tk <= TANH_F) ? clone(v) : new_tree("n");
-			if (!strcmp(n->value, "n"))
+			Tree* n = (!strcmp(v->value, "2") && ACOS_F <= tk && tk <= TANH_F) ? clone(v) : new_tree("N");
+			if (!strcmp(n->value, "N"))
 				*L = push_back_map_if(*L, n, v);
 			return join(f, n, u->value);
 		}
@@ -703,7 +676,7 @@ Tree* integral_form(Tree* u, const char* x, map* L)
 		if (f == NULL)
 			return NULL;
 		int j = (*L == NULL) ? 0 : (*L)->length;
-		Tree* n = new_tree("n");
+		Tree* n = new_tree("N");
 		*L = push_back_map_if(*L, n, v);
 		if (j == (*L)->length)
 		{
@@ -731,9 +704,9 @@ static Tree* integral_table(Tree* f, const char* x)
 			Li = clear_map(Li);
 		return NULL;
 	}
-	if (strcmp(x, "x"))
+	if (strcmp(x, "X"))
 	{
-		Tree* v = new_tree("x"), * w = new_tree(x);
+		Tree* v = new_tree("X"), * w = new_tree(x);
 		Li = push_back_map_if(Li, v, w);
 		clean_tree(v); clean_tree(w);
 	}
@@ -896,195 +869,196 @@ Tree* integral(Tree* f, const char* x)
 
 struct Integral Integraltable[] =
 {
-	{ "1", "x", "" },
-	{ "c", "c*x", "" },
-	{ "x", "x^2/2", "" },
-	{ "x^m", "x^(m+1)/(m+1)", "" },
-	{ "sqrt(x)", "2/3*x^(3/2)", "" },
-	{ "sqrt(a*x)", "2*x*sqrt(a*x)/3", "" },
-	{ "1/x", "ln(x)", "" },
-	{ "1/(x^m)", "~1/((m-1)*x^(m-1))", "" },
-	{ "1/sqrt(x)", "2*sqrt(x)", "" },
-	{ "1/sqrt(a*x)", "2*sqrt(a*x)/a", "" },
-	{ "a^x", "a^x/ln(a)", "" },
-	{ "a^(p*x+q)", "a^(p*x+q)/(p*ln(a))", "" },
-	/* a*x+b */
-	{ "1/(a*x+b)", "ln(a*x+b)/a", "" },
-	{ "1/((a*x+b)^n)", "~1/((n-1)*a*(a*x+b)^(n-1))", "" },
-	{ "x/(a*x+b)", "x/a-b/(a^2)*ln(a*x+b)", "" },
-	{ "x/((a*x+b)^n)", "(~1/((n-2)*(a*x+b)^(n-2))+b/((n-1)*(a*x+b)^(n-1)))/a^2", "" },
-	{ "x^m/(a*x+b)", "(x^m*(a*x+b)^(n+1))/((m+n+1)*a)-(m*b)/((m+n+1)*a)*integral(x^(m-1)/(a*x+b),x)", "" },
-	{ "x^m/((a*x+b)^n)", "~x^(m+1)*(a*x+b)^(n+1)/((n+1)*b)+(m+n+2)/((n+1)*b)*integral(x^m/(a*x+b)^(n-1),x)", "" },
-	{ "1/(x*(a*x+b))", "ln(x/(a*x+b))/b", "" },
-	{ "(a*x+b)^n", "(a*x+b)^(n+1)/((n+1)*a)", "" },
-	{ "x*(a*x+b)^n", "(a*x+b)^(n+1)*((n+1)*(a*x+b)-n-2)/(a^2*(n+1)*(n+2))", "" },
-	{ "x^m*(a*x+b)^n", "(x^m*(a*x+b)^(n+1)+n*b*integral(x^(m-1)*(a*x+b)^n,x))/(a*(m+n+1))", "" },
-	{ "1/((a*x+b)*(p*x+q))", "1/(b*p-a*q)*ln((p*x+q)/(a*x+b))", "" },
-    { "(a*x+b)/(p*x+q)", "(a*x)/p+(b*p-a*q)/p^2*ln(p*x+q)", "" },
-	/* sqrt(a*x+b) */
-	{ "1/sqrt(a*x+b)", "2*sqrt(a*x+b)/a", "" },
-	{ "1/(x*sqrt(a*x+b))", "ln((sqrt(a*x+b)-sqrt(b))/(sqrt(a*x+b)+sqrt(b)))/sqrt(b)", "" },
-	{ "sqrt(a*x+b)", "2*sqrt((a*x+b)^3)/(3*a)", "" },
-	{ "x*sqrt(a*x+b)", "2*(3*a*x-2*b)/(15*a^2)*sqrt((a*x+b)^3)", "" },
-	{ "sqrt(a*x+b)/x", "2*sqrt(a*x+b)+b*integral(1/(x*sqrt(a*x+b)),x)", "" },
-	{ "sqrt(a*x+b)/(p*x+q)", "(2*sqrt(a*x+b))/p+sqrt(b*p-a*q)/(p*sqrt(p))*ln((sqrt(p*(a*x+b))-sqrt(b*p-a*q))/(sqrt(p*(a*x+b))+sqrt(b*p-a*q)))", "" },
-	/* c+a*x^2 */
-	{ "1/(c+a*x^2)", "1/(2*sqrt(~a*c))*ln((x*sqrt(a)-sqrt(~c))/(x*sqrt(a)+sqrt(~c)))", "a>0 c<0" },
-	{ "1/(c+a*x^2)", "1/(2*sqrt(~a*c))*ln((x*sqrt(~a)+sqrt(c))/(x*sqrt(a)-sqrt(c)))", "a<0 c>0" },
-	{ "1/(c+a*x^2)", "1/sqrt(a*c)*atan(x*sqrt(a/c))", "" },
-	{ "1/((c+a*x^2)^n)", "1/(2*(n-1)*c)*x/((a*x^2+c)^(n-1))+(2*n-3)/(2*(n-1)*c)*integral(1/(c+a*x^2)^(n-1),x)", "" },
-	{ "x/(c+a*x^2)", "1/(2*a)*ln(c+a*x^2)", "" },
-	{ "x/((c+a*x^2)^n)", "~1/(2*a*(n-1)*(c+a*x^2)^(n-1))", "" },
-	{ "x*(c+a*x^2)^n", "1/(2*a*(n+1))*(a*x^2+c)^(n+1)", "" },
-	{ "x^m/(c+a*x^2)", "x^(m-1)/(a*(m-1))-c/a*integral(x^(m-2)/(c+a*x^2),x)", "" },
-	{ "1/(x*(c+a*x^n))", "1/(c*n)*ln(x^n/(c+a*x^n))", "" },
-	{ "1/(x*sqrt(c+a*x^n))", "1/(n*sqrt(c))*ln((sqrt(c+a*x^n)-sqrt(c))/(sqrt(c+a*x^n)+sqrt(c)))", "c>0" },
-	{ "1/(x*sqrt(c+a*x^n))", "1/(n*sqrt(~c)*acos(sqrt(~a*x^n/c)))", "c<0" },
-	/* sqrt(c+a*x^2) */
-	{ "1/(x*sqrt(c+a*x^2))", "1/(sqrt(~c)*asin(x*sqrt(~a/c)))", "c<0" },
-	{ "1/(x*sqrt(c+a*x^2))", "acos(a/x)/a", "a=1 c<0" },
-	{ "1/(x*sqrt(c+a*x^2))", "ln((c+sqrt(c+a*x^2))/x)", "" },
-	{ "sqrt(c+a*x^2)", "x/2*sqrt(c+a*x^2)+c/(2*sqrt(a))*ln(x*sqrt(a)+sqrt(c+a*x^2))", "a>0" },
-	{ "sqrt(c+a*x^2)", "x/2*sqrt(c+a*x^2)+c/(2*sqrt(~a))*asin(x*sqrt(~a/c))", "a<0" },
-	{ "1/sqrt(c+a*x^2)", "ln(x*sqrt(a)+sqrt(c+a*x^2))/sqrt(a)", "a>0" },
-	{ "1/sqrt(c+a*x^2)", "asin(x*sqrt(~a/c))/sqrt(~a)", "a<0" },
-	{ "1/(x*sqrt(c+a*x^n))", "1/(n*sqrt(~c)*acos(sqrt(~a*x^n/c)))", "c<0" },
-	{ "1/(x*sqrt(c+a*x^n))", "1/(n*sqrt(c))*ln((sqrt(c+a*x^n)-sqrt(c))/(sqrt(c+a*x^n)+sqrt(c)))", "" },
-	/* a*x^2+b*x+c */
-	{ "1/(a*x^2+b*x+c)", "2/sqrt(4*a*c-b^2)*atan((2*a*x+b)/sqrt(4*a*c-b^2))", "b^2<4ac" },
-	{ "1/(a*x^2+b*x+c)", "1/sqrt(b^2-4*a*c)*ln(2*a*x+b-sqrt(b^2-4*a*c))/(2*a*x+b+sqrt(b^2-4*a*c))", "b^2>4ac" },
-	{ "1/(a*x^2+b*x+c)", "2/(2*a*x+b)", "b^2=4ac" },
-	{ "1/((a*x^2+b*x+c)^n)", "(2*a*x+b)/((n-1)*(4*a*c-b^2)*(a*x^2+b*x+c)^(n-1))+2*(2*n-1)*a/(4*a*c-b^2)*integral(1/((a*x^2+b*x+c)^(n-1)),x)", "" },
-	{ "x/(a*x^2+b*x+c)", "1/(2*a)*ln(a*x^2+b*x+c)-b/(2*a)*integral(1/(a*x^2+b*x+c),x)", "" },
-	{ "x^m/(a*x^2+b*x+c)", "x^(m-1)/((m-1)*a)-c/a*integral(x^(m-2)/(a*x^2+b*x+c),x)-b/a*integral(x^(m-1)/(a*x^2+b*x+c),x)", "" },
-	/* sqrt(a*x^2+b*x+c) */
-	{ "1/sqrt(a*x^2+b*x+c)", "1/sqrt(a)*ln(2*sqrt(a)*sqrt(a*x^2+b*x+c)+2*a*x+b)", "" },
-	{ "x/sqrt(a*x^2+b*x+c)", "sqrt(a*x^2+b*x+c)/a-b/(2*a)*integral(1/sqrt(a*x^2+b*x+c),x)", "" },
-	{ "sqrt(a*x^2+b*x+c)", "((2*a*x+b)*sqrt(a*x^2+b*x+c))/(4*a)+(4*a*c-b^2)/(8*a)*integral(1/sqrt(a*x^2+b*x+c),x)", "" },
-	/* sin(a*x) */
-	{ "sin(a*x)", "~cos(a*x)/a", "" },
-	{ "x*sin(a*x)", "sin(a*x)/a^2-(x*cos(a*x))/a", "" },
-	{ "1/sin(a*x)", "ln(tan(a*x)+1)/a", "" },
-	{ "sin(a*x)*sin(b*x)", "sin((a-b)*x)/(2*(a-b))-sin((a+b)*x)/(2*(a+b))", "" },
-	{ "x^m*sin(a*x)", "~x^m*cos(a*x)/a+m*x^(m-1)*sin(a*x)/a^2-(m*(m-1))/a^2*integral(x^(m-2)*sin(a*x),x)", "" },
-	{ "sin(a*x)^n", "~sin(a*x)^(n-1)*cos(a*x)/(a*n)+(n-1)/n*integral(sin(a*x)^(n-2),x)", "" },
-	{ "1/(sin(a*x)^n)", "~cos(a*x)/(a*(n-1)*sin(a*x)^(n-1))+(n-2)/(n-1)*integral(1/sin(a*x)^(n-2),x)", "" },
-	/* cos(a*x) */
-	{ "cos(a*x)", "sin(a*x)/a", "" },
-	{ "x*cos(a*x)", "cos(a*x)/a^2+x*sin(a*x)/a", "" },
-	{ "cos(a*x)*cos(b*x)", "sin((a-b)*x)/(2*(a-b))+sin((a+b)*x)/(2*(a+b))", "" },
-	{ "x^m*cos(a*x)", "x^m*sin(a*x)/a+(m*x^(m-1))/a^2*cos(a*x)-(m*(m-1))/a^2*integral(x^(m-2)*cos(a*x),x)", "" },
-	{ "cos(a*x)^n", "sin(a*x)*cos(a*x)^(n-1)/(a*n)+(n-1)/n*integral(cos(a*x)^(n-2),x)", "" },
-	{ "1/(cos(a*x)^n)", "sin(a*x)/(a*(n-1)*cos(a*x)^(n-1))+(n-2)/(n-1)*integral(1/cos(a*x)^(n-2),x)", "" },
-	/* cos(a*x) && sin(a*x) */
-	{ "cos(a*x)*sin(a*x)", "sin(a*x)^2/(2*a)", "" },
-	{ "cos(a*x)*sin(b*x)", "~cos((b-a)*x)/(2*(b-a))-cos((b+a)*x)/(2*(b+a))", "" },
-	{ "cos(a*x)*sin(a*x)^n", "sin(a*x)^(n+1)/((n+1)*a)", "" },
-	{ "cos(a*x)^n*sin(a*x)", "~cos(a*x)^(n+1)/((n+1)*a)", "" },
-	{ "cos(a*x)^n/sin(a*x)", "cos(a*x)^(n-1)/(a*(n-1))+integral(cos(a*x)^(n-2)/sin(a*x),x)", "" },
-	{ "sin(a*x)^n/cos(a*x)", "~sin(a*x)^(n-1)/(a*(n-1))+integral(sin(a*x)^(n-2)/cos(a*x),x)", "" },
-	{ "cos(a*x)^m*sin(a*x)^n", "~sin(a*x)^(n-1)*cos(a*x)^(m+1)/(a*(n+m))+(n-1)/(n+m)*integral(cos(a*x)^m*sin(a*x)^(n-2),x)", "" },
-	{ "sin(a*x)^m/(cos(a*x)^n)", "sin(a*x)^(m-1)/(a*(n-1)*cos(a*x)^(n-1))-(m-1)/(n-1)*integral(sin(a*x)^(m-2)/cos(a*x)^(n-2),x)", "" },
-	{ "cos(a*x)^m/(sin(a*x)^n)", "~cos(a*x)^(m-1)/(a*(n-1)*sin(a*x)^(n-1))-(m-1)/(n-1)*integral(cos(a*x)^(m-2)/sin(a*x)^(n-2),x)", "" },
-	/* tan(a*x) */
-	{ "sin(a*x)/cos(a*x)", "~ln(cos(a*x))/a", "" },
-	{ "sin(a*x)/(cos(a*x)^n)", "1/((n-1)*a*cos(a*x)^(n-1))", "" },
-	{ "sin(a*x)^n/(cos(a*x)^(n+2))", "tan(a*x)^(n+1)/((n+1)*a)", "" },
-	{ "sin(a*x)^n/(cos(a*x)^n)", "tan(a*x)^(n-1)/((n-1)*a)-integral(sin(a*x)^(n-2)/cos(a*x)^(n-2),x)", "" },
-	/* cot(a*x) */
-	{ "cos(a*x)/sin(a*x)", "ln(sin(a*x))/a", "" },
-	{ "cos(a*x)/(sin(a*x)^n)", "~1/((n-1)*a*sin(a*x)^(n-1))", "" },
-	{ "cos(a*x)^n/(sin(a*x)^(n+2))", "~1/((n+1)*a*tan(a*x)^(n+1))", "" },
-	{ "1/(cos(a*x)*sin(a*x))", "~ln(cos(a*x)/sin(a*x))/a", "" },
-	{ "cos(a*x)^n/(sin(a*x)^n)", "~(cos(a*x)^(n-1))/((n-1)*a*sin(a*x)^(n-1))-integral(cos(a*x)^(n-2)/sin(a*x)^(n-2),x)", "" },
-	/* sec(a*x) */
-	{ "1/cos(a*x)", "ln(tan(a*x)+1)/a", "" },
-	{ "sin(a*x)/cos(a*x)^n", "1/(n*a*cos(a*x)^n)", "" },
-	/* csc(a*x) */
-	{ "cos(a*x)/(sin(a*x)^n)", "~1/(n*a*sin(a*x)^n)", "" },
-	/* inverse trigo */
-	{ "asin(x/a)", "x*asin(x/a)+sqrt(a^2-x^2)", "" },
-	{ "asin(a*x)", "x*asin(a*x)+sqrt(1-a^2*x^2)", "" },
-	{ "asin(x/a)^2", "x*asin(x/a)^2-2*x+2*sqrt(a^2-x^2)*asin(x/a)", "" },
-	{ "asin(a*x)^2", "x*asin(a*x)^2-2*x+2*sqrt(1-a^2*x^2)*asin(a*x)", "" },
-	{ "acos(x/a)", "x*acos(x/a)-sqrt(a^2-x^2)", "" },
-	{ "acos(a*x)", "x*acos(a*x)-sqrt(1-a^2*x^2)", "" },
-	{ "acos(x/a)^2", "x*acos(x/a)^2-2*x-2*sqrt(a^2-x^2)*acos(x/a)", "" },
-	{ "acos(a*x)^2", "x*acos(a*x)^2-2*x-2/a*sqrt(1-a^2*x^2)*acos(a*x)", "" },
-	{ "asin(x/a)/acos(x/a)", "x*asin(x/a)/acos(x/a)-a/2*ln(a^2+x^2)", "" },
-	{ "asin(a*x)/acos(a*x)", "(2*a*x*asin(a*x)/acos(a*x)-ln(a^2*x^2+1))/(2*a)", "" },
-	/* exp(a*x) */
-	{ "exp(a*x)", "exp(a*x)/a", "" },
-	{ "x*exp(a*x)", "exp(a*x)/a*(x-1/a)", "" },
-	{ "x^m*exp(a*x)", "x^m*exp(a*x)/a-m/a*integral(x^(m-1)*exp(a*x),x)", "" },
-	{ "exp(a*x)*sin(a*x)", "(exp(a*x)*(sin(a*x)-cos(a*x)))/(2*a)", "" },
-	{ "exp(a*x)*sin(b*x)", "(exp(a*x)*(a*sin(b*x)-b*cos(b*x)))/(a^2+b^2)", "" },
-	{ "cos(a*x)*exp(a*x)", "exp(a*x)*(cos(a*x)+sin(a*x))/(2*a)", "" },
-	{ "cos(b*x)*exp(a*x)", "exp(a*x)*(a*cos(b*x)+b*sin(b*x))/(a^2+b^2)", "" },
-	{ "cosh(a*x)*exp(a*x)", "exp(2*a*x)/(4*a)+x/2", "" },
-	{ "cosh(b*x)*exp(a*x)", "exp(a*x)/(a^2-b^2)*(a*cosh(b*x)-b*sinh(b*x))", "" },
-	{ "exp(a*x)*sinh(a*x)", "exp(2*a*x)/(4*a)-x/2", "" },
-	{ "exp(a*x)*sinh(b*x)", "exp(a*x)/(a^2-b^2)*(a*sinh(b*x)-b*cosh(b*x))", "" },
-	/* ln(a*x) */
-	{ "ln(a*x)", "x*ln(a*x)-x", "" },
-	{ "ln(a*x^m)", "x*ln(a*x^m)-m*x", "" },
-	{ "x*ln(a*x)", "x^2/2*(ln(a*x)-1/2)", "" },
-	{ "x^m*ln(a*x)", "x^(m+1)/(m+1)*(ln(a*x)-1/(m+1))", "" },
-	{ "ln(a*x)/x", "ln(a*x)^2/2", "" },
-	{ "ln(a*x)/(x^m)", "~ln(a*x)/((m-1)*x^(m-1))-1/((m-1)^2*x^(m-1))", "" },
-	{ "ln(a*x)^n/x", "ln(a*x)^(n+1)/(n+1)", "" },
-	{ "ln(a*x)^m/(x^n)", "~ln(a*x)^m/((n-1)*x^(n-1))+p/(n-1)*integral(ln(a*x)^(m-1)/(x^n),x)", "" },
-	{ "1/(x*ln(a*x))", "ln(ln(a*x))", "" },
-	{ "ln(a*x)^n", "x*ln(a*x)^n-n*integral(ln(a*x)^(n-1),x)", "" },
-	{ "x*ln(a*x)^n", "(x^2*ln(a*x)^n)/2-n/2*integral(x*ln(a*x)^(n-1),x)", "" },
-	{ "x^m*ln(a*x)^n", "(x^(m+1)*ln(a*x)^n)/(m+1)-n/(m+1)*integral(x^m*ln(a*x)^(n-1),x)", "" },
-	{ "ln(a*x+b)", "(x+b/a)*ln(a*x+b)-x", "" },
-	{ "x*ln(a*x+b)", "(b*x)/(2*a)-x^2/4+1/2*(x^2-b^2/a^2)*ln(a*x+b)", "" },
-	{ "ln(c+a*x^2)", "(sqrt(a)*x*ln(~(a*x^2-c))-sqrt(c)*ln((sqrt(a)*x-sqrt(c))/(sqrt(a)*x+sqrt(c)))-2*sqrt(a)*x)/sqrt(a)", "a<0" },
-	{ "ln(c+a*x^2)", "(sqrt(a)*x*ln(a*x^2+c)+2*(sqrt(c)*atan(sqrt(a)*x/(sqrt(c)))-sqrt(a)*x))/sqrt(a)", "" },
-	{ "ln(a*x^2+b*x+c)", "1/a*sqrt(4*a*c-b^2)*atan((2*a*x)/sqrt(4*a*c-b^2))-2*x+(b/(2*a)+x)*ln(a*x^2+b*x+c)", "" },
-	{ "sin(ln(a*x))", "x/2*(sin(ln(a*x))-cos(ln(a*x)))", "" },
-	{ "cos(ln(a*x))", "x/2*(sin(ln(a*x))+cos(ln(a*x)))", "" },
-	/* sinh(a*x) */
-	{ "sinh(a*x)", "cosh(a*x)/a", "" },
-	{ "x*sinh(a*x)", "x*cosh(a*x)/a-sinh(a*x)/a^2", "" },
-	{ "1/sinh(a*x)", "ln(sinh(a*x)/(1+cosh(a*x)))/a", "" },
-	{ "x^m*sinh(a*x)", "(x^m*cosh(a*x))/a-m/a*integral(x^(m-1)*cosh(a*x),x)", "" },
-	{ "sinh(a*x)^n", "(sinh(a*x)^(n-1)*cosh(a*x))/(a*n)-(n-1)/n*integral(sinh(a*x)^(n-2),x)", "" },
-	{ "1/(sinh(a*x)^n)", "~cosh(a*x)/(a*(n-1)*sinh(a*x)^(n-1))-(n-2)/(n-1)*integral(1/(sinh(a*x)^(n-2)),x)", "" },
-	/* cosh(a*x) */
-	{ "cosh(a*x)", "sinh(a*x)/a", "" },
-	{ "x*cosh(a*x)", "x*sinh(a*x)/a-cosh(a*x)/a^2", "" },
-	{ "1/cosh(a*x)", "2/a*atan(exp(a*x))", "" },
-	{ "cosh(a*x)*cosh(b*x)", "sinh((a-b)*x)/(2*(a-b))+sinh((a+b)*x)/(2*(a+b))", "" },
-	{ "x^m*cosh(a*x)", "(x^m*sinh(a*x))/a-m/a*integral(x^(m-1)*sinh(a*x),x)", "" },
-	{ "cosh(a*x)^n", "cosh(a*x)^(n-1)*sinh(a*x)/(a*n)+(n-1)/n*integral(cosh(a*x)^(n-2),x)", "" },
-	{ "1/(cosh(a*x)^n)", "sinh(a*x)/(a*(n-1)*cosh(a*x)^(n-1))+(n-2)/(n-1)*integral(1/cosh(a*x)^(n-2),x)", "" },
-	/* sinh(a*x) && cosh(a*x)  */
-	{ "cosh(a*x)*sinh(a*x)", "sinh(a*x)^2/(2*a)", "" },
-	{ "cosh(a*x)*sinh(b*x)", "cosh((b+a)*x)/(2*(b+a))+(cosh((b-a)*x))/(2*(b-a))", "" },
-	{ "cosh(a*x)*sinh(a*x)^n", "sinh(a*x)^(n+1)/((n+1)*a)", "" },
-	{ "cosh(a*x)^n*sinh(a*x)", "cosh(a*x)^(n+1)/((n+1)*a)", "" },
-	/* tanh(a*x) */
-	{ "sinh(a*x)/cosh(a*x)", "ln(cosh(a*x))/a", "" },
-	{ "sinh(a*x)^2/(cosh(a*x)^2)", "x-sinh(a*x)/(a*cos(a*x))", "" },
-	/* coth(a*x) */
-	{ "cosh(a*x)/sinh(a*x)", "ln(sinh(a*x))/a", "" },
-	{ "cosh(a*x)^2/(sinh(a*x)^2)", "x-cosh(a*x)/(a*sinh(a*x))", "" },
-	/* sech(a*x) = 1/cosh */
-	{ "sinh(a*x)/(cosh(a*x)^n)", "~1/((n*a)*cosh(a*x)^n)", "" },
-	{ "x/(cosh(a*x)^2)", "(x*sinh(a*x))/(a*cosh(a*x))-ln(cosh(a*x))/a^2", "" },
-	/* csch(a*x) = 1/sinh */
-	{ "cosh(a*x)/(sinh(a*x)^n)", "~1/(n*a*sinh(a*x)^n)", "" },
-	{ "x/(sinh(a*x)^2)", "~x*cosh(a*x)/(a*sinh(a*x))+ln(sinh(a*x))/a^2", "" },
-	/* inverse trigo hyperbolique */
-	{ "asinh(x/a)", "x*asinh(x/a)-sqrt(a^2+x^2)", "" },
-	{ "asinh(a*x)", "x*asinh(a*x)-sqrt(1+a^2*x^2)/a", "" },
-	{ "acosh(x/a)", "x*acosh(x/a)-a*sqrt((~1+x/a)*(1+x/a))", "" },
-	{ "acosh(a*x)", "x*acosh(a*x)-sqrt((~1+a*x)*(1+a*x))/a", "" },
-	/* trigonometrique & hyperbolique */
-	{ "cos(a*x)*cosh(b*x)", "(a*sin(a*x)*cosh(b*x)+b*cos(a*x)*sinh(b*x))/(a^2+b^2)", "" },
-	{ "cos(a*x)*sinh(b*x)", "(a*sin(a*x)*sinh(b*x)+b*cos(a*x)*cosh(b*x))/(a^2+b^2)", "" },
-	{ "sin(a*x)*sinh(b*x)", "(b*sin(a*x)*sinh(b*x)-b*cos(a*x)*cosh(b*x))/(a^2+b^2)", "" },
-	{ "sin(a*x)*sinh(b*x)", "(b*sin(a*x)*cosh(b*x)-a*cos(a*x)*sinh(b*x))/(a^2+b^2)", "" }
+	{ "1", "X", "" },
+	{ "C", "C*X", "" },
+	{ "X", "X^2/2", "" },
+	{ "X^M", "X^(M+1)/(M+1)", "" },
+	{ "sqrt(X)", "2/3*X^(3/2)", "" },
+	{ "sqrt(A*X)", "2*X*sqrt(A*X)/3", "" },
+	{ "1/X", "ln(X)", "" },
+	{ "1/(X^M)", "~1/((M-1)*X^(M-1))", "" },
+	{ "1/sqrt(X)", "2*sqrt(X)", "" },
+	{ "1/sqrt(A*X)", "2*sqrt(A*X)/A", "" },
+	{ "A^X", "A^X/ln(A)", "" },
+	{ "A^(P*X+Q)", "A^(P*X+Q)/(P*ln(A))", "" },
+	/* A*X+B */
+	{ "1/(A*X+B)", "ln(A*X+B)/A", "" },
+	{ "1/((A*X+B)^N)", "~1/((N-1)*A*(A*X+B)^(N-1))", "" },
+	{ "X/(A*X+B)", "X/A-B/(A^2)*ln(A*X+B)", "" },
+	{ "X/((A*X+B)^N)", "(~1/((N-2)*(A*X+B)^(N-2))+B/((N-1)*(A*X+B)^(N-1)))/A^2", "" },
+	{ "X^M/(A*X+B)", "(X^M*(A*X+B)^(N+1))/((M+N+1)*A)-(M*B)/((M+N+1)*A)*integral(X^(M-1)/(A*X+B),X)", "" },
+	{ "X^M/((A*X+B)^N)", "~X^(M+1)*(A*X+B)^(N+1)/((N+1)*B)+(M+N+2)/((N+1)*B)*integral(X^M/(A*X+B)^(N-1),X)", "" },
+	{ "1/(X*(A*X+B))", "ln(X/(A*X+B))/B", "" },
+	{ "(A*X+B)^N", "(A*X+B)^(N+1)/((N+1)*A)", "" },
+	{ "X*(A*X+B)^N", "(A*X+B)^(N+1)*((N+1)*(A*X+B)-N-2)/(A^2*(N+1)*(N+2))", "" },
+	{ "X^M*(A*X+B)^N", "(X^M*(A*X+B)^(N+1)+N*B*integral(X^(M-1)*(A*X+B)^N,X))/(A*(M+N+1))", "" },
+	{ "1/((A*X+B)*(P*X+Q))", "1/(B*P-A*Q)*ln((P*X+Q)/(A*X+B))", "" },
+	{ "(A*X+B)/(P*X+Q)", "(A*X)/P+(B*P-A*Q)/P^2*ln(P*X+Q)", "" },
+	/* sqrt(A*X+B) */
+	{ "1/sqrt(A*X+B)", "2*sqrt(A*X+B)/A", "" },
+	{ "1/(X*sqrt(A*X+B))", "ln((sqrt(A*X+B)-sqrt(B))/(sqrt(A*X+B)+sqrt(B)))/sqrt(B)", "" },
+	{ "sqrt(A*X+B)", "2*sqrt((A*X+B)^3)/(3*A)", "" },
+	{ "X*sqrt(A*X+B)", "2*(3*A*X-2*B)/(15*A^2)*sqrt((A*X+B)^3)", "" },
+	{ "sqrt(A*X+B)/X", "2*sqrt(A*X+B)+B*integral(1/(X*sqrt(A*X+B)),X)", "" },
+	{ "sqrt(A*X+B)/(P*X+Q)", "(2*sqrt(A*X+B))/P+sqrt(B*P-A*Q)/(P*sqrt(P))*ln((sqrt(P*(A*X+B))-sqrt(B*P-A*Q))/(sqrt(P*(A*X+B))+sqrt(B*P-A*Q)))", "" },
+	/* C+A*X^2 */
+	{ "1/(C+A*X^2)", "1/(2*sqrt(~A*C))*ln((X*sqrt(A)-sqrt(~C))/(X*sqrt(A)+sqrt(~C)))", "A>0 C<0" },
+	{ "1/(C+A*X^2)", "1/(2*sqrt(~A*C))*ln((X*sqrt(~A)+sqrt(C))/(X*sqrt(A)-sqrt(C)))", "A<0 C>0" },
+	{ "1/(C+A*X^2)", "1/sqrt(A*C)*atan(X*sqrt(A/C))", "" },
+	{ "1/((C+A*X^2)^N)", "1/(2*(N-1)*C)*X/((A*X^2+C)^(N-1))+(2*N-3)/(2*(N-1)*C)*integral(1/(C+A*X^2)^(N-1),X)", "" },
+	{ "X/(C+A*X^2)", "1/(2*A)*ln(C+A*X^2)", "" },
+	{ "X/((C+A*X^2)^N)", "~1/(2*A*(N-1)*(C+A*X^2)^(N-1))", "" },
+	{ "X*(C+A*X^2)^N", "1/(2*A*(N+1))*(A*X^2+C)^(N+1)", "" },
+	{ "X^M/(C+A*X^2)", "X^(M-1)/(A*(M-1))-C/A*integral(X^(M-2)/(C+A*X^2),X)", "" },
+	{ "1/(X*(C+A*X^N))", "1/(C*N)*ln(X^N/(C+A*X^N))", "" },
+	{ "1/(X*sqrt(C+A*X^N))", "1/(N*sqrt(C))*ln((sqrt(C+A*X^N)-sqrt(C))/(sqrt(C+A*X^N)+sqrt(C)))", "C>0" },
+	{ "1/(X*sqrt(C+A*X^N))", "1/(N*sqrt(~C)*acos(sqrt(~A*X^N/C)))", "C<0" },
+	/* sqrt(C+A*X^2) */
+	{ "1/(X*sqrt(C+A*X^2))", "1/(sqrt(~C)*asin(X*sqrt(~A/C)))", "C<0" },
+	{ "1/(X*sqrt(C+A*X^2))", "acos(A/X)/A", "A=1 C<0" },
+	{ "1/(X*sqrt(C+A*X^2))", "ln((C+sqrt(C+A*X^2))/X)", "" },
+	{ "sqrt(C+A*X^2)", "X/2*sqrt(C+A*X^2)+C/(2*sqrt(A))*ln(X*sqrt(A)+sqrt(C+A*X^2))", "A>0" },
+	{ "sqrt(C+A*X^2)", "X/2*sqrt(C+A*X^2)+C/(2*sqrt(~A))*asin(X*sqrt(~A/C))", "A<0" },
+	{ "1/sqrt(C+A*X^2)", "ln(X*sqrt(A)+sqrt(C+A*X^2))/sqrt(A)", "A>0" },
+	{ "1/sqrt(C+A*X^2)", "asin(X*sqrt(~A/C))/sqrt(~A)", "A<0" },
+	{ "1/(X*sqrt(C+A*X^N))", "1/(N*sqrt(~C)*acos(sqrt(~A*X^N/C)))", "C<0" },
+	{ "1/(X*sqrt(C+A*X^N))", "1/(N*sqrt(C))*ln((sqrt(C+A*X^N)-sqrt(C))/(sqrt(C+A*X^N)+sqrt(C)))", "" },
+	/* A*X^2+B*X+C */
+	{ "1/(A*X^2+B*X+C)", "2/sqrt(4*A*C-B^2)*atan((2*A*X+B)/sqrt(4*A*C-B^2))", "B^2<4AC" },
+	{ "1/(A*X^2+B*X+C)", "1/sqrt(B^2-4*A*C)*ln(2*A*X+B-sqrt(B^2-4*A*C))/(2*A*X+B+sqrt(B^2-4*A*C))", "B^2>4AC" },
+	{ "1/(A*X^2+B*X+C)", "2/(2*A*X+B)", "B^2=4AC" },
+	{ "1/((A*X^2+B*X+C)^N)", "(2*A*X+B)/((N-1)*(4*A*C-B^2)*(A*X^2+B*X+C)^(N-1))+2*(2*N-1)*A/(4*A*C-B^2)*integral(1/((A*X^2+B*X+C)^(N-1)),X)", "" },
+	{ "X/(A*X^2+B*X+C)", "1/(2*A)*ln(A*X^2+B*X+C)-B/(2*A)*integral(1/(A*X^2+B*X+C),X)", "" },
+	{ "X^M/(A*X^2+B*X+C)", "X^(M-1)/((M-1)*A)-C/A*integral(X^(M-2)/(A*X^2+B*X+C),X)-B/A*integral(X^(M-1)/(A*X^2+B*X+C),X)", "" },
+	/* sqrt(A*X^2+B*X+C) */
+	{ "1/sqrt(A*X^2+B*X+C)", "1/sqrt(A)*ln(2*sqrt(A)*sqrt(A*X^2+B*X+C)+2*A*X+B)", "" },
+	{ "X/sqrt(A*X^2+B*X+C)", "sqrt(A*X^2+B*X+C)/A-B/(2*A)*integral(1/sqrt(A*X^2+B*X+C),X)", "" },
+	{ "sqrt(A*X^2+B*X+C)", "((2*A*X+B)*sqrt(A*X^2+B*X+C))/(4*A)+(4*A*C-B^2)/(8*A)*integral(1/sqrt(A*X^2+B*X+C),X)", "" },
+	/* sin(A*X) */
+	{ "sin(A*X)", "~cos(A*X)/A", "" },
+	{ "X*sin(A*X)", "sin(A*X)/A^2-(X*cos(A*X))/A", "" },
+	{ "1/sin(A*X)", "ln(tan(A*X)+1)/A", "" },
+	{ "sin(A*X)*sin(B*X)", "sin((A-B)*X)/(2*(A-B))-sin((A+B)*X)/(2*(A+B))", "" },
+	{ "X^M*sin(A*X)", "~X^M*cos(A*X)/A+M*X^(M-1)*sin(A*X)/A^2-(M*(M-1))/A^2*integral(X^(M-2)*sin(A*X),X)", "" },
+	{ "sin(A*X)^N", "~sin(A*X)^(N-1)*cos(A*X)/(A*N)+(N-1)/N*integral(sin(A*X)^(N-2),X)", "" },
+	{ "1/(sin(A*X)^N)", "~cos(A*X)/(A*(N-1)*sin(A*X)^(N-1))+(N-2)/(N-1)*integral(1/sin(A*X)^(N-2),X)", "" },
+	/* cos(A*X) */
+	{ "cos(A*X)", "sin(A*X)/A", "" },
+	{ "X*cos(A*X)", "cos(A*X)/A^2+X*sin(A*X)/A", "" },
+	{ "cos(A*X)*cos(B*X)", "sin((A-B)*X)/(2*(A-B))+sin((A+B)*X)/(2*(A+B))", "" },
+	{ "X^M*cos(A*X)", "X^M*sin(A*X)/A+(M*X^(M-1))/A^2*cos(A*X)-(M*(M-1))/A^2*integral(X^(M-2)*cos(A*X),X)", "" },
+	{ "cos(A*X)^N", "sin(A*X)*cos(A*X)^(N-1)/(A*N)+(N-1)/N*integral(cos(A*X)^(N-2),X)", "" },
+	{ "1/(cos(A*X)^N)", "sin(A*X)/(A*(N-1)*cos(A*X)^(N-1))+(N-2)/(N-1)*integral(1/cos(A*X)^(N-2),X)", "" },
+	/* cos(A*X) && sin(A*X) */
+	{ "cos(A*X)*sin(A*X)", "sin(A*X)^2/(2*A)", "" },
+	{ "cos(A*X)*sin(B*X)", "~cos((B-A)*X)/(2*(B-A))-cos((B+A)*X)/(2*(B+A))", "" },
+	{ "cos(A*X)*sin(A*X)^N", "sin(A*X)^(N+1)/((N+1)*A)", "" },
+	{ "cos(A*X)^N*sin(A*X)", "~cos(A*X)^(N+1)/((N+1)*A)", "" },
+	{ "cos(A*X)^N/sin(A*X)", "cos(A*X)^(N-1)/(A*(N-1))+integral(cos(A*X)^(N-2)/sin(A*X),X)", "" },
+	{ "sin(A*X)^N/cos(A*X)", "~sin(A*X)^(N-1)/(A*(N-1))+integral(sin(A*X)^(N-2)/cos(A*X),X)", "" },
+	{ "cos(A*X)^M*sin(A*X)^N", "~sin(A*X)^(N-1)*cos(A*X)^(M+1)/(A*(N+M))+(N-1)/(N+M)*integral(cos(A*X)^M*sin(A*X)^(N-2),X)", "" },
+	{ "sin(A*X)^M/(cos(A*X)^N)", "sin(A*X)^(M-1)/(A*(N-1)*cos(A*X)^(N-1))-(M-1)/(N-1)*integral(sin(A*X)^(M-2)/cos(A*X)^(N-2),X)", "" },
+	{ "cos(A*X)^M/(sin(A*X)^N)", "~cos(A*X)^(M-1)/(A*(N-1)*sin(A*X)^(N-1))-(M-1)/(N-1)*integral(cos(A*X)^(M-2)/sin(A*X)^(N-2),X)", "" },
+	/* tan(A*X) */
+	{ "sin(A*X)/cos(A*X)", "~ln(cos(A*X))/A", "" },
+	{ "sin(A*X)/(cos(A*X)^N)", "1/((N-1)*A*cos(A*X)^(N-1))", "" },
+	{ "sin(A*X)^N/(cos(A*X)^(N+2))", "tan(A*X)^(N+1)/((N+1)*A)", "" },
+	{ "sin(A*X)^N/(cos(A*X)^N)", "tan(A*X)^(N-1)/((N-1)*A)-integral(sin(A*X)^(N-2)/cos(A*X)^(N-2),X)", "" },
+	/* COT(A*X) */
+	{ "cos(A*X)/sin(A*X)", "ln(sin(A*X))/A", "" },
+	{ "cos(A*X)/(sin(A*X)^N)", "~1/((N-1)*A*sin(A*X)^(N-1))", "" },
+	{ "cos(A*X)^N/(sin(A*X)^(N+2))", "~1/((N+1)*A*tan(A*X)^(N+1))", "" },
+	{ "1/(cos(A*X)*sin(A*X))", "~ln(cos(A*X)/sin(A*X))/A", "" },
+	{ "cos(A*X)^N/(sin(A*X)^N)", "~(cos(A*X)^(N-1))/((N-1)*A*sin(A*X)^(N-1))-integral(cos(A*X)^(N-2)/sin(A*X)^(N-2),X)", "" },
+	/* SEC(A*X) */
+	{ "1/cos(A*X)", "ln(tan(A*X)+1)/A", "" },
+	{ "sin(A*X)/cos(A*X)^N", "1/(N*A*cos(A*X)^N)", "" },
+	/* CSC(A*X) */
+	{ "cos(A*X)/(sin(A*X)^N)", "~1/(N*A*sin(A*X)^N)", "" },
+	/* INVERSE TRIGO */
+	{ "asin(X/A)", "X*asin(X/A)+sqrt(A^2-X^2)", "" },
+	{ "asin(A*X)", "X*asin(A*X)+sqrt(1-A^2*X^2)", "" },
+	{ "asin(X/A)^2", "X*asin(X/A)^2-2*X+2*sqrt(A^2-X^2)*asin(X/A)", "" },
+	{ "asin(A*X)^2", "X*asin(A*X)^2-2*X+2*sqrt(1-A^2*X^2)*asin(A*X)", "" },
+	{ "acos(X/A)", "X*acos(X/A)-sqrt(A^2-X^2)", "" },
+	{ "acos(A*X)", "X*acos(A*X)-sqrt(1-A^2*X^2)", "" },
+	{ "acos(X/A)^2", "X*acos(X/A)^2-2*X-2*sqrt(A^2-X^2)*acos(X/A)", "" },
+	{ "acos(A*X)^2", "X*acos(A*X)^2-2*X-2/A*sqrt(1-A^2*X^2)*acos(A*X)", "" },
+	{ "asin(X/A)/acos(X/A)", "X*asin(X/A)/acos(X/A)-A/2*ln(A^2+X^2)", "" },
+	{ "asin(A*X)/acos(A*X)", "(2*A*X*asin(A*X)/acos(A*X)-ln(A^2*X^2+1))/(2*A)", "" },
+	/* exp(A*X) */
+	{ "exp(A*X)", "exp(A*X)/A", "" },
+	{ "X*exp(A*X)", "exp(A*X)/A*(X-1/A)", "" },
+	{ "X^M*exp(A*X)", "X^M*exp(A*X)/A-M/A*integral(X^(M-1)*exp(A*X),X)", "" },
+	{ "exp(A*X)*sin(A*X)", "(exp(A*X)*(sin(A*X)-cos(A*X)))/(2*A)", "" },
+	{ "exp(A*X)*sin(B*X)", "(exp(A*X)*(A*sin(B*X)-B*cos(B*X)))/(A^2+B^2)", "" },
+	{ "cos(A*X)*exp(A*X)", "exp(A*X)*(cos(A*X)+sin(A*X))/(2*A)", "" },
+	{ "cos(B*X)*exp(A*X)", "exp(A*X)*(A*cos(B*X)+B*sin(B*X))/(A^2+B^2)", "" },
+	{ "cosh(A*X)*exp(A*X)", "exp(2*A*X)/(4*A)+X/2", "" },
+	{ "cosh(B*X)*exp(A*X)", "exp(A*X)/(A^2-B^2)*(A*cosh(B*X)-B*sinh(B*X))", "" },
+	{ "exp(A*X)*sinh(A*X)", "exp(2*A*X)/(4*A)-X/2", "" },
+	{ "exp(A*X)*sinh(B*X)", "exp(A*X)/(A^2-B^2)*(A*sinh(B*X)-B*cosh(B*X))", "" },
+	/* ln(A*X) */
+	{ "ln(A*X)", "X*ln(A*X)-X", "" },
+	{ "ln(A*X^M)", "X*ln(A*X^M)-M*X", "" },
+	{ "X*ln(A*X)", "X^2/2*(ln(A*X)-1/2)", "" },
+	{ "X^M*ln(A*X)", "X^(M+1)/(M+1)*(ln(A*X)-1/(M+1))", "" },
+	{ "ln(A*X)/X", "ln(A*X)^2/2", "" },
+	{ "ln(A*X)/(X^M)", "~ln(A*X)/((M-1)*X^(M-1))-1/((M-1)^2*X^(M-1))", "" },
+	{ "ln(A*X)^N/X", "ln(A*X)^(N+1)/(N+1)", "" },
+	{ "ln(A*X)^M/(X^N)", "~ln(A*X)^M/((N-1)*X^(N-1))+P/(N-1)*integral(ln(A*X)^(M-1)/(X^N),X)", "" },
+	{ "1/(X*ln(A*X))", "ln(ln(A*X))", "" },
+	{ "ln(A*X)^N", "X*ln(A*X)^N-N*integral(ln(A*X)^(N-1),X)", "" },
+	{ "X*ln(A*X)^N", "(X^2*ln(A*X)^N)/2-N/2*integral(X*ln(A*X)^(N-1),X)", "" },
+	{ "X^M*ln(A*X)^N", "(X^(M+1)*ln(A*X)^N)/(M+1)-N/(M+1)*integral(X^M*ln(A*X)^(N-1),X)", "" },
+	{ "ln(A*X+B)", "(X+B/A)*ln(A*X+B)-X", "" },
+	{ "X*ln(A*X+B)", "(B*X)/(2*A)-X^2/4+1/2*(X^2-B^2/A^2)*ln(A*X+B)", "" },
+	{ "ln(C+A*X^2)", "(sqrt(A)*X*ln(~(A*X^2-C))-sqrt(C)*ln((sqrt(A)*X-sqrt(C))/(sqrt(A)*X+sqrt(C)))-2*sqrt(A)*X)/sqrt(A)", "A<0" },
+	{ "ln(C+A*X^2)", "(sqrt(A)*X*ln(A*X^2+C)+2*(sqrt(C)*atan(sqrt(A)*X/(sqrt(C)))-sqrt(A)*X))/sqrt(A)", "" },
+	{ "ln(A*X^2+B*X+C)", "1/A*sqrt(4*A*C-B^2)*atan((2*A*X)/sqrt(4*A*C-B^2))-2*X+(B/(2*A)+X)*ln(A*X^2+B*X+C)", "" },
+	{ "sin(ln(A*X))", "X/2*(sin(ln(A*X))-cos(ln(A*X)))", "" },
+	{ "cos(ln(A*X))", "X/2*(sin(ln(A*X))+cos(ln(A*X)))", "" },
+	/* sinh(A*X) */
+	{ "sinh(A*X)", "cosh(A*X)/A", "" },
+	{ "X*sinh(A*X)", "X*cosh(A*X)/A-sinh(A*X)/A^2", "" },
+	{ "1/sinh(A*X)", "ln(sinh(A*X)/(1+cosh(A*X)))/A", "" },
+	{ "X^M*sinh(A*X)", "(X^M*cosh(A*X))/A-M/A*integral(X^(M-1)*cosh(A*X),X)", "" },
+	{ "sinh(A*X)^N", "(sinh(A*X)^(N-1)*cosh(A*X))/(A*N)-(N-1)/N*integral(sinh(A*X)^(N-2),X)", "" },
+	{ "1/(sinh(A*X)^N)", "~cosh(A*X)/(A*(N-1)*sinh(A*X)^(N-1))-(N-2)/(N-1)*integral(1/(sinh(A*X)^(N-2)),X)", "" },
+	/* cosh(A*X) */
+	{ "cosh(A*X)", "sinh(A*X)/A", "" },
+	{ "X*cosh(A*X)", "X*sinh(A*X)/A-cosh(A*X)/A^2", "" },
+	{ "1/cosh(A*X)", "2/A*atan(exp(A*X))", "" },
+	{ "cosh(A*X)*cosh(B*X)", "sinh((A-B)*X)/(2*(A-B))+sinh((A+B)*X)/(2*(A+B))", "" },
+	{ "X^M*cosh(A*X)", "(X^M*sinh(A*X))/A-M/A*integral(X^(M-1)*sinh(A*X),X)", "" },
+	{ "cosh(A*X)^N", "cosh(A*X)^(N-1)*sinh(A*X)/(A*N)+(N-1)/N*integral(cosh(A*X)^(N-2),X)", "" },
+	{ "1/(cosh(A*X)^N)", "sinh(A*X)/(A*(N-1)*cosh(A*X)^(N-1))+(N-2)/(N-1)*integral(1/cosh(A*X)^(N-2),X)", "" },
+	/* sinh(A*X) && cosh(A*X)  */
+	{ "cosh(A*X)*sinh(A*X)", "sinh(A*X)^2/(2*A)", "" },
+	{ "cosh(A*X)*sinh(B*X)", "cosh((B+A)*X)/(2*(B+A))+(cosh((B-A)*X))/(2*(B-A))", "" },
+	{ "cosh(A*X)*sinh(A*X)^N", "sinh(A*X)^(N+1)/((N+1)*A)", "" },
+	{ "cosh(A*X)^N*sinh(A*X)", "cosh(A*X)^(N+1)/((N+1)*A)", "" },
+	/* TANH(A*X) */
+	{ "sinh(A*X)/cosh(A*X)", "ln(cosh(A*X))/A", "" },
+	{ "sinh(A*X)^2/(cosh(A*X)^2)", "X-sinh(A*X)/(A*cos(A*X))", "" },
+	/* COTH(A*X) */
+	{ "cosh(A*X)/sinh(A*X)", "ln(sinh(A*X))/A", "" },
+	{ "cosh(A*X)^2/(sinh(A*X)^2)", "X-cosh(A*X)/(A*sinh(A*X))", "" },
+	/* SECH(A*X) = 1/cosh */
+	{ "sinh(A*X)/(cosh(A*X)^N)", "~1/((N*A)*cosh(A*X)^N)", "" },
+	{ "X/(cosh(A*X)^2)", "(X*sinh(A*X))/(A*cosh(A*X))-ln(cosh(A*X))/A^2", "" },
+	/* CSCH(A*X) = 1/sinh */
+	{ "cosh(A*X)/(sinh(A*X)^N)", "~1/(N*A*sinh(A*X)^N)", "" },
+	{ "X/(sinh(A*X)^2)", "~X*cosh(A*X)/(A*sinh(A*X))+ln(sinh(A*X))/A^2", "" },
+	/* INVERSE TRIGO HYPERBOLIQUE */
+	{ "asinh(X/A)", "X*asinh(X/A)-sqrt(A^2+X^2)", "" },
+	{ "asinh(A*X)", "X*asinh(A*X)-sqrt(1+A^2*X^2)/A", "" },
+	{ "acosh(X/A)", "X*acosh(X/A)-A*sqrt((~1+X/A)*(1+X/A))", "" },
+	{ "acosh(A*X)", "X*acosh(A*X)-sqrt((~1+A*X)*(1+A*X))/A", "" },
+	/* TRIGONOMETRIQUE & HYPERBOLIQUE */
+	{ "cos(A*X)*cosh(B*X)", "(A*sin(A*X)*cosh(B*X)+B*cos(A*X)*sinh(B*X))/(A^2+B^2)", "" },
+	{ "cos(A*X)*sinh(B*X)", "(A*sin(A*X)*sinh(B*X)+B*cos(A*X)*cosh(B*X))/(A^2+B^2)", "" },
+	{ "sin(A*X)*sinh(B*X)", "(B*sin(A*X)*sinh(B*X)-B*cos(A*X)*cosh(B*X))/(A^2+B^2)", "" },
+	{ "sin(A*X)*sinh(B*X)", "(B*sin(A*X)*cosh(B*X)-A*cos(A*X)*sinh(B*X))/(A^2+B^2)", "" }
 };
+
