@@ -269,6 +269,7 @@ DList parse(const uint8_t* ex, unsigned k)
 				}
 				++i;
 			}
+			--i;
 			DList rtl = parse(root_chars, pos);
 			result = push_back_dlist(push_back_dlist(result, fnc[tk].ex), fnc[PAR_OUVRANT].ex);
 			DListCell* tmp = rtl->begin;
@@ -662,7 +663,7 @@ double tonumber(const char* ex)
 	char* t = strchr(ex, '.');
 	if (t != NULL)
 		return strtod(ex, NULL);
-	return strtoull(ex, NULL, 10);
+	return strtoul(ex, NULL, 10);
 }
 
 string tostr(double t)

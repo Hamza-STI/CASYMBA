@@ -1956,11 +1956,6 @@ Tree* contract_exp_rules(Tree* u)
 			clean_tree(s);
 			return p;
 		}
-		if (!strcmp(p->value, "1"))
-		{
-			clean_tree(p);
-			return join(s, NULL, fnc[EXP_F].ex);
-		}
 		return join(p, join(s, NULL, fnc[EXP_F].ex), fnc[PROD].ex);
 	}
 	else if (v->tok_type == ADD || v->tok_type == SUB)
@@ -2135,22 +2130,10 @@ static Tree* absolute_value(Tree* u)
 		{
 			Tree* tmp = absolute_value(item->tr);
 			if (tmp->tok_type == ABS_F)
-				s = join(s, tmp->tleft, fnc[PROD].ex);
+				s = simplify(join(s, tmp->tleft, fnc[PROD].ex));
 			else
-				r = join(r, tmp, fnc[PROD].ex);
+				r = simplify(join(r, tmp, fnc[PROD].ex));
 			item = item->next;
-		}
-		s = simplify(s);
-		r = simplify(r);
-		if (!strcmp(s->value, "1"))
-		{
-			clean_tree(s);
-			return r;
-		}
-		if (!strcmp(r->value, "1"))
-		{
-			clean_tree(r);
-			return join(s, NULL, fnc[ABS_F].ex);
 		}
 		return join(r, join(s, NULL, fnc[ABS_F].ex), fnc[PROD].ex);
 	}
@@ -2166,13 +2149,15 @@ static Tree* absolute_value(Tree* u)
 
 Tree* Contract_pow(Tree* v)
 {
-	if (v->tok_type == ADD || v->tok_type == SUB || v->tok_type == POW)
+	token tk = v->tok_type;
+	if (tk == ADD || tk == SUB || tk == POW)
 	{
-		Tree* tr = join(Contract_pow(v->tleft), Contract_pow(v->tright), v->value);
-		clean_noeud(v);
-		return tr;
+		v->tleft = Contract_pow(v->tleft);
+		if (tk == POW)
+			v->tright = Contract_pow(v->tright);
+		return v;
 	}
-	else if (v->tok_type == PROD || v->tok_type == DIVID)
+	else if (tk == PROD || tk == DIVID)
 	{
 		map L = map_create(v), q = NULL, s = NULL, p = NULL;
 		clean_tree(v);
