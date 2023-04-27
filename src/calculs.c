@@ -382,7 +382,7 @@ static Tree* poly_solution_2(Tree* a, Tree* b, Tree* c, Tree* part, const char* 
 {
 	Tree* Pl = NULL;
 	int w = (int)tonumber(dg->value);
-	map cf = polycoeffs(part, x), cpl = NULL, sol = NULL;
+	map cf = NULL, cpl = NULL, sol = NULL;
 	DList vr = NULL;
 	mapCell* tmp = NULL;
 	DListCell* cel_vr = NULL;
@@ -391,7 +391,10 @@ static Tree* poly_solution_2(Tree* a, Tree* b, Tree* c, Tree* part, const char* 
 	for (int i = w; i >= 0; i--)
 	{
 		char ct[] = { 'M', '0' + i, '\0' };
+		Tree* cf_i = coefficient_gpe(part, x, i);
 		vr = push_back_dlist(vr, ct);
+		cf = push_front_map(cf, cf_i);
+		clean_tree(cf_i);
 		Tree* z = create_poly(ct, i, dg, x);
 		Pl = (Pl == NULL) ? z : join(Pl, z, fnc[ADD].ex);
 		if (strcmp(c->value, "0"))
@@ -805,7 +808,6 @@ Tree* analyse(Tree* tr)
 			return pow_transform(simplify(res));
 		}
 		else if (tk == DESOLVE_F && L->length == 3 && L->begin->next->tr->gtype == VAR && L->end->tr->gtype == VAR)
-
 		{
 			Tree* t = L->begin->tr, * x = L->begin->next->tr, * y = L->end->tr, * cond1 = NULL, * cond2 = NULL;
 			char y2[5], y1[5], var_y[5], var_x[5];
@@ -846,7 +848,6 @@ Tree* analyse(Tree* tr)
 		else if (REMAINDER_F <= tk && tk <= POLYSIMP_F && L->length == 3 && L->end->tr->gtype == VAR)
 		{
 			map coef_t = polycoeffs(L->begin->tr, L->end->tr->value), coef_a = polycoeffs(L->begin->next->tr, L->end->tr->value), r = NULL;
-			clean_tree(tr);
 			if (tk == POLYSIMP_F)
 			{
 				Tree* ret = poly_simp(coef_t, coef_a, L->end->tr->value);
