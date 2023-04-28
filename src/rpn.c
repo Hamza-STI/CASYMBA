@@ -166,7 +166,7 @@ int opless(const char* a, const char* b)
 	return prior(a) < prior(b);
 }
 
-DList parse(const uint8_t* ex, unsigned k)
+DList parse(const uint8_t* ex, unsigned k, bool ce_parse)
 {
 	DList result = NULL;
 	char temp[TAILLE_MAX] = { 0 }, chr[3] = { 0 };
@@ -177,9 +177,16 @@ DList parse(const uint8_t* ex, unsigned k)
 		uint8_t ch = ex[i];
 		chr[0] = ch;
 		chr[1] = '\0';
-		token tk = tokens(chr, ti_table);
+		token tk = tokens(chr, (ce_parse) ? ti_table : fnc);
 		sl = strlen(temp);
-		if (UNDEF < tk && tk <= PI)
+		if (ch == ' ')
+		{
+			if (sl)
+				result = push_back_dlist(result, temp);
+			memset(temp, 0, sl * sizeof(char));
+			sl = 0;
+		}
+		else if (UNDEF < tk && tk <= PI)
 		{
 			if (result == NULL)
 				result = push_back_dlist(result, fnc[tk].ex);
@@ -270,7 +277,7 @@ DList parse(const uint8_t* ex, unsigned k)
 				++i;
 			}
 			--i;
-			DList rtl = parse(root_chars, pos);
+			DList rtl = parse(root_chars, pos, ce_parse);
 			result = push_back_dlist(push_back_dlist(result, fnc[tk].ex), fnc[PAR_OUVRANT].ex);
 			DListCell* tmp = rtl->begin;
 			while (tmp != NULL)
@@ -282,7 +289,7 @@ DList parse(const uint8_t* ex, unsigned k)
 			result = push_back_dlist(push_back_dlist(push_back_dlist(result, fnc[SEPARATEUR].ex), (sl) ? temp : "2"), fnc[PAR_FERMANT].ex);
 			memset(temp, 0, sl * sizeof(char));
 		}
-		else if (!isop(chr))
+		else if (tk == TOKEN_INVALID && !_isop(chr))
 		{
 			if (!isvar(ch) && !isnumeric(ch))
 			{
@@ -292,13 +299,14 @@ DList parse(const uint8_t* ex, unsigned k)
 			}
 			if (strlen(temp) == 0)
 			{
-				if (result != NULL)
+				if (result != NULL && ex[i - 1] != ' ')
 				{
 					token t = tokens(result->end->value, fnc);
 					if (t == PAR_FERMANT || t == PI || t == IMAGE || t == FACTORIEL_F)
 						result = push_back_dlist(result, fnc[PROD].ex);
 				}
 				temp[sl] = ch;
+				temp[sl + 1] = '\0';
 			}
 			else
 			{
@@ -311,8 +319,20 @@ DList parse(const uint8_t* ex, unsigned k)
 				if (ch == 0x3A)
 					ch = '.';
 				temp[sl] = ch;
+				temp[sl + 1] = '\0';
+				if (!strcmp(temp, fnc[PI].ex) || !strcmp(temp, fnc[IMAGE].ex))
+				{
+					result = push_back_dlist(result, temp);
+					memset(temp, 0, sl * sizeof(char));
+					sl = 0;
+				}
+				else if (!strcmp(temp, "pi"))
+				{
+					result = push_back_dlist(result, fnc[PI].ex);
+					memset(temp, 0, sl * sizeof(char));
+					sl = 0;
+				}
 			}
-			temp[sl + 1] = '\0';
 		}
 		else
 		{
@@ -322,9 +342,18 @@ DList parse(const uint8_t* ex, unsigned k)
 				p--;
 			if (sl != 0)
 			{
-				result = push_back_dlist(result, temp);
-				if (((EXP_F <= tk && tk < AMOUNT_TOKEN) || tk == PAR_OUVRANT) && tk != FACTORIEL_F)
-					result = push_back_dlist(result, fnc[PROD].ex);
+				if (tk == PAR_OUVRANT && isvar(temp[0]) && !ce_parse)
+				{
+					temp[sl] = ch;
+					temp[sl + 1] = '\0';
+					result = push_back_dlist(result, temp);
+				}
+				else
+				{
+					result = push_back_dlist(result, temp);
+					if (((EXP_F <= tk && tk < AMOUNT_TOKEN) || tk == PAR_OUVRANT) && tk != FACTORIEL_F)
+						result = push_back_dlist(result, fnc[PROD].ex);
+				}
 			}
 			else if (result != NULL && tk != PAR_FERMANT && !(ADD <= tk && tk <= LOGIC_OR) && tokens(result->end->value, fnc) == PAR_FERMANT)
 				result = push_back_dlist(result, fnc[PROD].ex);
@@ -374,14 +403,14 @@ DList parse(const uint8_t* ex, unsigned k)
 	return result;
 }
 
-static DList to_rpn(DList* result, bool ce_parse)
+static DList to_rpn(DList* result)
 {
 	int stklen = 0;
 	DList rlt = NULL, opstack = NULL;
 	DListCell* tmp = (*result)->begin;
 	while (tmp != NULL)
 	{
-		if (!((ce_parse && tokens(tmp->value, ti_table) != TOKEN_INVALID) || _isop(tmp->value) || isfn(tmp->value)))
+		if (!_isop(tmp->value) && !isfn(tmp->value))
 			rlt = push_back_dlist(rlt, tmp->value);
 		else
 		{
@@ -425,125 +454,18 @@ static DList to_rpn(DList* result, bool ce_parse)
 
 DList In2post(const uint8_t* ex, unsigned k)
 {
-	bool ce_parse = true;
-	DList result = parse(ex, k);
-	return to_rpn(&result, ce_parse);
+	DList result = parse(ex, k, true);
+	if (result == NULL)
+		return result;
+	return to_rpn(&result);
 }
 
 DList In2post2(const char* ex)
 {
-	DList result = NULL;
-	bool ce_parse = false;
-	char ch, tch, temp[TAILLE_MAX] = { 0 }, op[2] = { 0 };
-	int sl = 0, p = 0;
-	for (unsigned i = 0; i < strlen(ex); ++i)
-	{
-		ch = ex[i];
-		if (ch == ' ')
-		{
-			if (sl)
-				result = push_back_dlist(result, temp);
-			memset(temp, 0, sl * sizeof(char));
-			sl = 0;
-		}
-		else if (!cisop(ch))
-		{
-			if (sl && ((isvar(ch) && isnumeric(temp[sl - 1])) || (isnumeric(ch) && isvar(temp[sl - 1]))))
-			{
-				result = push_back_dlist(push_back_dlist(result, temp), fnc[PROD].ex);
-				memset(temp, 0, sl * sizeof(char));
-				sl = 0;
-			}
-			temp[sl] = ch;
-			temp[sl + 1] = '\0';
-			if (!strcmp(temp, fnc[PI].ex) || !strcmp(temp, fnc[IMAGE].ex))
-			{
-				result = push_back_dlist(result, temp);
-				memset(temp, 0, sl * sizeof(char));
-				sl = 0;
-			}
-			else if (!strcmp(temp, "pi"))
-			{
-				result = push_back_dlist(result, fnc[PI].ex);
-				memset(temp, 0, sl * sizeof(char));
-				sl = 0;
-			}
-			else
-				sl++;
-		}
-		else
-		{
-			if (ch == '(')
-				p++;
-			if (ch == ')')
-				p--;
-			if (sl)
-			{
-				if (ch == '(')
-				{
-					tch = temp[0];
-					if (isvar(tch))
-					{
-						temp[sl] = ch;
-						temp[sl + 1] = '\0';
-					}
-					result = push_back_dlist(result, temp);
-					if (isnumeric(tch))
-						result = push_back_dlist(result, fnc[PROD].ex);
-				}
-				else
-					result = push_back_dlist(result, temp);
-			}
-			op[0] = ch;
-			op[1] = '\0';
-			token tk = tokens(op, fnc);
-			if (result != NULL && tk != PAR_FERMANT && tk != FACTORIEL_F && !(ADD <= tk && tk <= LOGIC_OR))
-			{
-				token t = tokens(result->end->value, fnc);
-				if (t == PAR_FERMANT)
-					result = push_back_dlist(result, fnc[PROD].ex);
-			}
-			if (tk == SUB)
-			{
-				if (result == NULL)
-					tk = NEGATIF;
-				else
-				{
-					token t = tokens(result->end->value, fnc);
-					if ((ADD <= t && t <= LOGIC_OR) || t == PAR_OUVRANT)
-						tk = NEGATIF;
-				}
-			}
-			if (result == NULL && ((ADD <= tk && tk <= LOGIC_OR) || tk == PAR_FERMANT))
-			{
-				result = clear_dlist(result);
-				return NULL;
-			}
-			if (result != NULL)
-			{
-				token t = tokens(result->end->value, fnc);
-				if ((ADD <= t && t <= LOGIC_OR && tk == PAR_FERMANT) || (((ADD <= t && t <= LOGIC_OR) || t == NEGATIF || t == PAR_OUVRANT) && ADD <= tk && tk <= LOGIC_OR))
-				{
-					result = clear_dlist(result);
-					return NULL;
-				}
-			}
-			result = push_back_dlist(result, op);
-			memset(temp, 0, sl * sizeof(char));
-			sl = 0;
-		}
-	}
-	if (sl != 0)
-	{
-		temp[sl] = '\0';
-		result = push_back_dlist(result, temp);
-	}
-	while (p > 0)
-	{
-		result = push_back_dlist(result, fnc[PAR_FERMANT].ex);
-		p--;
-	}
-	return to_rpn(&result, ce_parse);
+	DList result = parse((uint8_t*)ex, strlen(ex), false);
+	if (result == NULL)
+		return result;
+	return to_rpn(&result);
 }
 
 int tokens(const char* s, struct table_token* w)
@@ -920,7 +842,7 @@ Tree* remplace_tree(Tree* tr, const char* el, Tree* new_el)
 	if (!strcmp(el, tr->value))
 		return clone(new_el);
 	optype g = tr->gtype;
-	if (g == OPERAT)
+	if (g >= OPERAT)
 		return join(remplace_tree(tr->tleft, el, new_el), remplace_tree(tr->tright, el, new_el), tr->value);
 	else if (g == NEGATION || g == FUNCTION)
 		return join(remplace_tree(tr->tleft, el, new_el), NULL, tr->value);
@@ -970,7 +892,7 @@ Tree* substitute(Tree* tr, Tree* av, Tree* ap)
 	if (tree_compare(tr, av))
 		return clone(ap);
 	optype g = tr->gtype;
-	if (g == OPERAT)
+	if (g >= OPERAT)
 		return join(substitute(tr->tleft, av, ap), substitute(tr->tright, av, ap), tr->value);
 	else if (g == NEGATION || g == FUNCTION)
 		return join(substitute(tr->tleft, av, ap), NULL, tr->value);
@@ -980,7 +902,7 @@ Tree* substitute(Tree* tr, Tree* av, Tree* ap)
 int nb_operand(Tree* tr)
 {
 	optype op = tr->gtype;
-	if (op == OPERAT || op == LOGIC)
+	if (op >= OPERAT)
 		return 2;
 	return (op == NEGATION || op == FUNCTION);
 }
