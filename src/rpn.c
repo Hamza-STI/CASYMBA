@@ -318,6 +318,8 @@ DList parse(const uint8_t* ex, unsigned k, bool ce_parse)
 				}
 				if (ch == 0x3A)
 					ch = '.';
+				if (ch == 0xAE)
+					ch = '\'';
 				temp[sl] = ch;
 				temp[sl + 1] = '\0';
 				if (!strcmp(temp, fnc[PI].ex) || !strcmp(temp, fnc[IMAGE].ex))
