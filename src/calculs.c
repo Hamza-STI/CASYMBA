@@ -750,21 +750,18 @@ Tree* analyse(Tree* tr)
 			clean_tree(tr);
 			return s;
 		}
-		else
+		tr->tleft = simplify(tr->tleft);
+		if (tr->tleft->gtype == ENT)
 		{
-			tr->tleft = simplify(tr->tleft);
-			if (tr->tleft->gtype == ENT)
-			{
-				Tree* u = factorn(tonumber(tr->tleft->value));
-				clean_tree(tr);
-				return u;
-			}
-			if (tr->tleft->tok_type == NEGATION && tr->tleft->tleft->gtype == ENT)
-			{
-				Tree* u = factorn(tonumber(tr->tleft->tleft->value));
-				clean_tree(tr);
-				return join(u, NULL, fnc[NEGATIF].ex);
-			}
+			Tree* u = factorn(tonumber(tr->tleft->value));
+			clean_tree(tr);
+			return u;
+		}
+		if (tr->tleft->tok_type == NEGATION && tr->tleft->tleft->gtype == ENT)
+		{
+			Tree* u = factorn(tonumber(tr->tleft->tleft->value));
+			clean_tree(tr);
+			return join(u, NULL, fnc[NEGATIF].ex);
 		}
 		return tr;
 	}

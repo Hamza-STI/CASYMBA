@@ -1956,6 +1956,11 @@ Tree* contract_exp_rules(Tree* u)
 			clean_tree(s);
 			return p;
 		}
+		if (!strcmp(p->value, "1"))
+		{
+			clean_tree(p);
+			return join(s, NULL, fnc[EXP_F].ex);
+		}
 		return join(p, join(s, NULL, fnc[EXP_F].ex), fnc[PROD].ex);
 	}
 	else if (v->tok_type == ADD || v->tok_type == SUB)
