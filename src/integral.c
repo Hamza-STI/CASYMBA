@@ -157,9 +157,6 @@ Tree* diff(Tree* tr, const char* vr)
 		sol = remplace_var(remplace_var(remplace_var(sol, "U", tr->tleft->tleft), "V", dl), "C", tr->tleft->tright);
 		clean_tree(dl);
 		return sol;
-		Tree* dleft = simplify(diff(tr->tleft->tleft, vr));
-		Tree* b = tr->tleft->tright;
-		return join(dleft, join(clone(tr->tleft->tleft), join(clone(b), NULL, fnc[LN_F].ex), fnc[PROD].ex), fnc[DIVID].ex);
 	}
 	Tree* dl = simplify(diff(tr->tleft, vr));
 	Tree* sol = form_integral(sig, Derivtable, AMOUNT_DERIV);
@@ -170,7 +167,7 @@ Tree* diff(Tree* tr, const char* vr)
 		return sol;
 	}
 	clean_tree(dl);
-	return join(join(clone(tr), new_tree(vr), fnc[SEPARATEUR].ex), NULL, fnc[DERIV_F].ex);
+	return join(join(join(clone(tr), new_tree(vr), fnc[SEPARATEUR].ex), new_tree(vr), fnc[SEPARATEUR].ex), NULL, fnc[DERIV_F].ex);
 }
 
 /* primitive */

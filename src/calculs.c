@@ -9,12 +9,12 @@ static Tree* factor_by_int(Tree* u, const char* x)
 	{
 		Tree* v = new_tree(tostr(i)), * w = join(new_tree(tostr(i)), NULL, fnc[NEGATIF].ex);
 		Tree* r = simplify(remplace_tree(u, x, v)), * s = simplify(remplace_tree(u, x, w));
-		bool k = !strcmp(s->value, "0");
-		if (!strcmp(r->value, "0") || k)
+		bool k = !strcmp(s->value, "0"), j = !strcmp(r->value, "0");
+		clean_tree(s); clean_tree(r);
+		if (j || k)
 		{
 			map cf = polycoeffs(u, x), R = NULL;
-			clean_tree(r); clean_tree(s);
-			R = push_back_map(push_back_map_s(R, new_tree("1")), k ? v : w);
+			R = push_back_map(push_back_map_s(R, new_tree("1")), k ? w : v);
 			clean_tree(v); clean_tree(w);
 			map Q = poly_quotient(cf, R, INT_F);
 			Tree* q = polyreconstitute(&Q, x), * f = polyreconstitute(&R, x);
@@ -23,7 +23,7 @@ static Tree* factor_by_int(Tree* u, const char* x)
 			clean_tree(q);
 			return join(f, r, fnc[PROD].ex);
 		}
-		clean_tree(r); clean_tree(s); clean_tree(v); clean_tree(w);
+		clean_tree(v); clean_tree(w);
 	}
 	return  clone(u);
 }
@@ -162,49 +162,29 @@ static Tree* taylor(Tree* u, Tree* vr, Tree* ordre, Tree* point)
 {
 	if ((u->tok_type == LN_F || u->tok_type == SQRT_F || u->tok_type == POW) && ismonomial(u->tleft, vr->value))
 		return clone(u);
-	if (usuelle_forme(u->tok_type))
-	{
-		if (u->tleft->tok_type == SQRT_F)
-		{
-			Tree* z = new_tree("0");
-			Tree* R = simplify(substitute(u->tleft->tleft, vr, z));
-			bool k = !strcmp(R->value, "0");
-			clean_tree(z); clean_tree(R);
-			if (k)
-			{
-				z = new_tree("B");
-				R = join(z, NULL, u->value);
-				Tree* s = taylor_usuelle(R, z->value, ordre, point);
-				clean_tree(R);
-				R = substitute(s, z, u->tleft);
-				clean_tree(s);
-				return simplify(R);
-			}
-		}
-		else
-			return taylor_usuelle(u, vr->value, ordre, point);
-	}
-	else if (u->tok_type == SQRT_F || u->tok_type == POW)
+	if (usuelle_forme(u->tok_type) || u->tok_type == SQRT_F || u->tok_type == POW)
 		return taylor_usuelle(u, vr->value, ordre, point);
 	else if (u->tok_type == PROD)
 	{
 		Tree* v = taylor(u->tleft, vr, ordre, point), * w = taylor(u->tright, vr, ordre, point);
 		if (v == NULL || w == NULL)
 		{
+			clean_tree(v); clean_tree(w);
 			Error = push_back_dlist(Error, err_msg[1]);
 			return NULL;
 		}
 		map lv = map_create_add(v), lw = map_create_add(w);
-		Tree* d = NULL, * s = new_tree("0");
+		clean_tree(v); clean_tree(w);
+		Tree* s = new_tree("0");
 		mapCell* tmp_v = lv->begin, * tmp_w = NULL;
-		double g = Eval(ordre), h = 0;
+		double g = Eval(ordre);
 		while (tmp_v != NULL)
 		{
 			tmp_w = lw->begin;
 			while (tmp_w != NULL)
 			{
-				d = join(degree_sv(tmp_v->tr, vr->value), degree_sv(tmp_w->tr, vr->value), fnc[ADD].ex);
-				h = Eval(d);
+				Tree* d = join(degree_sv(tmp_v->tr, vr->value), degree_sv(tmp_w->tr, vr->value), fnc[ADD].ex);
+				double h = Eval(d);
 				clean_tree(d);
 				if (h <= g)
 					s = join(s, simplify(join(tmp_v->tr, tmp_w->tr, fnc[PROD].ex)), fnc[ADD].ex);
@@ -216,7 +196,6 @@ static Tree* taylor(Tree* u, Tree* vr, Tree* ordre, Tree* point)
 		}
 		lv = clear_map(lv);
 		lw = clear_map(lw);
-		clean_tree(v); clean_tree(w);
 		return simplify(s);
 	}
 	else if (u->tok_type == ADD || u->tok_type == SUB)
@@ -224,10 +203,7 @@ static Tree* taylor(Tree* u, Tree* vr, Tree* ordre, Tree* point)
 		Tree* v = taylor(u->tleft, vr, ordre, point), * w = taylor(u->tright, vr, ordre, point);
 		if (v == NULL || w == NULL)
 		{
-			if (v != NULL)
-				clean_tree(v);
-			if (w != NULL)
-				clean_tree(w);
+			clean_tree(v); clean_tree(w);
 			Error = push_back_dlist(Error, err_msg[1]);
 			return NULL;
 		}
@@ -371,11 +347,13 @@ static map solve_system(map* L, map* R)
 
 static Tree* create_poly(const char* cf, int i, Tree* dg, const char* x)
 {
+	Tree* w = new_tree(cf);
+	if (i == 0)
+		return w;
+	Tree* v = new_tree(x);
 	if (i > 1)
-		return join(new_tree(cf), join(new_tree(x), clone(dg), fnc[POW].ex), fnc[PROD].ex);
-	if (i == 1)
-		return join(new_tree(cf), new_tree(x), fnc[PROD].ex);
-	return new_tree(cf);
+		return join(w, join(v, clone(dg), fnc[POW].ex), fnc[PROD].ex);
+	return join(w, v, fnc[PROD].ex);
 }
 
 static Tree* poly_solution_2(Tree* a, Tree* b, Tree* c, Tree* part, const char* x, Tree* dg)
