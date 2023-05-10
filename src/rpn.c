@@ -74,6 +74,23 @@ int isconstant(Tree* tr)
 	return isconstant(tr->tleft) && isconstant(tr->tright);
 }
 
+char* zero_untile(const char* a)
+{
+	int len_a = strlen(a);
+	int i = 0, k = len_a - 1, pos = 0;
+	char* b = malloc((len_a + 1) * sizeof(char));
+	while (i < len_a && a[i] == '0')
+		i++;
+	while (strchr(a, '.') && k > 0 && (a[k] == '0' || a[k] == '.'))
+		k--;
+	for (int j = i; j <= k; j++)
+		b[pos++] = a[j];
+	if (pos == 0)
+		b[pos++] = '0';
+	b[pos] = '\0';
+	return b;
+}
+
 bool is_symbolic(Tree* tr)
 {
 	optype op = tr->gtype;
@@ -496,7 +513,10 @@ Tree* new_tree(const char* x)
 	}
 	else if (isnumeric(x[0]))
 	{
-		tr->gtype = (strchr(x, '.') == NULL) ? ENT : DECIMAL;
+		free(tr->value);
+		char* s = zero_untile(x);
+		tr->value = s;
+		tr->gtype = (strchr(s, '.') == NULL) ? ENT : DECIMAL;
 		tr->tok_type = NUMBER;
 	}
 	else

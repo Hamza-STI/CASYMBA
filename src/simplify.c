@@ -460,23 +460,6 @@ Tree* PGCD(Tree* A, Tree* B)
 
 /* numerical simplify */
 
-char* zero_untile(const char* a)
-{
-	int len_a = strlen(a);
-	int i = 0, k = len_a - 1, pos = 0;
-	char* b = malloc((len_a + 1) * sizeof(char));
-	while (a[i] == '0' || a[i] == '.')
-		i++;
-	while (a[k] == '0' || a[k] == '.')
-		k--;
-	for (int j = i; j <= k; j++)
-		b[pos++] = a[j];
-	if (pos == 0) 
-		b[pos++] = '0';
-	b[pos] = '\0';
-	return b;
-}
-
 char* new_value(const char* a, unsigned size_dec_a, unsigned new_size_int, unsigned new_size_dec)
 {
 	unsigned length = new_size_int + new_size_dec;
@@ -644,13 +627,11 @@ char* int_divid(const char* num, const char* denom, char** rem)
 		char* m = prod(denom, u);
 		char* v = sub(tmp, m, NULL);
 		memset(tmp, 0, 50 * sizeof(char));
-		if (strcmp(v, "0"))
-			strcpy(tmp, v);
+		strcpy(tmp, v);
 		free(v); free(m);
-		if ((k == 0 && p > 0) || k > 0)
-			quot[p++] = '0' + k;
+		quot[p++] = '0' + k;
 		if (pos < len_a)
-			tmp[strlen(tmp)] = num[pos];
+			tmp[!strcmp(tmp, "0") ? 0 : strlen(tmp)] = num[pos];
 		++pos;
 	} while (pos <= len_a);
 	char* ret = zero_untile(quot);
@@ -747,8 +728,7 @@ char* divid(const char* num, const char* denom)
 		char* m = prod(new_b, u);
 		char* v = sub(tmp, m, NULL);
 		memset(tmp, 0, 50 * sizeof(char));
-		if (strcmp(tmp, "0"))
-			strcpy(tmp, v);
+		strcpy(tmp, v);
 		free(v); free(m);
 		quot[p] = '0' + k;
 		++p;
@@ -762,7 +742,7 @@ char* divid(const char* num, const char* denom)
 		}
 		else if (digit)
 			prec++;
-		tmp[strlen(tmp)] = (pos >= len_a) ? '0' : new_a[pos];
+		tmp[!strcmp(tmp, "0") ? 0 : strlen(tmp)] = (pos >= len_a) ? '0' : new_a[pos];
 		++pos;
 	}
 	return strdup(quot);
