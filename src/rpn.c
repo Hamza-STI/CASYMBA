@@ -67,7 +67,7 @@ int isconstant(Tree* tr)
 		return 0;
 	if (tr->tok_type == POW)
 	{
-		if (tr->tright->gtype == ENT || tr->tright->gtype == DECIMAL || (tr->tright->tok_type == NEGATIF && tr->tright->tleft->gtype == ENT))
+		if (tr->tright->gtype <= ENT|| (tr->tright->tok_type == NEGATIF && tr->tright->tleft->gtype == ENT))
 			return isconstant(tr->tleft);
 		return 0;
 	}
@@ -144,19 +144,11 @@ int cisop(char ch)
 	return ch == '+' || ch == '-' || ch == '/' || ch == '*' || ch == '^' || ch == '=' || ch == '>' || ch == '<' || ch == '(' || ch == ')' || ch == '~' || ch == ',' || ch == '!';
 }
 
-int _isop(const char* s)
+int isop(const char* s)
 {
 	if (!strcmp(s, "and") || !strcmp(s, "or"))
 		return 1;
 	return cisop(s[0]);
-}
-
-int isop(const char* s)
-{
-	token tk = tokens(s, ti_table);
-	if (tk == TOKEN_INVALID)
-		tk = tokens(s, fnc);
-	return tk != TOKEN_INVALID;
 }
 
 int opless(const char* a, const char* b)
@@ -289,7 +281,7 @@ DList parse(const uint8_t* ex, unsigned k, bool ce_parse)
 			result = push_back_dlist(push_back_dlist(push_back_dlist(result, fnc[SEPARATEUR].ex), (sl) ? temp : "2"), fnc[PAR_FERMANT].ex);
 			memset(temp, 0, sl * sizeof(char));
 		}
-		else if (tk == TOKEN_INVALID && !_isop(chr))
+		else if (tk == TOKEN_INVALID && !isop(chr))
 		{
 			if (!isvar(ch) && !isnumeric(ch))
 			{
@@ -412,7 +404,7 @@ static DList to_rpn(DList* result)
 	DListCell* tmp = (*result)->begin;
 	while (tmp != NULL)
 	{
-		if (!_isop(tmp->value) && !isfn(tmp->value))
+		if (!isop(tmp->value) && !isfn(tmp->value))
 			rlt = push_back_dlist(rlt, tmp->value);
 		else
 		{

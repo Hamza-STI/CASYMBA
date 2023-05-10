@@ -10,22 +10,22 @@ static const struct Trigo_value Exact_Values[AMONT_VALUE_TRIG] =
 {
 	/* remarquables */
 	{ "0", "1", "0", "0" },
-	{ "1/6*PI", "sqrt(3)/2", "1/2", "sqrt(3)/3" },
-	{ "1/4*PI", "sqrt(2)/2", "sqrt(2)/2", "1" },
-	{ "1/3*PI", "1/2", "sqrt(3)/2", "sqrt(3)" },
-	{ "1/2*PI", "1", "0", fnc[UNDEF].ex },
-	{ "2/3*PI", "~1/2", "sqrt(3)/2", "~sqrt(3)" },
-	{ "3/4*PI", "~sqrt(2)/2", "sqrt(2)/2", "~1" },
-	{ "5/6*PI", "~sqrt(3)/2", "1/2", "~sqrt(3)/3" },
+	{ "PI/6", "sqrt(3)/2", "1/2", "sqrt(3)/3" },
+	{ "PI/4", "sqrt(2)/2", "sqrt(2)/2", "1" },
+	{ "PI/3", "1/2", "sqrt(3)/2", "sqrt(3)" },
+	{ "PI/2", "1", "0", fnc[UNDEF].ex },
+	{ "(2*PI)/3", "~1/2", "sqrt(3)/2", "~sqrt(3)" },
+	{ "(3*PI)/4", "~sqrt(2)/2", "sqrt(2)/2", "~1" },
+	{ "(5*PI)/6", "~sqrt(3)/2", "1/2", "~sqrt(3)/3" },
 	{ "PI", "~1", "0", "0" },
 
 	/* moins-remarquables */
-	{ "1/12*PI", "sqrt(2+sqrt(3))/2", "sqrt(2-sqrt(3))/2", "2-sqrt(3)" },
-	{ "1/10*PI", "sqrt(2*(sqrt(5)+5))/4", "(sqrt(5)-1)/4", "sqrt((5-2*sqrt(5))/5)" },
-	{ "1/8*PI", "sqrt(2+sqrt(2))/2", "sqrt(2-sqrt(2))/2", "sqrt(2)-1" },
-	{ "1/5*PI", "(sqrt(5)+1)/4", "sqrt(~2*(sqrt(5)-5))/4",	"sqrt(5-2*sqrt(5))" },
-	{ "3/8*PI", "sqrt(2-sqrt(2))/2", "sqrt(2+sqrt(2))/2", "sqrt(2)+1" },
-	{ "5/12*PI", "sqrt(2-sqrt(3))/2", "sqrt(2+sqrt(3))/2", "2+sqrt(3)" }
+	{ "PI/12", "sqrt(2+sqrt(3))/2", "sqrt(2-sqrt(3))/2", "2-sqrt(3)" },
+	{ "PI/10", "sqrt(10+2*sqrt(5))/4", "(~1+sqrt(5))/4", "sqrt((5-2*sqrt(5))/5)" },
+	{ "PI/8", "sqrt(2+sqrt(2))/2", "sqrt(2-sqrt(2))/2", "~1+sqrt(2)" },
+	{ "PI/5", "(1+sqrt(5))/4", "sqrt(10-2*sqrt(5))/4",	"sqrt(5-2*sqrt(5))" },
+	{ "(3*PI)/8", "sqrt(2-sqrt(2))/2", "sqrt(2+sqrt(2))/2", "1+sqrt(2)" },
+	{ "(5*PI)/12", "sqrt(2-sqrt(3))/2", "sqrt(2+sqrt(3))/2", "2+sqrt(3)" }
 };
 
 static Tree* simplify_RNE(Tree* u);
@@ -137,15 +137,13 @@ Tree* pow_transform(Tree* u)
 			}
 			if (u->tleft->tok_type == DIVID && !strcmp(u->tleft->tleft->value, "1") && u->tright->tok_type != DIVID)
 			{
-				Tree* v = clone(u->tleft->tright);
-				Tree* w = clone(u->tright);
+				Tree* v = clone(u->tleft->tright), * w = clone(u->tright);
 				clean_tree(u);
 				u = join(w, v, fnc[DIVID].ex);
 			}
 			if (u->tright->tok_type == DIVID && !strcmp(u->tright->tleft->value, "1") && u->tleft->tok_type != DIVID)
 			{
-				Tree* v = clone(u->tleft);
-				Tree* w = clone(u->tright->tright);
+				Tree* v = clone(u->tleft), * w = clone(u->tright->tright);
 				clean_tree(u);
 				u = join(v, w, fnc[DIVID].ex);
 			}
@@ -155,6 +153,12 @@ Tree* pow_transform(Tree* u)
 				Tree* c = numerator_fun(u->tright), * d = denominator_fun(u->tright);
 				clean_tree(u);
 				a = (ordre_tree(a, c)) ? join(a, c, fnc[PROD].ex) : join(c, a, fnc[PROD].ex);
+				bool k = !strcmp(b->value, "1");
+				if (k || !strcmp(d->value, "1"))
+				{
+					clean_tree(k ? b : d);
+					return join(a, k ? d : b, fnc[DIVID].ex);
+				}
 				b = (ordre_tree(b, d)) ? join(b, d, fnc[PROD].ex) : join(d, b, fnc[PROD].ex);
 				u = join(a, b, fnc[DIVID].ex);
 			}
@@ -233,14 +237,14 @@ Tree* expand_power(Tree* u, double n)
 {
 	if (u->tok_type == ADD || u->tok_type == SUB)
 	{
-		Tree* f = u->tleft, * r = u->tright, * s = NULL;
+		Tree* f = u->tleft, * r = u->tright, * s = new_tree("0");
 		for (int i = 0; i <= n; ++i)
 		{
 			Tree* g = join(clone(f), new_tree(tostr(n - i)), fnc[POW].ex);
 			double c = (double)factoriel(n) / (factoriel(i) * factoriel(n - i));
 			Tree* a = simplify(join(new_tree(tostr(c)), g, fnc[PROD].ex)), * b = simplify(expand_power(r, i));
 			Tree* t = expand_product(a, b);
-			s = (s == NULL) ? t : join(s, t, u->value);
+			s = join(s, t, u->value);
 			clean_tree(a); clean_tree(b);
 		}
 		return s;
@@ -360,22 +364,12 @@ int ordre_tree1(Tree* u, Tree* v)
 	return k;
 }
 
-int cmpvar(Tree* u, Tree* v)
-{
-	string p = u->value, q = v->value;
-	int a = strlen(p), b = strlen(q), k = 0;
-	int i = (a >= b) ? a : b;
-	while (k < i && p[k] == q[k])
-		++k;
-	return k < i && p[k] < q[k];
-}
-
 int ordre_tree(Tree* u, Tree* v)
 {
 	if (isconstant(u) && isconstant(v))
 		return Eval(u) < Eval(v);
 	if (u->gtype == VAR && v->gtype == VAR)
-		return cmpvar(u, v);
+		return strcmp(u->value, v->value) < 0;
 	if (v->gtype == FUNCTION && u->gtype == VAR)
 		return 1;
 	if (u->tok_type == v->tok_type && (u->tok_type == ADD || u->tok_type == PROD))
@@ -388,7 +382,7 @@ int ordre_tree(Tree* u, Tree* v)
 	if (u->tok_type == v->tok_type && u->tok_type == FACTORIEL_F)
 		return ordre_tree(u->tleft, v->tleft);
 	if (u->gtype == FUNCTION && v->gtype == FUNCTION)
-		return (u->tok_type != v->tok_type) ? cmpvar(u, v) : ordre_tree1(u->tleft, v->tleft);
+		return (u->tok_type != v->tok_type) ? strcmp(u->value, v->value) < 0 : ordre_tree1(u->tleft, v->tleft);
 	if (isconstant(u) && !isconstant(v))
 		return 1;
 	if (u->tok_type == PROD && (v->tok_type == POW || v->tok_type == ADD || v->gtype == FUNCTION || v->gtype == VAR))
@@ -468,108 +462,48 @@ Tree* PGCD(Tree* A, Tree* B)
 
 char* zero_untile(const char* a)
 {
-	if (!strcmp(a, "0"))
-		return strdup("0");
-	int len_a = strlen(a), i = 0;
-	int k = len_a - 1, pos = 0;
-	char* c = strchr(a, '.');
-	while (a[i] == '0' || (a[k] == '0' && c != NULL))
-	{
-		if (a[i] == '0')
-			++i;
-		if (a[k] == '0' && c != NULL)
-			k--;
-	}
-	if (a[i] == '.' || i == len_a)
-		i--;
-	if (a[k] == '.')
+	int len_a = strlen(a);
+	int i = 0, k = len_a - 1, pos = 0;
+	char* b = malloc((len_a + 1) * sizeof(char));
+	while (a[i] == '0' || a[i] == '.')
+		i++;
+	while (a[k] == '0' || a[k] == '.')
 		k--;
-	char* b = malloc((k - i + 2) * sizeof(char));
-	for (int j = 0; j < len_a; j++)
-	{
-		if (i <= j && j <= k)
-		{
-			b[pos] = a[j];
-			++pos;
-		}
-		if (j >= k)
-			break;
-	}
-	if (pos == 0)
-	{
-		b[pos] = '0';
-		++pos;
-	}
+	for (int j = i; j <= k; j++)
+		b[pos++] = a[j];
+	if (pos == 0) 
+		b[pos++] = '0';
 	b[pos] = '\0';
 	return b;
 }
 
-bool greater(const char* a, const char* b)
+char* new_value(const char* a, unsigned size_dec_a, unsigned new_size_int, unsigned new_size_dec)
 {
-	char* c = strchr(a, '.'), * d = strchr(b, '.');
-	int len_c = (c == NULL) ? 0 : strlen(c), len_d = (d == NULL) ? 0 : strlen(d);
-	int len_a = strlen(a) - len_c, len_b = strlen(b) - len_d;
-	int n = (len_c < len_d) ? len_c : len_d;
-	if (len_a != len_b)
-		return len_a > len_b;
-	for (int i = 0; i < len_a + n; ++i)
-	{
-		if (a[i] != b[i])
-			return a[i] > b[i];
-	}
-	return false;
-}
-
-char* new_value(const char* a, unsigned size_int_a, unsigned size_dec_a, unsigned new_size_int, unsigned new_size_dec)
-{
-	if (strlen(a) == new_size_int + new_size_dec)
+	unsigned length = new_size_int + new_size_dec;
+	if (strlen(a) == length)
 		return strdup(a);
-	char* ret = malloc(new_size_int + new_size_dec + 1);
-	int length = new_size_int - size_int_a;
-	for (int i = 0; i < length; ++i)
-		ret[i] = '0';
-	for (unsigned i = 0; i < strlen(a); ++i)
-	{
-		ret[length] = a[i];
-		length++;
-	}
+	char* ret = malloc(length + 1);
+	memset(ret, '0', length - strlen(a));
+	memcpy(ret + length - strlen(a), a, strlen(a));
 	if (new_size_dec && !size_dec_a)
-	{
-		ret[length] = '.';
-		length++;
-	}
-	for (unsigned i = 1; i <= new_size_dec - size_dec_a; ++i)
-	{
-		ret[length] = '0';
-		length++;
-	}
+		ret[length - 1] = '.';
+	memset(ret + length, '0', new_size_dec - size_dec_a);
+	ret[length] = '\0';
 	return ret;
 }
 
 int sub_cc(char a, char b, int* retenue)
 {
-	int r = a - '0', s = (b - '0') + (*retenue);
-	if (r < s)
-	{
-		r += 10;
-		*retenue = 1;
-	}
-	else
-		*retenue = 0;
-	return r - s;
+	int r = a - '0', s = b - '0' + *retenue;
+	*retenue = (r < s) ? 1 : 0;
+	return (r - s + 10) % 10;
 }
 
 int add_cc(char a, char b, int* retenue)
 {
-	int w = ((a - '0') + (b - '0')) + (*retenue);
-	if (w >= 10)
-	{
-		w -= 10;
-		*retenue = 1;
-	}
-	else
-		*retenue = 0;
-	return w;
+	int w = a - '0' + b - '0' + *retenue;
+	*retenue = (w >= 10) ? 1 : 0;
+	return w % 10;
 }
 
 char* adds(const char* left, const char* right, int op)
@@ -579,14 +513,13 @@ char* adds(const char* left, const char* right, int op)
 	int len_a = strlen(left) - len_c, len_b = strlen(right) - len_d;
 	int m = (len_a > len_b) ? len_a : len_b, n = (len_c > len_d) ? len_c : len_d, pos = 0, retenue = 0;
 	char clc[50] = { 0 };
-	char* new_a = new_value(left, len_a, len_c, m, n), * new_b = new_value(right, len_b, len_d, m, n);
+	char* new_a = new_value(left, len_c, m, n), * new_b = new_value(right, len_d, m, n);
 	for (int i = m + n - 1; i >= 0; --i)
 	{
 		if (new_a[i] == '.')
-			clc[pos] = '.';
+			clc[pos++] = '.';
 		else
-			clc[pos] = '0' + ((op == 1) ? add_cc(new_a[i], new_b[i], &retenue) : sub_cc(new_a[i], new_b[i], &retenue));
-		++pos;
+			clc[pos++] = '0' + ((op == 1) ? add_cc(new_a[i], new_b[i], &retenue) : sub_cc(new_a[i], new_b[i], &retenue));
 	}
 	if (op == 1 && retenue == 1)
 		clc[pos] = '1';
@@ -608,7 +541,7 @@ char* sub(const char* left, const char* right, int* sign)
 {
 	if (!strcmp(left, right))
 		return strdup("0");
-	if (greater(right, left))
+	if (strcmp(right, left) > 0)
 	{
 		if (sign != NULL)
 			*sign = -1;
@@ -635,10 +568,7 @@ char* prod(const char* left, const char* right)
 			pos = 0;
 			retenue = 0;
 			for (int k = 0; k < s; ++k)
-			{
-				clc[pos] = '0';
-				++pos;
-			}
+				clc[pos++] = '0';
 			s++;
 			for (int k = len_b - 1; k >= 0; k--)
 			{
@@ -648,19 +578,15 @@ char* prod(const char* left, const char* right)
 					retenue = w / 10;
 					if (retenue > 0)
 						w -= retenue * 10;
-					clc[pos] = '0' + w;
-					++pos;
+					clc[pos++] = '0' + w;
 				}
 			}
 			if (retenue > 0)
 				clc[pos] = '0' + retenue;
 			else
 				pos--;
-			for (int k = pos; k >= 0; k--)
-			{
-				n_clc[pos - k] = clc[k];
-				clc[k] = '\0';
-			}
+			for (int k = 0; k <= pos; k++)
+				n_clc[k] = clc[pos - k];
 			if (strlen(tmp) == 0)
 				strcpy(tmp, n_clc);
 			else
@@ -678,17 +604,11 @@ char* prod(const char* left, const char* right)
 	char* ret = malloc((s + 2) * sizeof(char));
 	for (int i = 0; i < s; ++i)
 	{
-		ret[pos] = tmp[i];
-		++pos;
+		ret[pos++] = tmp[i];
 		if (s - (i + 1) == len_c + len_d)
-		{
-			ret[pos] = '.';
-			++pos;
-		}
+			ret[pos++] = '.';
 	}
-	if (ret[s - 1] == '.')
-		ret[s - 1] = '\0';
-	ret[s] = '\0';
+	ret[pos] = '\0';
 	char* z = zero_untile(ret);
 	free(ret);
 	return z;
@@ -705,8 +625,7 @@ char* int_divid(const char* num, const char* denom, char** rem)
 			++pos;
 			break;
 		}
-		tmp[pos] = num[i];
-		++pos;
+		tmp[pos++] = num[i];
 	}
 	do {
 		int k = 1;
@@ -714,9 +633,9 @@ char* int_divid(const char* num, const char* denom, char** rem)
 		{
 			char w[2] = { '0' + k, '\0' };
 			char* n = prod(denom, w);
-			bool sup = greater(n, tmp);
+			int sup = strcmp(n, tmp);
 			free(n);
-			if (sup)
+			if (sup > 0)
 				break;
 			++k;
 		}
@@ -729,25 +648,16 @@ char* int_divid(const char* num, const char* denom, char** rem)
 			strcpy(tmp, v);
 		free(v); free(m);
 		if ((k == 0 && p > 0) || k > 0)
-		{
-			quot[p] = '0' + k;
-			++p;
-		}
+			quot[p++] = '0' + k;
 		if (pos < len_a)
 			tmp[strlen(tmp)] = num[pos];
 		++pos;
 	} while (pos <= len_a);
-	char* t = zero_untile(quot);
-	char* ret = strdup(t);
-	free(t);
+	char* ret = zero_untile(quot);
 	if (strlen(tmp) == 0)
 		tmp[0] = '0';
 	if (rem != NULL)
-	{
-		char* r = zero_untile(tmp);
-		*rem = strdup(r);
-		free(r);
-	}
+		*rem = zero_untile(tmp);
 	return ret;
 }
 
@@ -776,36 +686,23 @@ char* divid(const char* num, const char* denom)
 				else if (digit)
 				{
 					if (len_d == 0)
-					{
-						new_a[pos] = '.';
-						++pos;
-					}
-					new_a[pos] = num[i];
-					++pos;
+						new_a[pos++] = '.';
+					new_a[pos++] = num[i];
 					len_d--;
 				}
 				else
-				{
-					new_a[pos] = num[i];
-					++pos;
-				}
+					new_a[pos++] = num[i];
 			}
 			while (len_d > 0)
 			{
-				new_a[pos] = '0';
-				++pos;
+				new_a[pos++] = '0';
 				len_d--;
 			}
 		}
 		pos = 0;
 		for (int i = 0; i < len_b; ++i)
-		{
 			if (denom[i] != '.')
-			{
-				new_b[pos] = denom[i];
-				++pos;
-			}
-		}
+				new_b[pos++] = denom[i];
 	}
 	else
 	{
@@ -839,9 +736,9 @@ char* divid(const char* num, const char* denom)
 		{
 			char w[2] = { '0' + k, '\0' };
 			char* n = prod(new_b, w);
-			bool sup = greater(n, tmp);
+			int sup = strcmp(n, tmp);
 			free(n);
-			if (sup)
+			if (sup > 0)
 				break;
 			++k;
 		}
@@ -861,8 +758,7 @@ char* divid(const char* num, const char* denom)
 		{
 			digit = true;
 			++pos;
-			quot[p] = '.';
-			++p;
+			quot[p++] = '.';
 		}
 		else if (digit)
 			prec++;
@@ -878,7 +774,7 @@ char* gcd(const char* num, const char* denom)
 		return strdup("1");
 	if (!strcmp(num, denom))
 		return strdup(num);
-	if (greater(denom, num))
+	if (strcmp(denom, num) > 0)
 		return gcd(denom, num);
 	char* rem, * d = strdup(denom);
 	char* q = int_divid(num, denom, &rem);
@@ -1248,6 +1144,12 @@ Tree* factorn(long long int val)
 
 Tree* trigo_simplify(Tree* u, token tk)
 {
+	if ((((COS_F <= tk && tk <= TAN_F) || (COSH_F <= tk && tk <= TANH_F)) && tk + 3 == u->tok_type) || (((ACOS_F <= tk && tk <= ATAN_F) || (ACOSH_F <= tk && tk <= ATANH_F)) && tk - 3 == u->tok_type))
+	{
+		Tree* t = simplify(clone(u->tleft));
+		clean_tree(u);
+		return t;
+	}
 	if (tk == COS_F && is_negation(u))
 	{
 		u = simplify(join(join(new_tree("1"), NULL, fnc[NEGATIF].ex), u, fnc[PROD].ex));
@@ -1265,6 +1167,7 @@ Tree* trigo_simplify(Tree* u, token tk)
 	}
 	if ((isconstant(u) || found_element(u, fnc[PI].ex)) && (tk == COS_F || tk == SIN_F || tk == TAN_F))
 	{
+		u = pow_transform(u);
 		string su = Post2in2(u);
 		Tree* s = trigo_identify(su, tk);
 		free(su);
@@ -1404,7 +1307,7 @@ static Tree* simplify_power(Tree* v, Tree* w)
 			clean_tree(v);
 			map L = map_create_prod(f);
 			clean_tree(f);
-			Tree* s = new_tree("1"), * q = NULL;
+			Tree* s = new_tree("1"), * q = new_tree("1");
 			mapCell* item = L->begin;
 			while (item != NULL)
 			{
@@ -1416,23 +1319,24 @@ static Tree* simplify_power(Tree* v, Tree* w)
 					else if (k->tok_type == PROD)
 					{
 						s = simplify(join(s, k->tleft, fnc[PROD].ex));
-						q = (q == NULL) ? k->tright : join(q, k->tright, fnc[PROD].ex);
+						q = join(q, k->tright, fnc[PROD].ex);
 						clean_noeud(k);
 					}
 					else
-						q = (q == NULL) ? k : join(q, k, fnc[PROD].ex);
+						q = join(q, k, fnc[PROD].ex);
 				}
 				else
-					q = (q == NULL) ? join(clone(item->tr), clone(w), fnc[POW].ex) : join(q, join(clone(item->tr), clone(w), fnc[POW].ex), fnc[PROD].ex);
+					q = join(q, join(clone(item->tr), clone(w), fnc[POW].ex), fnc[PROD].ex);
 				item = item->next;
 			}
 			L = clear_map(L);
 			clean_tree(w);
-			if (q != NULL)
+			if (strcmp(q->value, "1"))
 			{
 				RT_SIMP = true;
 				s = join(s, Contract_pow(q), fnc[PROD].ex);
 			}
+			clean_tree(q);
 			return s;
 		}
 		clean_tree(f);
@@ -1498,7 +1402,7 @@ static map simplify_sum_fct(Tree* u1, Tree* u2)
 	if (ALG_EXPAND && (i || k))
 		return push_back_map_s(NULL, rationalize_sum(u1, u2, fnc[ADD].ex));
 	map map_u1 = map_create_prod(u1), map_u2 = map_create_prod(u2);
-	Tree* fact_com = NULL;
+	Tree* fact_com = new_tree("1");
 	mapCell* tmp0 = map_u1->begin, * tmp1 = NULL;
 	while (tmp0 != NULL)
 	{
@@ -1507,7 +1411,7 @@ static map simplify_sum_fct(Tree* u1, Tree* u2)
 		{
 			if (tree_compare(tmp1->tr, tmp0->tr) && !isconstant(tmp1->tr))
 			{
-				fact_com = (fact_com == NULL) ? clone(tmp0->tr) : join(fact_com, clone(tmp0->tr), fnc[PROD].ex);
+				fact_com = join(fact_com, clone(tmp0->tr), fnc[PROD].ex);
 				clean_tree(tmp1->tr);
 				tmp1->tr = new_tree("1");
 				clean_tree(tmp0->tr);
@@ -1518,7 +1422,7 @@ static map simplify_sum_fct(Tree* u1, Tree* u2)
 		}
 		tmp0 = tmp0->next;
 	}
-	if (fact_com != NULL)
+	if (strcmp(fact_com->value, "1"))
 	{
 		Tree* term_u1 = construct(fnc[PROD].ex, &map_u1), * term_u2 = construct(fnc[PROD].ex, &map_u2);
 		v = simplify(join(term_u1, term_u2, fnc[ADD].ex));
@@ -1532,6 +1436,7 @@ static map simplify_sum_fct(Tree* u1, Tree* u2)
 		}
 		return push_back_map_s(NULL, join(v, fact_com, fnc[PROD].ex));
 	}
+	clean_tree(fact_com);
 	map_u1 = clear_map(map_u1);
 	map_u2 = clear_map(map_u2);
 	return push_back_map(push_back_map(NULL, u1), u2);
@@ -1644,11 +1549,11 @@ static Tree* simplify_oper(map L, token tk)
 
 static Tree* construct(const char* op, map* L)
 {
-	mapCell* tmp = (*L)->begin;
-	Tree* tr = NULL;
+	mapCell* tmp = (*L)->begin->next;
+	Tree* tr = clone((*L)->begin->tr);
 	while (tmp != NULL)
 	{
-		tr = (tr == NULL) ? clone(tmp->tr) : join(tr, clone(tmp->tr), op);
+		tr = join(tr, clone(tmp->tr), op);
 		tmp = tmp->next;
 	}
 	*L = clear_map(*L);
@@ -1737,8 +1642,12 @@ Tree* simplify(Tree* u)
 	if (tk == TAN_F || tk == ATAN_F || tk == TANH_F || tk == ATANH_F)
 	{
 		u->tleft = simplify(u->tleft);
-		Tree* v = join(clone(u->tleft), NULL, fnc[tk - 1].ex), * w = join(clone(u->tleft), NULL, fnc[tk - 2].ex);
-		clean_tree(u);
+		Tree* r = trigo_simplify(u->tleft, tk);
+		clean_noeud(u);
+		if (r->tok_type != tk)
+			return r;
+		Tree* v = join(clone(r->tleft), NULL, fnc[tk - 1].ex), * w = join(clone(r->tleft), NULL, fnc[tk - 2].ex);
+		clean_tree(r);
 		return join(v, w, fnc[DIVID].ex);
 	}
 	if (tk == ROOT_F)
@@ -1883,7 +1792,7 @@ static Tree* rationalize_sum(Tree* u, Tree* v, const char* op)
 		{
 			Tree* pt = new_tree(p);
 			free(p);
-			if (greater(r->value, s->value))
+			if (strcmp(r->value, s->value) > 0)
 			{
 				clean_tree(s);
 				n = simplify(join(pt, n, fnc[PROD].ex));
@@ -2158,7 +2067,7 @@ Tree* Contract_pow(Tree* v)
 	if (tk == ADD || tk == SUB || tk == POW)
 	{
 		v->tleft = Contract_pow(v->tleft);
-		if (tk == POW)
+		if (tk != POW)
 			v->tright = Contract_pow(v->tright);
 		return v;
 	}
@@ -2390,7 +2299,7 @@ map polynomial_division(map* divd, map* divr, map* rem)
 		}
 		if (z && (*divd) != NULL)
 		{
-			for (int i = 0; i < (*divd)->length - 1; ++i)
+			for (int i = 0; i < (*divd)->length; ++i)
 				quot = push_back_map_s(quot, new_tree("0"));
 			(*divd) = clear_map(*divd);
 			break;
@@ -2462,13 +2371,13 @@ Tree* poly_simp(map u, map v, const char* x)
 	{
 		map qn = poly_quotient(u, pgcd, INT_F), qd = poly_quotient(v, pgcd, INT_F);
 		pgcd = clear_map(pgcd); u = clear_map(u); v = clear_map(v);
-		Tree* ql = polyreconstitute(&qn, x), * qr = polyreconstitute(&qd, x);
-		if (!strcmp(qr->value, "1"))
+		Tree* n = polyreconstitute(&qn, x), * d = polyreconstitute(&qd, x);
+		if (!strcmp(d->value, "1"))
 		{
-			clean_tree(qr);
-			return ql;
+			clean_tree(d);
+			return n;
 		}
-		return join(ql, qr, fnc[DIVID].ex);
+		return join(n, d, fnc[DIVID].ex);
 	}
 	pgcd = clear_map(pgcd);
 	return join(polyreconstitute(&u, x), polyreconstitute(&v, x), fnc[DIVID].ex);
