@@ -559,9 +559,7 @@ char* prod(const char* left, const char* right)
 				{
 					w = ((left[i] - '0') * (right[k] - '0')) + retenue;
 					retenue = w / 10;
-					if (retenue > 0)
-						w -= retenue * 10;
-					clc[pos++] = '0' + w;
+					clc[pos++] = '0' + (w % 10);
 				}
 			}
 			if (retenue > 0)
@@ -1524,6 +1522,7 @@ static Tree* simplify_oper(map L, token tk)
 	map v = simplify_oper_rec(L, tk);
 	if (v == NULL)
 		return new_tree((tk == PROD) ? "1" : "0");
+	v = map_sort(v);
 	return construct(fnc[tk].ex, &v);
 }
 
