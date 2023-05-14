@@ -22,6 +22,7 @@
 
 	map push_front_map(map li, Tree* tr);
 	map push_back_map(map li, Tree* arb);
+	map push_back_map_s(map li, Tree* arb);
 	map pop_back_map(map li);
 	map pop_front_map(map li);
 	map clear_map(map li);
