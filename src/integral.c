@@ -133,7 +133,7 @@ Tree* diff(Tree* tr, const char* vr)
 			bool v = !strcmp(dr->value, "0");
 			if (v || !strcmp(dl->value, "0"))
 			{
-				sol = to_tree(In2post2(v ? "C*V*U^(C-1)" : "ln(C)*C^U"));
+				sol = to_tree(In2post2(v ? "C*V*U^(C-1)" : "V*ln(C)*C^U"));
 				sol = remplace_var(remplace_var(remplace_var(sol, "U", v ? tr->tleft : tr->tright), "V", v ? dl : dr), "C", v ? tr->tright : tr->tleft);
 			}
 			else
@@ -754,10 +754,8 @@ static Tree* linear_priorities(Tree* f, const char* x)
 		Tree* s = integral(f->tleft, x), * t = integral(f->tright, x);
 		if (s == NULL || t == NULL)
 		{
-			if (s != NULL)
-				clean_tree(s);
-			if (t != NULL)
-				clean_tree(t);
+			clean_tree(s);
+			clean_tree(t);
 			return NULL;
 		}
 		return join(s, t, f->value);
@@ -1003,7 +1001,7 @@ struct Integral Integraltable[] =
 	{ "ln(A*X)/X", "ln(A*X)^2/2", "" },
 	{ "ln(A*X)/(X^M)", "~ln(A*X)/((M-1)*X^(M-1))-1/((M-1)^2*X^(M-1))", "" },
 	{ "ln(A*X)^N/X", "ln(A*X)^(N+1)/(N+1)", "" },
-	{ "ln(A*X)^M/(X^N)", "~ln(A*X)^M/((N-1)*X^(N-1))+P/(N-1)*integral(ln(A*X)^(M-1)/(X^N),X)", "" },
+	{ "ln(A*X)^M/(X^N)", "~ln(A*X)^M/((N-1)*X^(N-1))+M/(N-1)*integral(ln(A*X)^(M-1)/(X^N),X)", "" },
 	{ "1/(X*ln(A*X))", "ln(ln(A*X))", "" },
 	{ "ln(A*X)^N", "X*ln(A*X)^N-N*integral(ln(A*X)^(N-1),X)", "" },
 	{ "X*ln(A*X)^N", "(X^2*ln(A*X)^N)/2-N/2*integral(X*ln(A*X)^(N-1),X)", "" },

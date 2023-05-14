@@ -32,7 +32,7 @@ struct table_token ti_table[AMOUNT_TOKEN] =
 
 struct table_token fnc[AMOUNT_TOKEN] =
 {
-	{ "\0", 0}, { "\0", 0}, { "UNDEF", 5}, { "@i", 2}, { "PI", 2}, { "^(-1)", 5}, { "^2", 2}, { "^3", 2},
+	{ "\0", 0}, { "\0", 0}, { "UNDEF", 5}, { "i", 1}, { "PI", 2}, { "^(~1)", 5}, { "^2", 2}, { "^3", 2},
 	/* OPÉRATEUR */
 	{ "(", 1}, { ")", 1}, { "+", 1}, { "-", 1}, { "*", 1}, { "/", 1}, { "^", 1}, { "/", 1}, { ",", 1},
 	/* COMPARISON */
@@ -43,7 +43,7 @@ struct table_token fnc[AMOUNT_TOKEN] =
 	{ "~", 1},
 	/* FUNCTIONS */
 	{ "exp(", 4}, { "sqrt(", 5}, { "cbrt(", 5}, { "ln(", 3}, { "log(", 4}, { "logBASE(", 8}, { "10^(", 4},
-	{ "abs(", 4}, { "sign(", 5}, { "cos(", 4}, { "sin(", 4}, { "tan(", 4},  { "acos(",5},{ "asin(", 5},
+	{ "abs(", 4}, { "sign(", 5}, { "cos(", 4}, { "sin(", 4}, { "tan(", 4},  { "acos(", 5}, { "asin(", 5},
 	{ "atan(", 5}, { "cosh(", 6}, { "sinh(", 6}, { "tanh(", 6}, { "acosh(", 7}, { "asinh(", 7}, { "atanh(", 7},
 	{ "!", 1}, { "root(", 5},
 	/* COMPLEX FUNCTION */
