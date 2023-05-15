@@ -97,7 +97,6 @@
 	Tree* operand(Tree* tr, int i);
 	DList getvars(Tree* tr, DList vrs);
     string variable(Tree* u);
-	void print_tree_prefix(Tree* tr);
 
 #endif
 

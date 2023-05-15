@@ -987,20 +987,3 @@ string variable(Tree* u)
 	vrs = clear_dlist(vrs);
 	return vr;
 }
-
-void print_tree_prefix(Tree* tr)
-{
-	if (tr == NULL)
-		return;
-
-	if (tr->parent != NULL)
-		printf("[%s] -> %s -> type (%d) -> token (%d)\n", tr->parent->value, tr->value, tr->gtype, tr->tok_type);
-	else
-		printf("[%s] = type (%d) -> token (%d)\n", tr->value, tr->gtype, tr->tok_type);
-
-	if (tr->tleft != NULL)
-		print_tree_prefix(tr->tleft);
-
-	if (tr->tright != NULL)
-		print_tree_prefix(tr->tright);
-}
