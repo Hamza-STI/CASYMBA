@@ -185,8 +185,8 @@ int main(int argc, char const* argv[])
 {
     (void)argc;
     (void)argv;
-
-    DList rpn = In2post2("diff(logBASE(x^2,5),x)");
+    //uint8_t ex[] = { 0x22, 'Y', 0xAE, 0xAE, 0x71, 'Y', 0xAE, 0x71, '2', 0x82, 'Y', 0x6A, '0', 0x2B, 'X', 0x2B, 'Y', 0x11 };
+    DList rpn = In2post2("(6*x^2-3*x+4)-(~2*x^2+2*x-2)"); // desolve(y''-y'-2*y=sin(2*x),x,y) desolve(y''-y'-2*y=2*exp(~x) and y(0)=~1 and y'(0)=1,x,y)
     if (rpn == NULL)
     {
         printf("Erreur syntaxe\n");
@@ -194,11 +194,10 @@ int main(int argc, char const* argv[])
     }
     Tree* tr = to_tree(rpn);
 
-    //print_tree_prefix(tr);
-
     printf("\n\n partie simplification :\n");
 
     Tree* simp = analyse(tr);
+
     if (simp == NULL)
     {
         if (Error != NULL)
