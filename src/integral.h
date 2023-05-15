@@ -7,6 +7,7 @@ typedef struct Integral
 	const char* condt;
 } Integral;
 
+#define trig_tok(tk) (COS_F <= tk && tk <= ATANH_F)
 extern struct Integral Integraltable[];
 
 Tree* diff(Tree* u, const char* x);
