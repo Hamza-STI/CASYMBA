@@ -32,7 +32,7 @@ struct table_token ti_table[AMOUNT_TOKEN] =
 
 struct table_token fnc[AMOUNT_TOKEN] =
 {
-	{ "\0", 0}, { "\0", 0}, { "UNDEF", 5}, { "i", 1}, { "PI", 2}, { "^(~1)", 5}, { "^2", 2}, { "^3", 2},
+	{ "\0", 0}, { "\0", 0}, { "UNDEF", 5}, { "@i", 2}, { "PI", 2}, { "^(~1)", 5}, { "^2", 2}, { "^3", 2},
 	/* OPÉRATEUR */
 	{ "(", 1}, { ")", 1}, { "+", 1}, { "-", 1}, { "*", 1}, { "/", 1}, { "^", 1}, { "/", 1}, { ",", 1},
 	/* COMPARISON */
@@ -54,7 +54,7 @@ struct table_token fnc[AMOUNT_TOKEN] =
 };
 
 bool isnumeric(uint8_t b) { return ((0x30 <= b && b <= 0x3A) || b == '.'); }
-bool isvar(uint8_t b) { return ((0x41 <= b && b < 0x5B) || ('a' <= b && b <= 'z') || b == 0xAE || b == '\''); }
+bool isvar(uint8_t b) { return ((0x41 <= b && b < 0x5B) || ('a' <= b && b <= 'z') || b == 0xAE || b == '@' || b == '\''); }
 
 int isconstant(Tree* tr)
 {
