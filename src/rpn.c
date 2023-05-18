@@ -81,7 +81,9 @@ char* zero_untile(const char* a)
 	char* b = malloc((len_a + 1) * sizeof(char));
 	while (i < len_a && a[i] == '0')
 		i++;
-	while (strchr(a, '.') && k > 0 && (a[k] == '0' || a[k] == '.'))
+	while (strchr(a, '.') && k > 0 && a[k] == '0')
+		k--;
+	if (a[k] == '.')
 		k--;
 	for (int j = i; j <= k; j++)
 		b[pos++] = a[j];
@@ -96,9 +98,9 @@ bool is_symbolic(Tree* tr)
 	optype op = tr->gtype;
 	if (op == VAR)
 		return false;
-	if (op <= VAR)
+	if (op < VAR)
 		return true;
-	if (op == FUNCTION)
+	if (op < OPERAT)
 		return is_symbolic(tr->tleft);
 	return is_symbolic(tr->tleft) && is_symbolic(tr->tright);
 }

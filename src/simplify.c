@@ -460,6 +460,26 @@ Tree* PGCD(Tree* A, Tree* B)
 
 /* numerical simplify */
 
+bool greater(const char* a, const char* b)
+{
+	char* c = strchr(a, '.'), * d = strchr(b, '.');
+	int len_c = (c == NULL) ? 0 : strlen(c), len_d = (d == NULL) ? 0 : strlen(d);
+	int len_a = strlen(a) - len_c, len_b = strlen(b) - len_d;
+	int n = (len_c < len_d) ? len_c : len_d;
+	if (len_a > len_b)
+		return true;
+	if (len_a < len_b)
+		return false;
+	for (int i = 0; i < len_a + n; i++)
+	{
+		if (a[i] > b[i])
+			return true;
+		if (a[i] < b[i])
+			return false;
+	}
+	return false;
+}
+
 char* new_value(const char* a, unsigned size_dec_a, unsigned new_size_int, unsigned new_size_dec)
 {
 	unsigned length = new_size_int + new_size_dec;
@@ -524,7 +544,7 @@ char* sub(const char* left, const char* right, int* sign)
 {
 	if (!strcmp(left, right))
 		return strdup("0");
-	if (strcmp(right, left) > 0)
+	if (greater(right, left))
 	{
 		if (sign != NULL)
 			*sign = -1;
@@ -614,7 +634,7 @@ char* int_divid(const char* num, const char* denom, char** rem)
 		{
 			char w[2] = { '0' + k, '\0' };
 			char* n = prod(denom, w);
-			int sup = strcmp(n, tmp);
+			int sup = greater(n, tmp);
 			free(n);
 			if (sup > 0)
 				break;
@@ -752,7 +772,7 @@ char* gcd(const char* num, const char* denom)
 		return strdup("1");
 	if (!strcmp(num, denom))
 		return strdup(num);
-	if (strcmp(denom, num) > 0)
+	if (greater(denom, num))
 		return gcd(denom, num);
 	char* rem, * d = strdup(denom);
 	char* q = int_divid(num, denom, &rem);
@@ -842,9 +862,8 @@ static Tree* evaluate_quotient(Tree* left, Tree* right)
 		clean_tree(t);
 		return new_tree(fnc[UNDEF].ex);
 	}
-	clean_tree(t);
 	Tree* i = simplify_RNE_rec(join(numerator_fun(left), denominator_fun(right), fnc[PROD].ex));
-	Tree* j = simplify_RNE_rec(join(numerator_fun(right), denominator_fun(left), fnc[PROD].ex));
+	Tree* j = simplify_RNE_rec(join(t, denominator_fun(left), fnc[PROD].ex));
 	int k = count_tree_nodes(i), l = count_tree_nodes(j);
 	Tree* tr = NULL;
 	if (k == 1 && l == 1)

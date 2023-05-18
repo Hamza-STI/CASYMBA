@@ -773,6 +773,7 @@ Tree* analyse(Tree* tr)
 		}
 		else if (tk == INTEGRAL_F && L->length >= 2 && L->begin->next->tr->gtype == VAR)
 		{
+			L->begin->tr = pow_transform(simplify(L->begin->tr));
 			Tree* res = integral(L->begin->tr, L->begin->next->tr->value);
 			L = clear_map(L);
 			if (res == NULL)
