@@ -81,6 +81,8 @@ char* zero_untile(const char* a)
 	char* b = malloc((len_a + 1) * sizeof(char));
 	while (i < len_a && a[i] == '0')
 		i++;
+	if (a[i] == '.')
+		i--;
 	while (strchr(a, '.') && k > 0 && a[k] == '0')
 		k--;
 	if (a[k] == '.')

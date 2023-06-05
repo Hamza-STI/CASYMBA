@@ -1,5 +1,6 @@
 #include "simplify.h"
 
+#define max(a,b) (a > b) ? a : b
 #define AMONT_VALUE_TRIG 15
 bool ALG_EXPAND = false;
 bool LN_EXP_EXPAND = false;
@@ -460,63 +461,57 @@ Tree* PGCD(Tree* A, Tree* B)
 
 /* numerical simplify */
 
-bool greater(const char* a, const char* b)
+static bool greater(const char* a, const char* b)
 {
 	char* c = strchr(a, '.'), * d = strchr(b, '.');
 	int len_c = (c == NULL) ? 0 : strlen(c), len_d = (d == NULL) ? 0 : strlen(d);
 	int len_a = strlen(a) - len_c, len_b = strlen(b) - len_d;
 	int n = (len_c < len_d) ? len_c : len_d;
-	if (len_a > len_b)
-		return true;
-	if (len_a < len_b)
-		return false;
+	if (len_a != len_b)
+		return len_a > len_b;
 	for (int i = 0; i < len_a + n; i++)
-	{
-		if (a[i] > b[i])
-			return true;
-		if (a[i] < b[i])
-			return false;
-	}
+		if (a[i] != b[i])
+			return a[i] > b[i];
 	return false;
 }
 
-char* new_value(const char* a, unsigned size_dec_a, unsigned new_size_int, unsigned new_size_dec)
+char* new_value(const char* a, unsigned size_int_a, unsigned size_dec_a, unsigned new_size_int, unsigned new_size_dec)
 {
-	unsigned length = new_size_int + new_size_dec;
-	if (strlen(a) == length)
+	unsigned k = strlen(a);
+	if (k == new_size_int + new_size_dec)
 		return strdup(a);
-	char* ret = malloc(length + 1);
-	memset(ret, '0', length - strlen(a));
-	memcpy(ret + length - strlen(a), a, strlen(a));
+	int length = new_size_int - size_int_a, s = new_size_int + new_size_dec;
+	char* ret = malloc(s + 1);
+	memset(ret, '0', s * sizeof(char));
+	memcpy(ret + length, a, k);
 	if (new_size_dec && !size_dec_a)
-		ret[length - 1] = '.';
-	memset(ret + length, '0', new_size_dec - size_dec_a);
-	ret[length] = '\0';
+		ret[length + k] = '.';
+	ret[s] = '\0';
 	return ret;
 }
 
-int sub_cc(char a, char b, int* retenue)
+static int sub_cc(char a, char b, int* retenue)
 {
 	int r = a - '0', s = b - '0' + *retenue;
 	*retenue = (r < s) ? 1 : 0;
 	return (r - s + 10) % 10;
 }
 
-int add_cc(char a, char b, int* retenue)
+static int add_cc(char a, char b, int* retenue)
 {
 	int w = a - '0' + b - '0' + *retenue;
 	*retenue = (w >= 10) ? 1 : 0;
 	return w % 10;
 }
 
-char* adds(const char* left, const char* right, int op)
+static char* adds(const char* left, const char* right, int op)
 {
 	char* c = strchr(left, '.'), * d = strchr(right, '.');
 	int len_c = (c == NULL) ? 0 : strlen(c), len_d = (d == NULL) ? 0 : strlen(d);
 	int len_a = strlen(left) - len_c, len_b = strlen(right) - len_d;
-	int m = (len_a > len_b) ? len_a : len_b, n = (len_c > len_d) ? len_c : len_d, pos = 0, retenue = 0;
+	int m = max(len_a, len_b), n = max(len_c, len_d), pos = 0, retenue = 0;
 	char clc[50] = { 0 };
-	char* new_a = new_value(left, len_c, m, n), * new_b = new_value(right, len_d, m, n);
+	char* new_a = new_value(left, len_a, len_c, m, n), * new_b = new_value(right, len_b, len_d, m, n);
 	for (int i = m + n - 1; i >= 0; --i)
 	{
 		if (new_a[i] == '.')
@@ -528,8 +523,10 @@ char* adds(const char* left, const char* right, int op)
 		clc[pos] = '1';
 	else
 		pos--;
-	while (clc[pos] == '0')
+	while (clc[pos] == '0' && pos > 1)
 		pos--;
+	if (clc[pos] == '.')
+		pos++;
 	char* ret = malloc((pos + 2) * sizeof(char));
 	for (int i = pos; i >= 0; --i)
 		ret[pos - i] = clc[i];
@@ -602,11 +599,23 @@ char* prod(const char* left, const char* right)
 	}
 	pos = 0;
 	s = strlen(tmp);
-	char* ret = malloc((s + 2) * sizeof(char));
+	w = len_c + len_d;
+	if (s <= w)
+	{
+		int k = max(s - w, w - s) + 2;
+		char* ch = malloc(k * sizeof(char)), t[50];
+		memset(ch, '0', k * sizeof(char));
+		ch[k - 1] = '\0';
+		snprintf(t, 50, "%s%s", ch, tmp);
+		s = strlen(t);
+		strcpy(tmp, t);
+		free(ch);
+	}
+	char* ret = malloc((s + 2 + w) * sizeof(char));
 	for (int i = 0; i < s; ++i)
 	{
 		ret[pos++] = tmp[i];
-		if (s - (i + 1) == len_c + len_d)
+		if (s - (i + 1) == w)
 			ret[pos++] = '.';
 	}
 	ret[pos] = '\0';
@@ -708,23 +717,20 @@ char* divid(const char* num, const char* denom)
 		strcpy(new_a, num);
 		strcpy(new_b, denom);
 	}
+	char* z_a = zero_untile(new_a), * z_b = zero_untile(new_b);
+	memset(new_a, 0, 50 * sizeof(char));
+	memset(new_b, 0, 50 * sizeof(char));
+	strcpy(new_a, z_a);
+	strcpy(new_b, z_b);
+	free(z_a); free(z_b);
 	pos = 0;
 	len_b = strlen(new_b);
 	len_a = strlen(new_a);
 	digit = false;
 	for (int i = 0; i < len_b; ++i)
 	{
-		if (new_a[i] == '.')
-			digit = true;
-		if (digit || i == len_a)
-		{
-			tmp[pos] = new_a[i + 1];
-			pos += 2;
-			quot[0] = '0';
-			quot[1] = '.';
-			p = 2;
+		if (new_a[i] == '.' || i == len_a)
 			break;
-		}
 		tmp[pos] = new_a[i];
 		++pos;
 	}
@@ -735,7 +741,7 @@ char* divid(const char* num, const char* denom)
 		{
 			char w[2] = { '0' + k, '\0' };
 			char* n = prod(new_b, w);
-			int sup = strcmp(n, tmp);
+			int sup = greater(n, tmp);
 			free(n);
 			if (sup > 0)
 				break;
@@ -748,11 +754,10 @@ char* divid(const char* num, const char* denom)
 		memset(tmp, 0, 50 * sizeof(char));
 		strcpy(tmp, v);
 		free(v); free(m);
-		quot[p] = '0' + k;
-		++p;
+		quot[p++] = '0' + k;
 		if (!strcmp(tmp, "0") && pos >= len_a)
 			break;
-		if ((pos < len_a && new_a[pos] == '.') || pos == len_a)
+		if (((pos < len_a && new_a[pos] == '.') || pos == len_a) && !digit)
 		{
 			digit = true;
 			++pos;
@@ -787,6 +792,33 @@ char* gcd(const char* num, const char* denom)
 	}
 	free(rem);
 	return d;
+}
+
+char* ExponentiationRapide(const char* base, const char* exposant)
+{
+	if (!strcmp(exposant, "0"))
+		return strdup("1");
+	char* reste;
+	char* quot = int_divid(exposant, "2", &reste);
+	if (!strcmp(reste, "0"))
+	{
+		char* moitie = ExponentiationRapide(base, quot);
+		char* resultat = prod(moitie, moitie);
+		free(quot); free(moitie); free(reste);
+		return resultat;
+	}
+	else
+	{
+		char* s = sub(exposant, "1", NULL);
+		free(quot); free(reste);
+		quot = int_divid(s, "2", &reste);
+		free(s);
+		char* moitie = ExponentiationRapide(base, quot);
+		char* p = prod(moitie, moitie);
+		char* resultat = prod(base, p);
+		free(p); free(quot); free(moitie); free(reste);
+		return resultat;
+	}
 }
 
 static Tree* fracOp(const char* numerator, const char* denominator)
@@ -900,10 +932,12 @@ static Tree* evaluate_power(Tree* bases, Tree* expon)
 			{
 				if (expon->gtype == ENT)
 				{
-					if (bases->gtype == ENT)
+					if (bases->gtype <= ENT)
 					{
-						int c = round(pow((int)tonumber(bases->value), (int)tonumber(expon->value)));
-						return new_tree(tostr(c));
+						char* c = ExponentiationRapide(bases->value, expon->value);
+						Tree* tr = new_tree(c);
+						free(c);
+						return tr;
 					}
 					if (is_int(bases))
 					{
@@ -946,6 +980,20 @@ static Tree* evaluate_power(Tree* bases, Tree* expon)
 	return (e < 0) ? new_tree(fnc[UNDEF].ex) : new_tree("0");
 }
 
+Tree* evaluate_cc(Tree* left, Tree* right, token tok)
+{
+	Tree* u = numerator_fun(left), * v = denominator_fun(left);
+	Tree* w = numerator_fun(right), * x = denominator_fun(right);
+	Tree* xx = clone(x), * vv = clone(v);
+	Tree* num1 = simplify_RNE_rec(join(u, x, fnc[PROD].ex)), * num2 = simplify_RNE_rec(join(v, w, fnc[PROD].ex));
+	Tree* denom = simplify_RNE_rec(join(vv, xx, fnc[PROD].ex)), * num = simplify_RNE_rec(join(num1, num2, fnc[tok].ex));
+	if (num->tok_type != NEGATIF)
+		return simplify_RNE_rec(join(num, denom, fnc[DIVID].ex));
+	Tree* tr = join(simplify_RNE_rec(join(num->tleft, denom, fnc[DIVID].ex)), NULL, fnc[NEGATIF].ex);
+	clean_noeud(num);
+	return tr;
+}
+
 static Tree* evaluate_add(Tree* left, Tree* right)
 {
 	if (!strcmp(left->value, "0"))
@@ -958,13 +1006,7 @@ static Tree* evaluate_add(Tree* left, Tree* right)
 		return evaluate_diff(right, left->tleft);
 	else if (right->tok_type == NEGATIF)
 		return evaluate_diff(left, right->tleft);
-	Tree* u = numerator_fun(left), * v = denominator_fun(left);
-	Tree* w = numerator_fun(right), * x = denominator_fun(right);
-	Tree* xx = clone(x), * vv = clone(v);
-	Tree* num1 = simplify_RNE_rec(join(u, x, fnc[PROD].ex)), * num2 = simplify_RNE_rec(join(v, w, fnc[PROD].ex));
-	Tree* denom = simplify_RNE_rec(join(vv, xx, fnc[PROD].ex)), * num = simplify_RNE_rec(join(num1, num2, fnc[ADD].ex));
-	Tree* t = join(num, denom, fnc[DIVID].ex);
-	return simplify_RNE_rec(t);
+	return evaluate_cc(left, right, ADD);
 }
 
 static Tree* evaluate_diff(Tree* left, Tree* right)
@@ -981,16 +1023,7 @@ static Tree* evaluate_diff(Tree* left, Tree* right)
 		return join(evaluate_add(left->tleft, right), NULL, fnc[NEGATIF].ex);
 	else if (right->tok_type == NEGATIF)
 		return evaluate_add(left, right->tleft);
-	Tree* u = numerator_fun(left), * v = denominator_fun(left);
-	Tree* w = numerator_fun(right), * x = denominator_fun(right);
-	Tree* xx = clone(x), * vv = clone(v);
-	Tree* num1 = simplify_RNE_rec(join(u, x, fnc[PROD].ex)), * num2 = simplify_RNE_rec(join(v, w, fnc[PROD].ex));
-	Tree* denom = simplify_RNE_rec(join(vv, xx, fnc[PROD].ex)), * num = simplify_RNE_rec(join(num1, num2, fnc[SUB].ex));
-	if (num->tok_type != NEGATIF)
-		return simplify_RNE_rec(join(num, denom, fnc[DIVID].ex));
-	Tree* tr = join(simplify_RNE_rec(join(num->tleft, denom, fnc[DIVID].ex)), NULL, fnc[NEGATIF].ex);
-	clean_noeud(num);
-	return tr;
+	return evaluate_cc(left, right, SUB);
 }
 
 static Tree* evaluate_prod(Tree* left, Tree* right)
