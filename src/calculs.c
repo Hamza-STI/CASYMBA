@@ -10,7 +10,7 @@ static Tree* factor_by_int(Tree* u, const char* x)
 		Tree* v = new_tree(tostr(i)), * w = join(new_tree(tostr(i)), NULL, fnc[NEGATIF].ex);
 		Tree* r = simplify(remplace_tree(u, x, v)), * s = simplify(remplace_tree(u, x, w));
 		bool k = !strcmp(s->value, "0"), j = !strcmp(r->value, "0");
-		clean_tree(s); clean_tree(r);
+        clean_tree(s); clean_tree(r);
 		if (j || k)
 		{
 			map cf = polycoeffs(u, x), R = NULL;
@@ -40,8 +40,7 @@ Tree* square_free_factor(Tree* u, const char* x)
 		tmp = tmp->next;
 	}
 	cf = clear_map(cf);
-	int k = coef_u->length;
-	int i = k - 1;
+	int k = coef_u->length, i = coef_u->length - 1;
 	tmp = coef_u->begin;
 	while (i > 0)
 	{
@@ -137,17 +136,16 @@ static Tree* taylor_usuelle(Tree* u, const char* vr, Tree* ordre, Tree* point)
 		dtr = diff_r;
 		Tree* a = join(simplify(remplace_tree(dtr, vr, point)), new_tree(tostr(factoriel(i))), fnc[DIVID].ex);
 		Tree* b = join(simplify(join(new_tree(vr), clone(point), fnc[SUB].ex)), new_tree(tostr(i)), fnc[POW].ex);
-		Tree* c = simplify(join(a, b, fnc[PROD].ex));
-		if (c->tok_type == UNDEF)
+		a = simplify(join(a, b, fnc[PROD].ex));
+		if (a->tok_type == UNDEF)
 		{
-			clean_tree(c); clean_tree(s); clean_tree(dtr);
+			clean_tree(a); clean_tree(s); clean_tree(dtr);
 			Error = push_back_dlist(Error, err_msg[1]);
 			return NULL; // erreur
 		}
-		if (strcmp(c->value, "0"))
-			s = (s == NULL) ? c : join(s, c, fnc[ADD].ex);
-		else
-			clean_tree(c);
+		if (strcmp(a->value, "0"))
+			s = join(s, clone(a), fnc[ADD].ex);
+		clean_tree(a);
 	}
 	clean_tree(dtr);
 	return s;
@@ -160,7 +158,7 @@ static bool usuelle_forme(token a)
 
 static Tree* taylor(Tree* u, Tree* vr, Tree* ordre, Tree* point)
 {
-	if ((u->tok_type == LN_F || u->tok_type == SQRT_F || u->tok_type == POW) && ismonomial(u->tleft, vr->value))
+	if ((u->tok_type == LN_F || u->tok_type == SQRT_F || u->tok_type == POW) && ismonomial(u->tleft, vr->value) && !strcmp(point->value, "0"))
 		return clone(u);
 	if (usuelle_forme(u->tok_type) || u->tok_type == SQRT_F || u->tok_type == POW)
 		return taylor_usuelle(u, vr->value, ordre, point);
@@ -169,7 +167,7 @@ static Tree* taylor(Tree* u, Tree* vr, Tree* ordre, Tree* point)
 		Tree* v = taylor(u->tleft, vr, ordre, point), * w = taylor(u->tright, vr, ordre, point);
 		if (v == NULL || w == NULL)
 		{
-			clean_tree(v); clean_tree(w);
+            clean_tree(v); clean_tree(w);
 			Error = push_back_dlist(Error, err_msg[1]);
 			return NULL;
 		}
@@ -347,11 +345,11 @@ static map solve_system(map* L, map* R)
 
 static Tree* create_poly(const char* cf, int i, Tree* dg, const char* x)
 {
-	Tree* w = new_tree(cf);
-	if (i == 0)
-		return w;
-	Tree* v = new_tree(x);
-	if (i > 1)
+    Tree* w = new_tree(cf);
+    if (i == 0)
+        return w;
+    Tree* v = new_tree(x);
+    if (i > 1)
 		return join(w, join(v, clone(dg), fnc[POW].ex), fnc[PROD].ex);
 	return join(w, v, fnc[PROD].ex);
 }
@@ -729,18 +727,18 @@ Tree* analyse(Tree* tr)
 			return s;
 		}
 		tr->tleft = simplify(tr->tleft);
-		if (tr->tleft->gtype == ENT)
-		{
-			Tree* u = factorn(tonumber(tr->tleft->value));
-			clean_tree(tr);
-			return u;
-		}
-		if (tr->tleft->tok_type == NEGATION && tr->tleft->tleft->gtype == ENT)
-		{
-			Tree* u = factorn(tonumber(tr->tleft->tleft->value));
-			clean_tree(tr);
-			return join(u, NULL, fnc[NEGATIF].ex);
-		}
+        if (tr->tleft->gtype == ENT)
+        {
+            Tree* u = factorn(tonumber(tr->tleft->value));
+            clean_tree(tr);
+            return u;
+        }
+        if (tr->tleft->tok_type == NEGATION && tr->tleft->tleft->gtype == ENT)
+        {
+            Tree* u = factorn(tonumber(tr->tleft->tleft->value));
+            clean_tree(tr);
+            return join(u, NULL, fnc[NEGATIF].ex);
+        }
 		return tr;
 	}
 	else if (DERIV_F <= tk && tk <= TAYLOR_F)

@@ -107,9 +107,7 @@ DList dlist_sub(DList li, int start, int length)
 	while(compte < start + length)
 	{
 		if (start <= compte && compte < start + length)
-		{
-			list = push_back_dlist(list, tmp->value);
-		}
+            list = push_back_dlist(list, tmp->value);
 		tmp = tmp->next;
 		compte++;
 	}

@@ -1,7 +1,7 @@
 #ifndef __RPN__H__
 #define __RPN__H__
 
-	#include "dlist.h"
+	#include "numerical.h"
 	#ifdef _EZ80
 
 	#undef NDEBUG
@@ -83,7 +83,7 @@
 
 	double Eval(Tree* tr);
 	int isconstant(Tree* tr);
-	char* zero_untile(const char* a);
+    bool is_negation(Tree* u);
     bool is_symbolic(Tree* tr);
 	double tonumber(const char* ex);
 	string tostr(double n);

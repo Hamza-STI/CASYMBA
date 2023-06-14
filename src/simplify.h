@@ -19,7 +19,6 @@
 	int ispoly(Tree* u, const char* vr);
 	int is_int(Tree* u);
 	bool isdemi(Tree* tr);
-	bool is_negation(Tree* u);
 	long long int factoriel(long long int a);
 	Tree* trigo_identify(const char* s, token tk);
 	Tree* PGCD(Tree* A, Tree* B);

@@ -1,6 +1,6 @@
 #include "integral.h"
 
-#define AMOUNT_INTEGRAL 166
+#define AMOUNT_INTEGRAL 164
 #define AMOUNT_DERIV 18
 int ipp_loop = 10;
 char int_cond[10] = { 0 };
@@ -754,8 +754,10 @@ static Tree* linear_priorities(Tree* f, const char* x)
 		Tree* s = integral(f->tleft, x), * t = integral(f->tright, x);
 		if (s == NULL || t == NULL)
 		{
-			clean_tree(s);
-			clean_tree(t);
+			if (s != NULL)
+				clean_tree(s);
+			if (t != NULL)
+				clean_tree(t);
 			return NULL;
 		}
 		return join(s, t, f->value);
@@ -906,8 +908,6 @@ struct Integral Integraltable[] =
 	{ "X*(C+A*X^2)^N", "1/(2*A*(N+1))*(A*X^2+C)^(N+1)", "" },
 	{ "X^M/(C+A*X^2)", "X^(M-1)/(A*(M-1))-C/A*integral(X^(M-2)/(C+A*X^2),X)", "" },
 	{ "1/(X*(C+A*X^N))", "1/(C*N)*ln(X^N/(C+A*X^N))", "" },
-	{ "1/(X*sqrt(C+A*X^N))", "1/(N*sqrt(C))*ln((sqrt(C+A*X^N)-sqrt(C))/(sqrt(C+A*X^N)+sqrt(C)))", "C>0" },
-	{ "1/(X*sqrt(C+A*X^N))", "1/(N*sqrt(~C)*acos(sqrt(~A*X^N/C)))", "C<0" },
 	/* sqrt(C+A*X^2) */
 	{ "1/(X*sqrt(C+A*X^2))", "1/(sqrt(~C)*asin(X*sqrt(~A/C)))", "C<0" },
 	{ "1/(X*sqrt(C+A*X^2))", "acos(A/X)/A", "A=1 C<0" },

@@ -32,7 +32,7 @@ struct table_token ti_table[AMOUNT_TOKEN] =
 
 struct table_token fnc[AMOUNT_TOKEN] =
 {
-	{ "\0", 0}, { "\0", 0}, { "UNDEF", 5}, { "@i", 2}, { "PI", 2}, { "^(~1)", 5}, { "^2", 2}, { "^3", 2},
+	{ "\0", 0}, { "\0", 0}, { "UNDEF", 5}, { "@i", 1}, { "PI", 2}, { "^(~1)", 5}, { "^2", 2}, { "^3", 2},
 	/* OPÉRATEUR */
 	{ "(", 1}, { ")", 1}, { "+", 1}, { "-", 1}, { "*", 1}, { "/", 1}, { "^", 1}, { "/", 1}, { ",", 1},
 	/* COMPARISON */
@@ -54,7 +54,16 @@ struct table_token fnc[AMOUNT_TOKEN] =
 };
 
 bool isnumeric(uint8_t b) { return ((0x30 <= b && b <= 0x3A) || b == '.'); }
-bool isvar(uint8_t b) { return ((0x41 <= b && b < 0x5B) || ('a' <= b && b <= 'z') || b == 0xAE || b == '@' || b == '\''); }
+bool isvar(uint8_t b) { return ((0x41 <= b && b < 0x5B) || ('a' <= b && b <= 'z') || b == 0xAE || b == '\''); }
+
+bool is_negation(Tree* u)
+{
+	if (u->tok_type == NEGATIF)
+		return !is_negation(u->tleft);
+	if (u->tok_type == PROD || u->tok_type == DIVID)
+		return is_negation(u->tleft) || is_negation(u->tright);
+	return false;
+}
 
 int isconstant(Tree* tr)
 {
@@ -67,32 +76,13 @@ int isconstant(Tree* tr)
 		return 0;
 	if (tr->tok_type == POW)
 	{
-		if (tr->tright->gtype <= ENT|| (tr->tright->tok_type == NEGATIF && tr->tright->tleft->gtype == ENT))
+		if (is_negation(tr->tleft) && tr->tright->gtype != ENT)
+			return 0;
+		if (tr->tright->gtype <= ENT || (tr->tright->tok_type == NEGATIF && tr->tright->tleft->gtype == ENT))
 			return isconstant(tr->tleft);
 		return 0;
 	}
 	return isconstant(tr->tleft) && isconstant(tr->tright);
-}
-
-char* zero_untile(const char* a)
-{
-	int len_a = strlen(a);
-	int i = 0, k = len_a - 1, pos = 0;
-	char* b = malloc((len_a + 1) * sizeof(char));
-	while (i < len_a && a[i] == '0')
-		i++;
-	if (a[i] == '.')
-		i--;
-	while (strchr(a, '.') && k > 0 && a[k] == '0')
-		k--;
-	if (a[k] == '.')
-		k--;
-	for (int j = i; j <= k; j++)
-		b[pos++] = a[j];
-	if (pos == 0)
-		b[pos++] = '0';
-	b[pos] = '\0';
-	return b;
 }
 
 bool is_symbolic(Tree* tr)
@@ -470,7 +460,7 @@ static DList to_rpn(DList* result)
 DList In2post(const uint8_t* ex, unsigned k)
 {
 	DList result = parse(ex, k, true);
-	if (result == NULL)
+    if (result == NULL)
 		return result;
 	return to_rpn(&result);
 }
@@ -478,7 +468,7 @@ DList In2post(const uint8_t* ex, unsigned k)
 DList In2post2(const char* ex)
 {
 	DList result = parse((uint8_t*)ex, strlen(ex), false);
-	if (result == NULL)
+    if (result == NULL)
 		return result;
 	return to_rpn(&result);
 }
@@ -898,7 +888,7 @@ int tree_compare(Tree* tr1, Tree* tr2)
 Tree* clone(Tree* tr)
 {
 	optype op = tr->gtype;
-	if (op == OPERAT || op == LOGIC)
+	if (op >= OPERAT)
 		return join(clone(tr->tleft), clone(tr->tright), tr->value);
 	else if (op == NEGATION || op == FUNCTION)
 		return join(clone(tr->tleft), NULL, tr->value);
