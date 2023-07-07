@@ -80,6 +80,7 @@
 	string Post2in2(Tree* tr);
 	DList In2post(const uint8_t* ex, unsigned str_len);
 	string Post2in(Tree* tr);
+	int tokens(const char* s, struct table_token* w);
 
 	double Eval(Tree* tr);
 	int isconstant(Tree* tr);

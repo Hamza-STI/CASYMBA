@@ -43,7 +43,6 @@
 	DList dlist_left(DList li, int length);
 	DList dlist_sub(DList li, int start, int length);
     DList dlist_remove_id(DList p_list, int position);
-    DList dlist_sortD(DList li);
 
 #endif
 

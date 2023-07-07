@@ -1,7 +1,6 @@
 #include "rpn.h"
 
 /* private functions */
-static int tokens(const char* s, struct table_token* w);
 static int opless(const char* a, const char* b);
 static int prior(const char* s);
 static int nparts(DList rpn);
@@ -152,7 +151,7 @@ int prior(const char* s)
 
 int cisop(char ch)
 {
-	return ch == '+' || ch == '-' || ch == '/' || ch == '*' || ch == '^' || ch == '=' || ch == '>' || ch == '<' || ch == '(' || ch == ')' || ch == '~' || ch == ',' || ch == '!';
+    return strchr("+-/*^=><()~,!", ch) != NULL && ch != '\0';
 }
 
 int isop(const char* s)
@@ -507,10 +506,7 @@ Tree* new_tree(const char* x)
 	}
 	else if (isnumeric(x[0]))
 	{
-		free(tr->value);
-		char* s = zero_untile(x);
-		tr->value = s;
-		tr->gtype = (strchr(s, '.') == NULL) ? ENT : DECIMAL;
+		tr->gtype = (strchr(tr->value, '.') == NULL) ? ENT : DECIMAL;
 		tr->tok_type = NUMBER;
 	}
 	else

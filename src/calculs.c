@@ -733,7 +733,7 @@ Tree* analyse(Tree* tr)
             clean_tree(tr);
             return u;
         }
-        if (tr->tleft->tok_type == NEGATION && tr->tleft->tleft->gtype == ENT)
+        if (is_int(tr->tleft))
         {
             Tree* u = factorn(tonumber(tr->tleft->tleft->value));
             clean_tree(tr);

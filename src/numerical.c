@@ -11,25 +11,23 @@ void free_Number(Number nbr)
 	free(nbr.nombre);
 }
 
-char* zero_untile(const char* a)
+void zero_untile(char* a)
 {
 	int len_a = strlen(a);
 	int i = 0, k = len_a - 1, pos = 0;
-	char* b = malloc((len_a + 1) * sizeof(char));
 	while (i < len_a && a[i] == '0')
 		i++;
 	if (a[i] == '.')
 		i--;
-	while (strchr(a, '.') && k > 0 && a[k] == '0')
+	while (k > i && a[k] == '0')
 		k--;
 	if (a[k] == '.')
 		k--;
 	for (int j = i; j <= k; j++)
-		b[pos++] = a[j];
+		a[pos++] = a[j];
 	if (pos == 0)
-		b[pos++] = '0';
-	b[pos] = '\0';
-	return b;
+		a[pos++] = '0';
+	a[pos] = '\0';
 }
 
 static bool greater(const char* a, const char* b)
@@ -103,8 +101,8 @@ static Number adds(Number left, Number right, int op)
 		ret[pos - i] = clc[i];
 	ret[pos + 1] = '\0';
 	free(new_a); free(new_b);
-	Number resultat = { 1, zero_untile(ret) };
-	return resultat;
+	zero_untile(ret);
+	return create(1, ret);
 }
 
 Number sub(Number left, Number right)
@@ -191,8 +189,8 @@ Number prod(Number left, Number right)
 			ret[pos++] = '.';
 	}
 	ret[pos] = '\0';
-	Number resultat = { 1, zero_untile(ret) };
-	return resultat;
+	zero_untile(ret);
+	return create(1, ret);
 }
 
 Number int_divid(Number num, Number denom, Number* rem)
@@ -233,12 +231,13 @@ Number int_divid(Number num, Number denom, Number* rem)
 			tmp[!strcmp(tmp, "0") ? 0 : strlen(tmp)] = num.nombre[pos];
 		++pos;
 	} while (pos <= len_a);
-	Number resultat = { 1, zero_untile(quot) };
+	zero_untile(quot);
 	if (strlen(tmp) == 0)
 		tmp[0] = '0';
+	zero_untile(tmp);
 	if (rem != NULL)
-		(*rem).nombre = zero_untile(tmp);
-	return resultat;
+		(*rem).nombre = strdup(tmp);
+	return create(1, quot);
 }
 
 Number divid(Number num, Number denom)
@@ -289,12 +288,7 @@ Number divid(Number num, Number denom)
 		strcpy(new_a, num.nombre);
 		strcpy(new_b, denom.nombre);
 	}
-	char* z_a = zero_untile(new_a), * z_b = zero_untile(new_b);
-	memset(new_a, 0, 50 * sizeof(char));
-	memset(new_b, 0, 50 * sizeof(char));
-	strcpy(new_a, z_a);
-	strcpy(new_b, z_b);
-	free(z_a); free(z_b);
+	zero_untile(new_a); zero_untile(new_b);
 	pos = 0;
 	len_b = strlen(new_b);
 	len_a = strlen(new_a);

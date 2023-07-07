@@ -78,35 +78,20 @@ bool isdemi(Tree* tr)
 
 Tree* pow_transform(Tree* u)
 {
-	if (u->tok_type == POW)
+	if (u->tok_type == POW && (isdemi(u->tright) || !strcmp(u->tright->value, "1") || u->tright->tok_type == NEGATIF))
 	{
+		u->tleft = pow_transform(u->tleft);
+		Tree* v = clone(u->tleft);
 		if (isdemi(u->tright))
-		{
-			u->tleft = pow_transform(u->tleft);
-			Tree* v = join(clone(u->tleft), NULL, fnc[SQRT_F].ex);
-			v->parent = u->parent;
-			clean_tree(u);
-			return v;
-		}
-		else if (!strcmp(u->tright->value, "1"))
-		{
-			u->tleft = pow_transform(u->tleft);
-			Tree* v = clone(u->tleft);
-			v->parent = u->parent;
-			clean_tree(u);
-			return v;
-		}
+			v = join(v, NULL, fnc[SQRT_F].ex);
 		else if (u->tright->tok_type == NEGATIF)
 		{
-			u->tleft = pow_transform(u->tleft);
-			Tree* v = clone(u->tleft);
 			Tree* w = clone(u->tright->tleft);
-			Tree* f = join(new_tree("1"), pow_transform(join(v, w, fnc[POW].ex)), fnc[DIVID].ex);
-			f->parent = u->parent;
-			clean_tree(u);
-			return f;
+			v = join(new_tree("1"), pow_transform(join(v, w, fnc[POW].ex)), fnc[DIVID].ex);
 		}
-		return u;
+		v->parent = u->parent;
+		clean_tree(u);
+		return v;
 	}
 	else if (u->gtype == OPERAT)
 	{
@@ -893,7 +878,7 @@ static Tree* simplify_power(Tree* v, Tree* w)
 		}
 		return join(v, w, fnc[POW].ex);
 	}
-	else if (!strcmp(v->value, "1"))
+	else if (!strcmp(v->value, "1") || !strcmp("1", w->value))
 	{
 		clean_tree(w);
 		return v;
@@ -903,11 +888,6 @@ static Tree* simplify_power(Tree* v, Tree* w)
 		clean_tree(v);
 		clean_tree(w);
 		return new_tree("1");
-	}
-	else if (!strcmp("1", w->value))
-	{
-		clean_tree(w);
-		return v;
 	}
 	else if (v->tok_type == EXP_F)
 	{
@@ -1982,17 +1962,9 @@ map poly_gcd(map u, map v)
 		return push_back_map_s(NULL, new_tree("1"));
 	if (v->length == 1 && u->length == 1)
 		return push_back_map_s(NULL, PGCD(clone(u->begin->tr), clone(v->begin->tr)));
-	map U = NULL, V = NULL;
-	if (v->length > u->length)
-	{
-		U = clone_map(v);
-		V = clone_map(u);
-	}
-	else
-	{
-		U = clone_map(u);
-		V = clone_map(v);
-	}
+	bool k = v->length > u->length;
+    map U = k ? clone_map(v) : clone_map(u);
+    map V = k ? clone_map(u) : clone_map(v);
 	while (strcmp(V->begin->tr->value, "0"))
 	{
 		map R = poly_quotient(U, V, REMAINDER_F);
