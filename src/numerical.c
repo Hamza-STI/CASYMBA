@@ -193,6 +193,30 @@ Number prod(Number left, Number right)
 	return create(1, ret);
 }
 
+static int divid_quot(Number denom, char* tmp)
+{
+	int k;
+	for (k = 1; k < 10; k++)
+	{
+		char w[2] = { '0' + k, '\0' };
+		Number nbr = create(1, w);
+		Number n = prod(denom, nbr);
+		bool sup = greater(n.nombre, tmp);
+		free_Number(n); free_Number(nbr);
+		if (sup > 0)
+			break;
+	}
+	k--;
+	char u[2] = { '0' + k, '\0' };
+	Number nbr_1 = create(1, u), nbr_2 = create(1, tmp);
+	Number m = prod(denom, nbr_1);
+	Number v = sub(nbr_2, m);
+	memset(tmp, 0, 50 * sizeof(char));
+	strcpy(tmp, v.nombre);
+	free_Number(v); free_Number(m); free_Number(nbr_1); free_Number(nbr_2);
+	return k;
+}
+
 Number int_divid(Number num, Number denom, Number* rem)
 {
 	int len_a = strlen(num.nombre), len_b = strlen(denom.nombre), pos = 0, p = 0;
@@ -207,26 +231,7 @@ Number int_divid(Number num, Number denom, Number* rem)
 		tmp[pos++] = num.nombre[i];
 	}
 	do {
-		int k;
-		for (k = 1; k < 10; k++)
-		{
-			char w[2] = { '0' + k, '\0' };
-			Number nbr = create(1, w);
-			Number n = prod(denom, nbr);
-			int sup = greater(n.nombre, tmp);
-			free_Number(n); free_Number(nbr);
-			if (sup > 0)
-				break;
-		}
-		k--;
-		char u[2] = { '0' + k, '\0' };
-		Number nbr_1 = create(1, u), nbr_2 = create(1, tmp);
-		Number m = prod(denom, nbr_1);
-		Number v = sub(nbr_2, m);
-		memset(tmp, 0, 50 * sizeof(char));
-		strcpy(tmp, v.nombre);
-		free_Number(v); free_Number(m); free_Number(nbr_1); free_Number(nbr_2);
-		quot[p++] = '0' + k;
+		quot[p++] = '0' + divid_quot(denom, tmp);
 		if (pos < len_a)
 			tmp[!strcmp(tmp, "0") ? 0 : strlen(tmp)] = num.nombre[pos];
 		++pos;
@@ -302,28 +307,9 @@ Number divid(Number num, Number denom)
 	}
 	while (prec < 15)
 	{
-		int k = 1;
 		Number n_b = create(1, new_b);
-		while (k < 10)
-		{
-			char w[2] = { '0' + k, '\0' };
-			Number nw = create(1, w);
-			Number n = prod(n_b, nw);
-			int sup = greater(n.nombre, tmp);
-			free_Number(n); free_Number(nw);
-			if (sup > 0)
-				break;
-			++k;
-		}
-		k--;
-		char u[2] = { '0' + k, '\0' };
-		Number n_u = create(1, u), n_tmp = create(1, tmp);
-		Number m = prod(n_b, n_u);
-		Number v = sub(n_tmp, m);
-		memset(tmp, 0, 50 * sizeof(char));
-		strcpy(tmp, v.nombre);
-		free_Number(v); free_Number(m); free_Number(n_b); free_Number(n_u); free_Number(n_tmp);
-		quot[p++] = '0' + k;
+		quot[p++] = '0' + divid_quot(n_b, tmp);
+		free_Number(n_b);
 		if (!strcmp(tmp, "0") && pos >= len_a)
 			break;
 		if (((pos < len_a && new_a[pos] == '.') || pos == len_a) && !digit)
