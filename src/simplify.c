@@ -385,7 +385,7 @@ bool ordre_tree(Tree* u, Tree* v)
 	if (u->tok_type == POW && v->tok_type != POW)
 		return ordre_tree2(u, v);
 	if (u->tok_type != POW && v->tok_type == POW)
-		return ordre_tree2(v, u);
+		return !ordre_tree2(v, u);
 	return false;
 }
 
