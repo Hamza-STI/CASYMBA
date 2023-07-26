@@ -1,20 +1,21 @@
 #include "integral.h"
 
 int alg[2] = { 0, 0 }; // degré, membres
+int ipp_loop = 10;
 
 static map separate_factor(Tree* u, const char* x)
 {
 	if (!found_element(u, x))
-		return push_back_map_s(push_back_map(NULL, u), new_tree("1"));
+		return push_back(push_back_map(NULL, u), new_tree("1"));
 	if (u->tok_type == DIVID || u->tok_type == PROD)
 	{
 		map f = separate_factor(u->tleft, x), g = separate_factor(u->tright, x);
-		Tree* free_of_part = join(clone(f->begin->tr), clone(g->begin->tr), fnc[u->tok_type].ex);
-		Tree* dependent_part = join(clone(f->end->tr), clone(g->end->tr), fnc[u->tok_type].ex);
+		Tree* free_of_part = join(clone(f->begin->data), clone(g->begin->data), fnc[u->tok_type].ex);
+		Tree* dependent_part = join(clone(f->end->data), clone(g->end->data), fnc[u->tok_type].ex);
 		f = clear_map(f); g = clear_map(g);
-		return push_back_map_s(push_back_map_s(NULL, free_of_part), dependent_part);
+		return push_back(push_back(NULL, free_of_part), dependent_part);
 	}
-	return push_back_map(push_back_map_s(NULL, new_tree("1")), u);
+	return push_back_map(push_back(NULL, new_tree("1")), u);
 }
 
 map polycoeffs(Tree* u, const char* x)
@@ -23,11 +24,10 @@ map polycoeffs(Tree* u, const char* x)
 	map cf = NULL;
 	Tree* z = new_tree("0");
 	Tree* r = simplify(remplace_tree(u, x, z)), * d = diff(u, x);
-	cf = push_back_map_s(cf, r);
+	cf = push_back(cf, r);
 	while (strcmp(d->value, "0"))
 	{
-		r = simplify(remplace_tree(d, x, z));
-		r = simplify(join(r, new_tree(tostr(factoriel(i))), fnc[DIVID].ex));
+		r = simplify(join(remplace_tree(d, x, z), new_tree(tostr(factoriel(i))), fnc[DIVID].ex));
 		cf = push_front_map(cf, r);
 		clean_tree(r);
 		Tree* tmp = diff(d, x);
@@ -45,10 +45,8 @@ map polycoeffs(Tree* u, const char* x)
 static Tree* form_integral(const char* s_form, struct Integral* w, int size)
 {
 	for (const Integral* element = w; element != w + size; element++)
-	{
 		if (!strcmp(element->from, s_form))
 			return to_tree(In2post2(element->to));
-	}
 	return NULL;
 }
 
@@ -147,16 +145,16 @@ static Tree* integral_try_factor(Tree* u, const char* x)
 		map coefs = polycoeffs(u, x);
 		if (coefs->length > 2)
 		{
-			if (ismonomial(u->tleft, x) && ismonomial(u->tright, x) && strcmp(coefs->end->tr->value, "0"))
+			if (ismonomial(u->tleft, x) && ismonomial(u->tright, x) && strcmp(((Tree*)coefs->end->data)->value, "0"))
 			{
 				Tree* a = degree_sv(u->tleft, x), * b = degree_sv(u->tright, x), * cf = NULL;
 				Tree* c = simplify(join(new_tree(x), clone(a), fnc[POW].ex));
 				mapCell* coef = coefs->begin->next;
 				while (coef != NULL)
 				{
-					if (strcmp(coef->tr->value, "0"))
+					if (strcmp(((Tree*)coef->data)->value, "0"))
 					{
-						cf = coef->tr;
+						cf = coef->data;
 						break;
 					}
 					coef = coef->next;
@@ -164,7 +162,7 @@ static Tree* integral_try_factor(Tree* u, const char* x)
 				if (cf != NULL)
 				{
 					Tree* p = simplify(join(new_tree(x), join(b, a, fnc[SUB].ex), fnc[POW].ex));
-					Tree* d = join(clone(cf), join(clone(coefs->begin->tr), p, fnc[PROD].ex), fnc[ADD].ex);
+					Tree* d = join(clone(cf), join(clone(coefs->begin->data), p, fnc[PROD].ex), fnc[ADD].ex);
 					coefs = clear_map(coefs);
 					return join(c, d, fnc[PROD].ex);
 				}
@@ -188,10 +186,7 @@ static Tree* integral_try_factor(Tree* u, const char* x)
 static map trial_substitutions(Tree* f, map L)
 {
 	if (f->tok_type == POW || f->gtype == FUNCTION)
-	{
 		L = push_back_map(L, f);
-		return L;
-	}
 	else if (f->gtype == OPERAT)
 	{
 		L = trial_substitutions(f->tleft, L);
@@ -209,7 +204,7 @@ static Tree* Match_substitute(Tree* u, map Li)
 	mapCell* tmp = Li->begin;
 	while (tmp != NULL)
 	{
-		u = remplace_var(u, tmp->tr->tleft->value, tmp->tr->tright);
+		u = remplace_var(u, ((Tree*)tmp->data)->tleft->value, ((Tree*)tmp->data)->tright);
 		tmp = tmp->next;
 	}
 	return u;
@@ -222,12 +217,12 @@ static bool match_var(Tree* Node, Tree* toMatch, map* w)
 		mapCell* tmp = (*w)->begin;
 		while (tmp != NULL)
 		{
-			if (tree_compare(tmp->tr->tleft, toMatch))
-				return tree_compare(tmp->tr->tright, Node);
+			if (tree_compare(((Tree*)tmp->data)->tleft, toMatch))
+				return tree_compare(((Tree*)tmp->data)->tright, Node);
 			tmp = tmp->next;
 		}
 	}
-	*w = push_back_map_s(*w, join(clone(toMatch), clone(Node), fnc[EGAL].ex));
+	*w = push_back(*w, join(clone(toMatch), clone(Node), fnc[EGAL].ex));
 	return true;
 }
 
@@ -269,29 +264,31 @@ static bool toMatchExpression(Tree* e, Tree* id, const char* x, map* w)
 		return false;
 	if (id->gtype == VAR)
 		return true;
-	if (e->gtype == FUNCTION || e->gtype == NEGATION)
-		return toMatchExpression(e->tleft, id->tleft, x, w);
-	if (e->gtype >= OPERAT)
-		return toMatchExpression(e->tleft, id->tleft, x, w) && toMatchExpression(e->tright, id->tright, x, w);
+	if (e->gtype > VAR)
+	{
+		bool t = toMatchExpression(e->tleft, id->tleft, x, w);
+		if (e->gtype >= OPERAT)
+			t = t && toMatchExpression(e->tright, id->tright, x, w);
+		return t;
+	}
 	return true;
 }
 
-static bool search_match(const char* ex, DList* oper)
+static bool search_match(const char* ex, List* oper)
 {
 	if ((*oper) == NULL)
 		return true;
-	DListCell* tmp = (*oper)->begin;
+	Cell* tmp = (*oper)->begin;
 	while (tmp != NULL)
 	{
-		char* result = strstr(ex, tmp->value);
-		if (!result)
+		if (!strstr(ex, (char*)tmp->data))
 			return false;
 		tmp = tmp->next;
 	}
 	return true;
 }
 
-static Tree* match(Tree* u, struct Integral* ID, DList* oper, const char* x, int IDSize)
+static Tree* match(Tree* u, struct Integral* ID, List* oper, const char* x, int IDSize)
 {
 	for (const Integral* element = ID; element != ID + IDSize; element++)
 	{
@@ -339,7 +336,7 @@ static Tree* match(Tree* u, struct Integral* ID, DList* oper, const char* x, int
 	return NULL;
 }
 
-static DList getfunction(Tree* tr, const char* x, DList list, DList* oper)
+static List getfunction(Tree* tr, const char* x, List list, List* oper)
 {
 	if (is_symbolic(tr))
 		return list;
@@ -353,10 +350,10 @@ static DList getfunction(Tree* tr, const char* x, DList list, DList* oper)
 				list = getfunction(tr->tleft, x, list, oper);
 			return list;
 		}
-		DListCell* tmp = list->begin;
+		Cell* tmp = list->begin;
 		while (tmp != NULL)
 		{
-			if (!strcmp(tmp->value, tr->value))
+			if (!strcmp((char*)tmp->data, tr->value))
 				return list;
 			tmp = tmp->next;
 		}
@@ -377,13 +374,13 @@ static DList getfunction(Tree* tr, const char* x, DList list, DList* oper)
 		{
 			map cf = polycoeffs(tr, x);
 			int k = cf->length;
-			string v = cf->begin->next->tr->value;
+			string v = ((Tree*)cf->begin->next->data)->value;
 			if (k > 2 && (!strcmp(v, "0") || (k == 3 && strcmp(v, "0"))))
 			{
 				mapCell* coef = cf->begin;
 				while (coef != NULL)
 				{
-					if (!strcmp(coef->tr->value, "0"))
+					if (!strcmp(((Tree*)coef->data)->value, "0"))
 						k--;
 					coef = coef->next;
 				}
@@ -399,7 +396,7 @@ static DList getfunction(Tree* tr, const char* x, DList list, DList* oper)
 static Tree* to_match(Tree* u, const char* x)
 {
 	FunctionFlags flags = { false }; // Initialisez tous les indicateurs à false
-	DList list_fnc = NULL, op = NULL;
+	List list_fnc = NULL, op = NULL;
 	list_fnc = getfunction(u, x, list_fnc, &op);
 	if (!list_fnc)
 	{
@@ -415,10 +412,10 @@ static Tree* to_match(Tree* u, const char* x)
 			return match(u, IntegralalgxN, &op, x, AMOUNT_INTEGRAL_ALGXN);
 		return match(u, Integraltable, &op, x, AMOUNT_INTEGRAL);
 	}
-	DListCell* tmp = list_fnc->begin;
+	Cell* tmp = list_fnc->begin;
 	while (tmp != NULL)
 	{
-		token tk = tokens(tmp->value, fnc);
+		token tk = tokens((char*)tmp->data, fnc);
 		switch (tk) {
 		case EXP_F:
 			flags.i_exp = true;
@@ -507,12 +504,12 @@ static Tree* poly_integral(Tree* f, const char* x)
 	mapCell* coef = coefs->begin;
 	while (coef != NULL)
 	{
-		if (strcmp(coef->tr->value, "0"))
-			coef->tr = simplify(join(coef->tr, new_tree(tostr(i)), fnc[DIVID].ex));
+		if (strcmp(((Tree*)coef->data)->value, "0"))
+			coef->data = simplify(join(coef->data, new_tree(tostr(i)), fnc[DIVID].ex));
 		i--;
 		coef = coef->next;
 	}
-	coefs = push_back_map_s(coefs, new_tree("0"));
+	coefs = push_back(coefs, new_tree("0"));
 	return polyreconstitute(&coefs, x);
 }
 
@@ -556,10 +553,10 @@ static Tree* integral_table(Tree* f, const char* x)
 	if (f->tok_type == ADD)
 		return linear_priorities(f, x);
 	map integ_sep = separate_factor(f, x);
-	Tree* form = to_match(integ_sep->end->tr, x);
+	Tree* form = to_match(integ_sep->end->data, x);
 	if (form != NULL)
 	{
-		Tree* w = join(clone(integ_sep->begin->tr), integral_sub(form), fnc[PROD].ex);
+		Tree* w = join(clone(integ_sep->begin->data), integral_sub(form), fnc[PROD].ex);
 		integ_sep = clear_map(integ_sep);
 		clean_tree(form);
 		if (strcmp(x, "X"))
@@ -584,12 +581,12 @@ static Tree* sustitution_method(Tree* f, const char* x)
 	mapCell* tmp = P->begin;
 	while (tmp != NULL && !F)
 	{
-		if (!found_element(tmp->tr, x))
+		if (!found_element(tmp->data, x))
 		{
-			Tree* u = join(clone(f), diff(tmp->tr, x), fnc[DIVID].ex);
-			Tree* s = simplify(substitute(u, tmp->tr, v));
+			Tree* u = join(clone(f), diff(tmp->data, x), fnc[DIVID].ex);
+			Tree* s = simplify(substitute(u, tmp->data, v));
 			if (!found_element(s, x) && strcmp(s->value, fnc[UNDEF].ex))
-				F = remplace_tree(integral(s, v->value), v->value, tmp->tr);
+				F = remplace_tree(integral(s, v->value), v->value, tmp->data);
 			clean_tree(u); clean_tree(s);
 		}
 		tmp = tmp->next;
@@ -625,8 +622,8 @@ struct Integral Integralsqrt[] =
 	{ "sqrt(A*X)", "2*X*sqrt(A*X)/3", "" },
 	{ "1/sqrt(X)", "2*sqrt(X)", "" },
 	{ "1/sqrt(A*X)", "2*sqrt(A*X)/A", "" },
-	{ "1/sqrt(B+A*X)", "(2*sqrt(B+A*X))/A", "" },
-	{ "X/sqrt(B+A*X)", "(2*(A*X-2*B))/(3*A^2)*sqrt(B+A*X)", "" },
+	{ "1/sqrt(B+A*X)", "2*sqrt(B+A*X)/A", "" },
+	{ "X/sqrt(B+A*X)", "2*(A*X-2*B)/(3*A^2)*sqrt(B+A*X)", "" },
 	{ "1/(X*sqrt(B+A*X))", "ln((sqrt(B+A*X)-sqrt(B))/(sqrt(B+A*X)+sqrt(B)))/sqrt(B)", "" },
 	{ "1/(X^2*sqrt(B+A*X))", "~sqrt(B+A*X)/(B*X)-A/(2*B)*integral(1/(X*sqrt(B+A*X)),X)", "" },
 	{ "sqrt(B+A*X)", "2*sqrt((B+A*X)^3)/(3*A)", "" },
@@ -637,7 +634,7 @@ struct Integral Integralsqrt[] =
 	{ "1/(X^N*sqrt(B+A*X))", "~sqrt(B+A*X)/((N-1)*B*X^(N-1))-(2*N-3)*A/((2*N-2)*B)*integral(1/(X^(N-1)*sqrt(B+A*X)),X)", "" },
 	{ "X^N*sqrt(B+A*X)", "2*X^N/((2*N+3)*A)*(B+A*X)^(3/2)-2*N*B/((2*N+3)*A)*integral(X^(N-1)*sqrt(B+A*X),X)", "" },
 	{ "sqrt(B+A*X)/(X^N)", "~sqrt(B+A*X)/((N-1)*X^(N-1))+A/(2*(N-1))*integral(1/(X^(N-1)*sqrt(B+A*X)),X)", "" },
-	{ "(B+A*X)^(N/2)", "(2*(B+A*X)^((N+2)/2))/(A*(N+2))", "" },
+	{ "(B+A*X)^(N/2)", "2*(B+A*X)^((N+2)/2)/(A*(N+2))", "" },
 	{ "X*(B+A*X)^(N/2)", "2*(B+A*X)^((N+4)/2)/(A^2*(N+4))-2*B*(B+A*X)^((N+2)/2)/(A^2*(N+2))", "" },
 	{ "X^2*(B+A*X)^(N/2)", "2*(B+A*X)^((N+6)/2)/(A^3*(N+6))-4*B*(B+A*X)^((N+4)/2)/(A^3*(N+4))+2*B^2*(B+A*X)^((N+2)/2)/(A^3*(N+2))", "" },
 	{ "(B+A*X)^(N/2)/X", "2*(B+A*X)^(N/2)/N+B*integral((B+A*X)^((N-2)/2)/X,X)", "" },
@@ -646,17 +643,17 @@ struct Integral Integralsqrt[] =
 	/* sqrt(B+A*X) & P*X+Q */
 	{ "(Q+P*X)/sqrt(B+A*X)", "(2*(A*P*X+3*A*Q-2*B*P))/(3*A^2)*sqrt(B+A*X)", "" },
 	{ "1/((Q+P*X)*sqrt(B+A*X))", "ln((sqrt(P*(B+A*X))-sqrt(B*P-A*Q))/(sqrt(P*(B+A*X))+sqrt(B*P-A*Q)))/(sqrt(B*P-A*Q)*sqrt(P))", "" },
-	{ "sqrt(B+A*X)/(Q+P*X)", "(2*sqrt(B+A*X))/P+sqrt(B*P-A*Q)/(P*sqrt(Q))*ln((sqrt(P*(B+A*X))-sqrt(B*P-A*Q))/(sqrt(P*(B+A*X))+sqrt(B*P-A*Q)))", "" },
-	{ "(Q+P*X)^N*sqrt(B+A*X)", "(2*(Q+P*X)^(N+1)*sqrt(B+A*X))/((2*N+3)*P)+(B*P-A*Q)/((2*N+3)*P)*integral((Q+P*X)^N/sqrt(B+A*X),X)", "" },
-	{ "1/((Q+P*X)^N*sqrt(B+A*X))", "sqrt(B+A*X)/((N-1)*(A*Q-B*P)*(Q+P*X)^(N-1))+((2*N-3)*A)/(2*(N-1)*(A*Q-B*P))*integral(1/((Q+P*X)^(N-1)*sqrt(B+A*X)),X)", "" },
-	{ "(Q+P*X)^N/sqrt(B+A*X)", "(2*(Q+P*X)^N*sqrt(B+A*X))/((2*N+1)*A)+(2*N*(A*Q-B*P))/((2*N+1)*A)*integral((Q+P*X)^(N-1)/sqrt(B+A*X),X)", "" },
-	{ "sqrt(B+A*X)/((Q+P*X)^N)", "(~sqrt(B+A*X))/((N-1)*P*(Q+P*X)^(N-1))+A/(2*(N-1)*P)*integral(1/((Q+P*X)^(N-1)*sqrt(B+A*X)),X)", "" },
+	{ "sqrt(B+A*X)/(Q+P*X)", "2*sqrt(B+A*X)/P+sqrt(B*P-A*Q)/(P*sqrt(Q))*ln((sqrt(P*(B+A*X))-sqrt(B*P-A*Q))/(sqrt(P*(B+A*X))+sqrt(B*P-A*Q)))", "" },
+	{ "(Q+P*X)^N*sqrt(B+A*X)", "2*(Q+P*X)^(N+1)*sqrt(B+A*X)/((2*N+3)*P)+(B*P-A*Q)/((2*N+3)*P)*integral((Q+P*X)^N/sqrt(B+A*X),X)", "" },
+	{ "1/((Q+P*X)^N*sqrt(B+A*X))", "sqrt(B+A*X)/((N-1)*(A*Q-B*P)*(Q+P*X)^(N-1))+(2*N-3)*A/(2*(N-1)*(A*Q-B*P))*integral(1/((Q+P*X)^(N-1)*sqrt(B+A*X)),X)", "" },
+	{ "(Q+P*X)^N/sqrt(B+A*X)", "2*(Q+P*X)^N*sqrt(B+A*X)/((2*N+1)*A)+2*N*(A*Q-B*P)/((2*N+1)*A)*integral((Q+P*X)^(N-1)/sqrt(B+A*X),X)", "" },
+	{ "sqrt(B+A*X)/(Q+P*X)^N", "~sqrt(B+A*X)/((N-1)*P*(Q+P*X)^(N-1))+A/(2*(N-1)*P)*integral(1/((Q+P*X)^(N-1)*sqrt(B+A*X)),X)", "" },
 	/* sqrt(B+A*X) & sqrt(Q+P*X) */
-	{ "1/(sqrt((B+A*X)*(Q+P*X)))", "2/sqrt(A*P)*ln(sqrt(A*(Q+P*X))+sqrt(P*(B+A*X)))", "" },
-	{ "X/sqrt((B+A*X)*(Q+P*X))", "sqrt((B+A*X)*(Q+P*X))/(A*P)-(B*P+A*Q)/(2*A*P)*integral(1/(sqrt((B+A*X)*(Q+P*X))),X)", "" },
-	{ "sqrt((B+A*X)*(Q+P*X))", "(2*A*P*X+B*P+A*Q)/(4*A*P)*sqrt((B+A*X)*(Q+P*X))-(B*P-A*Q)^2/(8*A*P)*integral(1/(sqrt((B+A*X)*(Q+P*X))),X)", "" },
+	{ "1/sqrt((B+A*X)*(Q+P*X))", "2/sqrt(A*P)*ln(sqrt(A*(Q+P*X))+sqrt(P*(B+A*X)))", "" },
+	{ "X/sqrt((B+A*X)*(Q+P*X))", "sqrt((B+A*X)*(Q+P*X))/(A*P)-(B*P+A*Q)/(2*A*P)*integral(1/sqrt((B+A*X)*(Q+P*X)),X)", "" },
+	{ "sqrt((B+A*X)*(Q+P*X))", "(2*A*P*X+B*P+A*Q)/(4*A*P)*sqrt((B+A*X)*(Q+P*X))-(B*P-A*Q)^2/(8*A*P)*integral(1/sqrt((B+A*X)*(Q+P*X)),X)", "" },
 	{ "sqrt(Q+P*X)/sqrt(B+A*X)", "sqrt((B+A*X)*(Q+P*X))/A+(A*Q-B*P)/(2*A)*integral(1/sqrt((B+A*X)*(Q+P*X)),X)", "" },
-	{ "1/((Q+P*X)*sqrt((B+A*X)*(Q+P*X)))", "(2*sqrt(B+A*X))/((A*Q-B*P)*sqrt(Q+P*X))", "" }
+	{ "1/((Q+P*X)*sqrt((B+A*X)*(Q+P*X)))", "2*sqrt(B+A*X)/((A*Q-B*P)*sqrt(Q+P*X))", "" }
 };
 
 struct Integral Integralsqrt_X2[] =
@@ -666,39 +663,38 @@ struct Integral Integralsqrt_X2[] =
 	{ "sqrt(A-X^2)", "1/2*(X*sqrt(A-X^2)+A*asin(X/sqrt(A)))", "" },
 	{ "1/sqrt(A+X^2)", "ln(X+sqrt(A+X^2))", "" },
 	{ "1/sqrt(A-X^2)", "asin(X/sqrt(A))", "" },
-	{ "sqrt(C+~A*X^2)", "X/2*sqrt(C+A*X^2)+C/(2*sqrt(~A))*asin(X*sqrt(~A/C))", "" },
+	{ "sqrt(C+~A*X^2)", "X/2*sqrt(C-A*X^2)+C/(2*sqrt(A))*asin(X*sqrt(A/C))", "" },
 	{ "sqrt(C+A*X^2)", "X/2*sqrt(C+A*X^2)+C/(2*sqrt(A))*ln(X*sqrt(A)+sqrt(C+A*X^2))", "" },
-	{ "1/sqrt(C+~A*X^2)", "asin(X*sqrt(~A/C))/sqrt(~A)", "" },
+	{ "1/sqrt(C+~A*X^2)", "asin(X*sqrt(A/C))/sqrt(A)", "" },
 	{ "1/sqrt(C+A*X^2)", "ln(X*sqrt(A)+sqrt(C+A*X^2))/sqrt(A)", "" },
 	{ "X*sqrt(C+A*X^2)", "(C+A*X^2)^(3/2)/(3*A)", "" },
-	{ "X^2*sqrt(C+~A*X^2)", "X/(4*A)*(C+A*X^2)^(3/2)-C*X/(8*A)*sqrt(C+A*X^2)-C^2/(8*A^(3/2))*ln(C+X*sqrt(A)+sqrt(A*X^2))", "" },
-	{ "X^2*sqrt(C+A*X^2)", "X/(4*A)*(C+A*X^2)^(3/2)-C*X/(8*A)*sqrt(C+A*X^2)-C^2/(8*A*sqrt(~A))*asin(X*sqrt(~A/2))", "" },
+	{ "X^2*sqrt(C+~A*X^2)", "X/(4*A)*(C-A*X^2)^(3/2)-C*X/(8*A)*sqrt(C-A*X^2)-C^2/(8*A^(3/2))*ln(C+X*sqrt(A)+sqrt(A*X^2))", "" },
+	{ "X^2*sqrt(C+A*X^2)", "~(C^2*ln(sqrt(A*X^2+C)+sqrt(A)*X)-sqrt(A)*X*sqrt(A*X^2+C)*(2*A*X^2+C))/(8*A^(3/2))", "" },
 	{ "X/sqrt(C+A*X^2)", "sqrt(C+A*X^2)/A", "" },
 	{ "X^2/sqrt(C+A*X^2)", "X*sqrt(C+A*X^2)/A-1/A*integral(sqrt(C+A*X^2),X)", "" },
-	{ "sqrt(~C+A*X^2)/X", "sqrt(C+A*X^2)-sqrt(~C)*atan(sqrt(C+A*X^2)/sqrt(~C))", "" },
+	{ "sqrt(~C+A*X^2)/X", "sqrt(~C+A*X^2)-sqrt(C)*atan(sqrt(~C+A*X^2)/sqrt(C))", "" },
 	{ "sqrt(C+A*X^2)/X", "sqrt(C+A*X^2)+sqrt(C)*ln((sqrt(C+A*X^2)-sqrt(C))/X)", "" },
 	{ "1/(X*sqrt(C+~1*X^2))", "~ln((sqrt(C)+sqrt(C-X^2))/X)/sqrt(C)", "" },
 	{ "1/(X*sqrt(C+X^2))", "~ln((sqrt(C)+sqrt(C-X^2))/X)/sqrt(C)", "" },
 	{ "1/(X*sqrt(~C+X^2))", "acos(sqrt(C)/X)/sqrt(C)", "" },
-	{ "1/(X*sqrt(~C+A*X^2))", "1/(sqrt(~C)*cos(X*sqrt(~A/C)))", "" },
+	{ "1/(X*sqrt(~C+A*X^2))", "1/(sqrt(C)*cos(X*sqrt(A/C)))", "" },
 	{ "1/(X*sqrt(C+A*X^2))", "ln((sqrt(C+A*X^2)-sqrt(C))/X)/sqrt(C)", "" },
 	{ "1/(X^2*sqrt(C+A*X^2))", "~sqrt(C+A*X^2)/(C*X)", "" },
 	{ "X^N/sqrt(C+A*X^2)", "X^(N-1)*sqrt(C+A*X^2)/(N*A)-(N-1)*C/(N*A)*integral(X^(N-2)/sqrt(C+A*X^2),X)", "" },
 	{ "X^N*sqrt(C+A*X^2)", "X^(N-1)*(C+A*X^2)^(3/2)/((N+2)*A)-(N-1)*C/((N+2)*A)*integral(X^(N-2)*sqrt(C+A*X^2),X)", "" },
 	{ "sqrt(C+A*X^2)/X^N", "~(C+A*X^2)^(3/2)/(C*(N-1)*X^(N-1))-(N-4)*A/((N-1)*C)*integral(sqrt(C+A*X^2)/X^(N-2),X)", "" },
 	{ "1/(X^N*sqrt(C+A*X^2))", "~sqrt(C+A*X^2)/(C*(N-1)*X^(N-1))-(N-2)*A/((N-1)*C)*integral(1/(X^(N-2)*sqrt(C+A*X^2)),X)", "" },
-	{ "(C+~A*X^2)^(3/2)", "X/8*(5*C+2*A*X^2)*sqrt(C+A*X^2)+3*C^2/(8*sqrt(~A))*asin(X*sqrt(~A/C))", "" },
+	{ "(C+~A*X^2)^(3/2)", "X/8*(5*C-2*A*X^2)*sqrt(C-A*X^2)+3*C^2/(8*sqrt(A))*asin(X*sqrt(A/C))", "" },
 	{ "(C+A*X^2)^(3/2)", "X/8*(5*C+2*A*X^2)*sqrt(C+A*X^2)+3*C^2/(8*sqrt(A))*ln(X*sqrt(A)+sqrt(C+A*X^2))", "" },
 	{ "1/(C+A*X^2)^(3/2)", "X/(C*sqrt(C+A*X^2))", "" },
 	{ "X*sqrt(C+A*X^2)", "(C+A*X^2)^(3/2)/(3*A)", "" },
-	{ "X^2*sqrt(C+A*X^2)", "X^3/6*(C+A*X^2)^(3/2)+C/2*integral(X^2*sqrt(C+A*X^2),X)", "" },
 	{ "X^N*sqrt(C+A*X^2)", "X^(N+1)*(C+A*X^2)^(3/2)/(N+2)+3*C/(N+4)*integral(X^N*sqrt(C+A*X^2),X)", "" },
 	{ "X/(C+A*X^2)^(3/2)", "~1/(A*sqrt(C+A*X^2))", "" },
-	{ "X^2/(C+~A*X^2)^(3/2)", "~X/(A*sqrt(C+A*X^2))+asin(X*sqrt(~A/C))/(A*sqrt(~A))", "" },
+	{ "X^2/(C+~A*X^2)^(3/2)", "~X/(A*sqrt(C-A*X^2))+asin(X*sqrt(A/C))/(A*sqrt(A))", "" },
 	{ "X^2/(C+A*X^2)^(3/2)", "~X/(A*sqrt(C+A*X^2))+ln(X*sqrt(A)+sqrt(C+A*X^2))/(A*sqrt(A))", "" },
 	{ "X^3/(C+A*X^2)^(3/2)", "~X^2/(A*sqrt(C+A*X^2))+2/A^2*sqrt(C+A*X^2)", "" },
 	{ "1/(X*(C+A*X^N))", "ln(X^N/(C+A*X^N))/(C*N)", "" },
-	{ "1/(X*sqrt(~C+A*X^N))", "1/(N*sqrt(~C)*acos(sqrt(~A*X^N/C)))", "" },
+	{ "1/(X*sqrt(~C+A*X^N))", "1/(N*sqrt(C)*acos(sqrt(A*X^N/C)))", "" },
 	{ "1/(X*sqrt(C+A*X^N))", "ln((sqrt(C+A*X^N)-sqrt(C))/(sqrt(C+A*X^N)+sqrt(C)))/(N*sqrt(C))", "" },
 	{ "X^M*(C+A*X^N)^P", "1/(M-1+N*P)*(X^(M-1)*(C+A*X^N)^P+N*P*C*integral(X^M(C+A*X^N)^(P-1),X))", "" },
 	{ "X^M/(C+A*X^N)^P", "(integral(X^(M-N)/(C+A*X^N)^(P-1),X)-C*integral(X^(M-N)/(C+A*X^N)^P,X))/A", "" },
@@ -780,7 +776,7 @@ struct Integral Integralsin[] =
 	{ "1/(1+~1*sin(A*X))^2", "tan(PI/4+A*X/2)/(2*A)+tan(PI/4+A*X/2)^3/(6*A)", "" },
 	{ "1/(1+sin(A*X))^2", "~tan(PI/4-A*X/2)/(2*A)-tan(PI/4-A*X/2)^3/(6*A)", "" },
 	{ "1/(P+Q*sin(A*X))", "2/(A*sqrt(P^2-Q^2))*atan((P*tan(1/2*A*X)+Q)/sqrt(P^2-Q^2))", "" },
-	{ "1/(P+Q*sin(A*X))^2", "(Q*cos(A*X))/(A*(P^2-Q^2)*(P+Q*sin(A*X)))+P/(P^2-Q^2)*integral(1/(P+Q*sin(A*X)),X)", "" },
+	{ "1/(P+Q*sin(A*X))^2", "Q*cos(A*X)/(A*(P^2-Q^2)*(P+Q*sin(A*X)))+P/(P^2-Q^2)*integral(1/(P+Q*sin(A*X)),X)", "" },
 	{ "1/(P+Q*sin(A*X)^2)", "1/(A*sqrt(P)*sqrt(P+Q))*atan((sqrt(P+Q)*tan(A*X))/sqrt(P))", "" }
 };
 
@@ -791,7 +787,7 @@ struct Integral Integraltrig[] =
 	{ "cos(A*X)*sin(B*X)", "~cos((B-A)*X)/(2*(B-A))-cos((B+A)*X)/(2*(B+A))", "" },
 	{ "cos(A*X)*sin(A*X)^N", "sin(A*X)^(N+1)/((N+1)*A)", "" },
 	{ "cos(A*X)^N*sin(A*X)", "~cos(A*X)^(N+1)/((N+1)*A)", "" },
-	{ "cos(A*X)^2*sin(A*X)^2", "X/8-(sin(A*X)^4)/(32*A)", "" },
+	{ "cos(A*X)^2*sin(A*X)^2", "X/8-sin(A*X)^4/(32*A)", "" },
 	{ "cos(A*X)^M*sin(A*X)^N", "~sin(A*X)^(N-1)*cos(A*X)^(M+1)/(A*(N+M))+(N-1)/(N+M)*integral(cos(A*X)^M*sin(A*X)^(N-2),X)", "" },
 	/* tan(A*X) */
 	{ "sin(A*X)/cos(A*X)", "~1/A*ln(cos(A*X))", "" },
@@ -912,8 +908,8 @@ struct Integral Integralinvtrig[] =
 	{ "X^2*asin(A*X)", "X^3/3*asin(A*X)+((X^2+2*A^2)*sqrt(1-A^2*X^2))/9", "" },
 	{ "asin(X/A)/X^2", "~asin(X/A)/X-1/A*ln((A+sqrt(A^2-X^2))/X)", "" },
 	{ "asin(A*X)/X^2", "~asin(A*X)/X-1/A*ln((A+sqrt(1-A^2*X^2))/X)", "" },
-	{ "asin(X/A)^2", "X*(asin(X/A))^2-2*X+2*sqrt(A^2-X^2)*asin(X/A)", "" },
-	{ "asin(A*X)^2", "X*(asin(A*X))^2-2*X+2*sqrt(1-A^2*X^2)*asin(A*X)", "" },
+	{ "asin(X/A)^2", "X*asin(X/A)^2-2*X+2*sqrt(A^2-X^2)*asin(X/A)", "" },
+	{ "asin(A*X)^2", "X*asin(A*X)^2-2*X+2*sqrt(1-A^2*X^2)*asin(A*X)", "" },
 	{ "acos(X/A)", "X*acos(X/A)-sqrt(A^2-X^2)", "" },
 	{ "acos(A*X)", "X*acos(A*X)-sqrt(1-A^2*X^2)", "" },
 	{ "acos(X/A)^2", "X*acos(X/A)^2-2*X-2*sqrt(A^2-X^2)*acos(X/A)", "" },
@@ -1114,8 +1110,8 @@ struct Integral Integraltable[] =
 struct Integral Integralalgx2[] =
 {
 	/* C+A*X^2 */
-	{ "1/(~C+A*X^2)", "1/(2*sqrt(~A*C))*ln((X*sqrt(A)-sqrt(~C))/(X*sqrt(A)+sqrt(~C)))", "" },
-	{ "1/(C+~A*X^2)", "1/(2*sqrt(~A*C))*ln((X*sqrt(~A)+sqrt(C))/(X*sqrt(A)-sqrt(C)))", "" },
+	{ "1/(~C+A*X^2)", "1/(2*sqrt(A*C))*ln((X*sqrt(A)-sqrt(C))/(X*sqrt(A)+sqrt(C)))", "" },
+	{ "1/(C+~A*X^2)", "1/(2*sqrt(A*C))*ln((X*sqrt(A)+sqrt(C))/(X*sqrt(A)-sqrt(C)))", "" },
 	{ "1/(C+A*X^2)", "atan(X*sqrt(A/C))/sqrt(A*C)", "" },
 	{ "1/(C+A*X^2)^N", "X/((2*(N-1)*C)*(A*X^2+C)^(N-1))+(2*N-3)/(2*(N-1)*C)*integral(1/(C+A*X^2)^(N-1),X)", "" },
 	{ "X/(C+A*X^2)", "ln(C+A*X^2)/(2*A)", "" },

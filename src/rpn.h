@@ -32,13 +32,6 @@
 		AMOUNT_TOKEN, TOKEN_INVALID
 	}token;
 
-	typedef struct table_token
-	{
-		char ex[10];
-		int length;
-	}table_token;
-
-
 	typedef enum optype
 	{
 		DECIMAL,
@@ -60,6 +53,12 @@
 		token tok_type;
 	}Tree;
 
+	typedef struct table_token
+	{
+		char ex[10];
+		int length;
+	}table_token;
+
 	bool isnumeric(uint8_t b);
 	bool isvar(uint8_t b);
 
@@ -72,19 +71,18 @@
 	void clean_noeud(Tree* tr);
 	Tree* join(Tree* left, Tree* right, const char* node);
 	int count_tree_nodes(Tree* tr);
-	Tree* to_tree(DList list);
+	Tree* to_tree(List list);
 	int found_element(Tree* tr, const char* elt);
 
 	int isop(const char* s);
-	DList In2post2(const char* ex);
-	string Post2in2(Tree* tr);
-	DList In2post(const uint8_t* ex, unsigned str_len);
-	string Post2in(Tree* tr);
+	List In2post2(const char* ex);
+	List In2post(const uint8_t* ex, unsigned str_len);
+	string Post2in(Tree* tr, struct table_token* tb);
 	int tokens(const char* s, struct table_token* w);
 
 	double Eval(Tree* tr);
 	int isconstant(Tree* tr);
-    bool is_negation(Tree* u);
+	bool is_negation(Tree* u);
     bool is_symbolic(Tree* tr);
 	double tonumber(const char* ex);
 	string tostr(double n);
@@ -96,7 +94,7 @@
 	Tree* clone(Tree* tr);
 	int nb_operand(Tree* tr);
 	Tree* operand(Tree* tr, int i);
-	DList getvars(Tree* tr, DList vrs);
+	List getvars(Tree* tr, List vrs);
     string variable(Tree* u);
 
 #endif

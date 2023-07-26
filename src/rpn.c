@@ -3,8 +3,8 @@
 /* private functions */
 static int opless(const char* a, const char* b);
 static int prior(const char* s);
-static int nparts(DList rpn);
-static DList Parts(DList rpn, int nb);
+static int nparts(List rpn);
+static List Parts(List rpn, int nb);
 
 struct table_token ti_table[AMOUNT_TOKEN] =
 {
@@ -31,7 +31,7 @@ struct table_token ti_table[AMOUNT_TOKEN] =
 
 struct table_token fnc[AMOUNT_TOKEN] =
 {
-	{ "\0", 0}, { "\0", 0}, { "UNDEF", 5}, { "@i", 1}, { "PI", 2}, { "^(~1)", 5}, { "^2", 2}, { "^3", 2},
+	{ "\0", 0}, { "\0", 0}, { "UNDEF", 5}, { "@i", 2}, { "PI", 2}, { "^(~1)", 5}, { "^2", 2}, { "^3", 2},
 	/* OPÉRATEUR */
 	{ "(", 1}, { ")", 1}, { "+", 1}, { "-", 1}, { "*", 1}, { "/", 1}, { "^", 1}, { "/", 1}, { ",", 1},
 	/* COMPARISON */
@@ -53,7 +53,7 @@ struct table_token fnc[AMOUNT_TOKEN] =
 };
 
 bool isnumeric(uint8_t b) { return ((0x30 <= b && b <= 0x3A) || b == '.'); }
-bool isvar(uint8_t b) { return ((0x41 <= b && b < 0x5B) || ('a' <= b && b <= 'z') || b == 0xAE || b == '\''); }
+bool isvar(uint8_t b) { return ((0x41 <= b && b < 0x5B) || ('a' <= b && b <= 'z') || b == 0xAE || b == '@' || b == '\''); }
 
 bool is_negation(Tree* u)
 {
@@ -89,21 +89,21 @@ bool is_symbolic(Tree* tr)
 	optype op = tr->gtype;
 	if (op == VAR)
 		return false;
-	if (op < VAR)
+	if (op <= VAR)
 		return true;
 	if (op < OPERAT)
 		return is_symbolic(tr->tleft);
 	return is_symbolic(tr->tleft) && is_symbolic(tr->tright);
 }
 
-DList Parts(DList rpn, int nb)
+List Parts(List rpn, int nb)
 {
 	int i = 1, n = rpn->length;
 	int k = n;
 	while (i > 0)
 	{
 		k--;
-		DList lf = dlist_left(rpn, k);
+		List lf = dlist_left(rpn, k);
 		i = i + nparts(lf) - 1;
 		lf = clear_dlist(lf);
 	}
@@ -117,12 +117,12 @@ int isfn(const char* s)
 	return ((isvar(s[0]) && s[strlen(s) - 1] == '(') || s[0] == '!');
 }
 
-int nparts(DList rpn)
+int nparts(List rpn)
 {
-	token tk = tokens(rpn->end->value, fnc);
+	token tk = tokens(rpn->end->data, fnc);
 	if (ADD <= tk && tk <= LOGIC_OR)
 		return 2;
-	return (NEGATIF <= tk && tk < AMOUNT_TOKEN) || isfn(rpn->end->value);
+	return (NEGATIF <= tk && tk < AMOUNT_TOKEN) || isfn(rpn->end->data);
 }
 
 int prior(const char* s)
@@ -151,7 +151,7 @@ int prior(const char* s)
 
 int cisop(char ch)
 {
-    return strchr("+-/*^=><()~,!", ch) != NULL && ch != '\0';
+	return strchr("+-/*^=><()~,!", ch) != NULL && ch != '\0';
 }
 
 int isop(const char* s)
@@ -168,9 +168,9 @@ int opless(const char* a, const char* b)
 	return prior(a) < prior(b);
 }
 
-DList parse(const uint8_t* ex, unsigned k, bool ce_parse)
+List parse(const uint8_t* ex, unsigned k, bool ce_parse)
 {
-	DList result = NULL;
+	List result = NULL;
 	char temp[TAILLE_MAX] = { 0 }, chr[3] = { 0 };
 	int sl, p = 0;
 	temp[0] = '\0';
@@ -201,7 +201,7 @@ DList parse(const uint8_t* ex, unsigned k, bool ce_parse)
 				}
 				else if (result != NULL)
 				{
-					token t = tokens(result->end->value, fnc);
+					token t = tokens(result->end->data, fnc);
 					if (!(ADD <= t && t <= NEGATIF) && t != PAR_OUVRANT && t != TOKEN_INVALID)
 						result = push_back_dlist(result, fnc[PROD].ex);
 				}
@@ -224,7 +224,7 @@ DList parse(const uint8_t* ex, unsigned k, bool ce_parse)
 				}
 				if (result != NULL && tk != FRACTION)
 				{
-					token t = tokens(result->end->value, fnc);
+					token t = tokens(result->end->data, fnc);
 					if (!(ADD <= t && t <= NEGATIF) && t != PAR_OUVRANT && t != TOKEN_INVALID)
 						result = push_back_dlist(result, fnc[PROD].ex);
 				}
@@ -279,12 +279,12 @@ DList parse(const uint8_t* ex, unsigned k, bool ce_parse)
 				++i;
 			}
 			--i;
-			DList rtl = parse(root_chars, pos, ce_parse);
+			List rtl = parse(root_chars, pos, ce_parse);
 			result = push_back_dlist(push_back_dlist(result, fnc[tk].ex), fnc[PAR_OUVRANT].ex);
-			DListCell* tmp = rtl->begin;
+			Cell* tmp = rtl->begin;
 			while (tmp != NULL)
 			{
-				result = push_back_dlist(result, tmp->value);
+				result = push_back_dlist(result, (char*)tmp->data);
 				tmp = tmp->next;
 			}
 			rtl = clear_dlist(rtl);
@@ -303,7 +303,7 @@ DList parse(const uint8_t* ex, unsigned k, bool ce_parse)
 			{
 				if (result != NULL && ex[i - 1] != ' ')
 				{
-					token t = tokens(result->end->value, fnc);
+					token t = tokens(result->end->data, fnc);
 					if (t == PAR_FERMANT || t == PI || t == IMAGE || t == FACTORIEL_F)
 						result = push_back_dlist(result, fnc[PROD].ex);
 				}
@@ -359,7 +359,7 @@ DList parse(const uint8_t* ex, unsigned k, bool ce_parse)
 						result = push_back_dlist(result, fnc[PROD].ex);
 				}
 			}
-			else if (result != NULL && tk != PAR_FERMANT && !(ADD <= tk && tk <= LOGIC_OR) && tokens(result->end->value, fnc) == PAR_FERMANT)
+			else if (result != NULL && tk != PAR_FERMANT && !(ADD <= tk && tk <= LOGIC_OR) && tokens(result->end->data, fnc) == PAR_FERMANT)
 				result = push_back_dlist(result, fnc[PROD].ex);
 			if (tk == SUB)
 			{
@@ -367,7 +367,7 @@ DList parse(const uint8_t* ex, unsigned k, bool ce_parse)
 					tk = NEGATIF;
 				else
 				{
-					token t = tokens(result->end->value, fnc);
+					token t = tokens(result->end->data, fnc);
 					if (((ADD <= t && t <= LOGIC_OR) || t == PAR_OUVRANT))
 						tk = NEGATIF;
 				}
@@ -379,7 +379,7 @@ DList parse(const uint8_t* ex, unsigned k, bool ce_parse)
 			}
 			if (result != NULL)
 			{
-				token t = tokens(result->end->value, fnc);
+				token t = tokens(result->end->data, fnc);
 				if (((ADD <= t && t <= LOGIC_OR) && tk == PAR_FERMANT) ||
 					(((ADD <= t && t <= LOGIC_OR) || t == NEGATIF || t == PAR_OUVRANT) && (ADD <= tk && tk <= LOGIC_OR)))
 				{
@@ -407,40 +407,40 @@ DList parse(const uint8_t* ex, unsigned k, bool ce_parse)
 	return result;
 }
 
-static DList to_rpn(DList* result)
+static List to_rpn(List* result)
 {
 	int stklen = 0;
-	DList rlt = NULL, opstack = NULL;
-	DListCell* tmp = (*result)->begin;
+	List rlt = NULL, opstack = NULL;
+	Cell* tmp = (*result)->begin;
 	while (tmp != NULL)
 	{
-		if (!isop(tmp->value) && !isfn(tmp->value))
-			rlt = push_back_dlist(rlt, tmp->value);
+		if (!isop((char*)tmp->data) && !isfn((char*)tmp->data))
+			rlt = push_back_dlist(rlt, (char*)tmp->data);
 		else
 		{
-			if ((tmp->value)[0] != '(' && (tmp->value)[0] != ')')
+			if (((char*)tmp->data)[0] != '(' && ((char*)tmp->data)[0] != ')')
 			{
-				while (opstack != NULL && opless(tmp->value, opstack->end->value) && stklen > 0)
+				while (opstack != NULL && opless((char*)tmp->data, opstack->end->data) && stklen > 0)
 				{
-					rlt = push_back_dlist(rlt, opstack->end->value);
+					rlt = push_back_dlist(rlt, opstack->end->data);
 					opstack = pop_back_dlist(opstack);
 					stklen--;
 				}
 			}
-			if ((tmp->value)[0] == ')')
+			if (((char*)tmp->data)[0] == ')')
 			{
-				while (opstack != NULL && opstack->end->value[0] != '(' && stklen > 0)
+				while (opstack != NULL && ((char*)opstack->end->data)[0] != '(' && stklen > 0)
 				{
-					rlt = push_back_dlist(rlt, opstack->end->value);
+					rlt = push_back_dlist(rlt, (char*)opstack->end->data);
 					opstack = pop_back_dlist(opstack);
 					stklen--;
 				}
 				opstack = pop_back_dlist(opstack);
 				stklen--;
 			}
-			if ((tmp->value)[0] != ')')
+			if (((char*)tmp->data)[0] != ')')
 			{
-				opstack = push_back_dlist(opstack, tmp->value);
+				opstack = push_back_dlist(opstack, (char*)tmp->data);
 				stklen++;
 			}
 		}
@@ -448,7 +448,7 @@ static DList to_rpn(DList* result)
 	}
 	while (opstack != NULL)
 	{
-		rlt = push_back_dlist(rlt, opstack->end->value);
+		rlt = push_back_dlist(rlt, opstack->end->data);
 		opstack = pop_back_dlist(opstack);
 	}
 	*result = clear_dlist(*result);
@@ -456,18 +456,18 @@ static DList to_rpn(DList* result)
 	return rlt;
 }
 
-DList In2post(const uint8_t* ex, unsigned k)
+List In2post(const uint8_t* ex, unsigned k)
 {
-	DList result = parse(ex, k, true);
-    if (result == NULL)
+	List result = parse(ex, k, true);
+	if (result == NULL)
 		return result;
 	return to_rpn(&result);
 }
 
-DList In2post2(const char* ex)
+List In2post2(const char* ex)
 {
-	DList result = parse((uint8_t*)ex, strlen(ex), false);
-    if (result == NULL)
+	List result = parse((uint8_t*)ex, strlen(ex), false);
+	if (result == NULL)
 		return result;
 	return to_rpn(&result);
 }
@@ -562,9 +562,9 @@ int count_tree_nodes(Tree* tr)
 	return (count_tree_nodes(tr->tleft) + count_tree_nodes(tr->tright) + 1);
 }
 
-Tree* to_tree(DList list)
+Tree* to_tree(List list)
 {
-	string ch = list->end->value;
+	string ch = list->end->data;
 	int n = nparts(list);
 	Tree* tr = NULL;
 	if (n > 0)
@@ -606,7 +606,23 @@ string tostr(double t)
 	return ex;
 }
 
-DList Post2in_rec(Tree* tr, DList rec, struct table_token* tb)
+string post2in_common(const char* pleft, const char* pright, const char* oper, bool a, bool b, struct table_token* tb)
+{
+	string tmp = malloc((strlen(pleft) + strlen(pright) + 7) * sizeof(tmp));
+    string tmp1 = malloc((strlen(pleft) + 3) * sizeof(tmp1));
+    if (a)
+        sprintf(tmp1, "%s%s%s%s", tb[PAR_OUVRANT].ex, pleft, tb[PAR_FERMANT].ex, oper);
+    else
+        sprintf(tmp1, "%s%s", pleft, oper);
+    if (b)
+        sprintf(tmp, "%s%s%s%s", tmp1, tb[PAR_OUVRANT].ex, pright, tb[PAR_FERMANT].ex);
+    else
+        sprintf(tmp, "%s%s", tmp1, pright);
+    free(tmp1);
+    return tmp;
+}
+
+List Post2in_rec(Tree* tr, List rec, struct table_token* tb)
 {
 	optype op = tr->gtype;
 	if (op <= VAR)
@@ -633,91 +649,55 @@ DList Post2in_rec(Tree* tr, DList rec, struct table_token* tb)
 		rec = Post2in_rec(tr->tleft, rec, tb);
 		if (tr->tok_type == FACTORIEL_F)
 		{
-			string tmp = malloc((strlen(rec->end->value) + tb[tr->tok_type].length + 1) * sizeof(tmp));
+			string tmp = malloc((strlen((char*)rec->end->data) + tb[tr->tok_type].length + 1) * sizeof(tmp));
 			if (tr->tleft->gtype == OPERAT)
-				sprintf(tmp, "%s%s%s%s", tb[PAR_OUVRANT].ex, rec->end->value, tb[PAR_FERMANT].ex, tb[tr->tok_type].ex);
+				sprintf(tmp, "%s%s%s%s", tb[PAR_OUVRANT].ex, (char*)rec->end->data, tb[PAR_FERMANT].ex, tb[tr->tok_type].ex);
 			else
-				sprintf(tmp, "%s%s", rec->end->value, tb[tr->tok_type].ex);
-			rec = push_back_dlist(pop_back_dlist(rec), tmp);
-			free(tmp);
+				sprintf(tmp, "%s%s", (char*)rec->end->data, tb[tr->tok_type].ex);
+			rec = push_back(pop_back_dlist(rec), tmp);
 			return rec;
 		}
-		string tmp = malloc((strlen(rec->end->value) + tb[tr->tok_type].length + 1) * sizeof(tmp));
-		sprintf(tmp, "%s%s%s", tb[tr->tok_type].ex, rec->end->value, tb[PAR_FERMANT].ex);
-		rec = push_back_dlist(pop_back_dlist(rec), tmp);
-		free(tmp);
+		string tmp = malloc((strlen((char*)rec->end->data) + tb[tr->tok_type].length + 1) * sizeof(tmp));
+		sprintf(tmp, "%s%s%s", tb[tr->tok_type].ex, (char*)rec->end->data, tb[PAR_FERMANT].ex);
+		rec = push_back(pop_back_dlist(rec), tmp);
 		return rec;
 	}
 	else if (op == OPERAT || op == LOGIC)
 	{
 		token sig = tr->tok_type;
 		rec = Post2in_rec(tr->tright, Post2in_rec(tr->tleft, rec, tb), tb);
-		string pleft = rec->end->back->value, pright = rec->end->value, oper = tb[sig].ex;
-		if (sig == SUB)
+		string pleft = rec->end->back->data, pright = (char*)rec->end->data, oper = tb[sig].ex;
+		if (ADD < sig && sig <= POW)
 		{
-			string tmp = malloc((strlen(pleft) + strlen(pright) + 3) * sizeof(tmp));
-			if (tr->tright->tleft != NULL && (tr->tright->tok_type == ADD || tr->tright->tok_type == SUB))
-				sprintf(tmp, "%s%s%s%s%s", pleft, oper, tb[PAR_OUVRANT].ex, pright, tb[PAR_FERMANT].ex);
+			bool cond1 = false, cond2 = false;
+			if (sig == SUB)
+				cond2 = tr->tright->tleft != NULL && (tr->tright->tok_type == ADD || tr->tright->tok_type == SUB);
+			else if (sig == PROD)
+			{
+				if (!strcmp(pleft, "1"))
+					return dlist_remove_id(rec, rec->length - 1);
+				if (!strcmp(pright, "1"))
+					return pop_back_dlist(rec);
+				cond1 = tr->tleft->tleft != NULL && (tr->tleft->tok_type == ADD || tr->tleft->tok_type == SUB);
+				cond2 = tr->tright->tleft != NULL && (tr->tright->tok_type == ADD || tr->tright->tok_type == SUB);
+			}
 			else
-				sprintf(tmp, "%s%s%s", pleft, oper, pright);
-			rec = push_back_dlist(pop_back_dlist(pop_back_dlist(rec)), tmp);
-			free(tmp);
-			return rec;
-		}
-		else if (sig == PROD)
-		{
-			if (!strcmp(pleft, "1"))
-				return dlist_remove_id(rec, rec->length - 1);
-			if (!strcmp(pright, "1"))
-				return pop_back_dlist(rec);
-			string tmp = malloc((strlen(pleft) + strlen(pright) + 7) * sizeof(tmp));
-			string tmp1 = malloc((strlen(pleft) + 3) * sizeof(tmp1));
-			if (tr->tleft->tleft != NULL && (tr->tleft->tok_type == ADD || tr->tleft->tok_type == SUB))
-				sprintf(tmp1, "%s%s%s%s", tb[PAR_OUVRANT].ex, pleft, tb[PAR_FERMANT].ex, oper);
-			else
-				sprintf(tmp1, "%s%s", pleft, oper);
-			if (tr->tright->tleft != NULL && (tr->tright->tok_type == ADD || tr->tright->tok_type == SUB))
-				sprintf(tmp, "%s%s%s%s", tmp1, tb[PAR_OUVRANT].ex, pright, tb[PAR_FERMANT].ex);
-			else
-				sprintf(tmp, "%s%s", tmp1, pright);
-			rec = push_back_dlist(pop_back_dlist(pop_back_dlist(rec)), tmp);
-			free(tmp); free(tmp1);
-			return rec;
-		}
-		else if (sig == DIVID)
-		{
-			if (!strcmp(pright, "1"))
-				return pop_back_dlist(rec);
-			string tmp = malloc((strlen(pleft) + strlen(pright) + tb[FRACTION].length + 4 * tb[PAR_OUVRANT].length + 1) * sizeof(tmp));
-			string tmp1 = malloc((strlen(pleft) + tb[FRACTION].length + 2 * tb[PAR_OUVRANT].length + 1) * sizeof(tmp1));
-			if (tr->tleft->tleft != NULL && (ADD <= tr->tleft->tok_type && tr->tleft->tok_type <= PROD))
-				sprintf(tmp1, "%s%s%s%s", tb[PAR_OUVRANT].ex, pleft, tb[PAR_FERMANT].ex, tb[FRACTION].ex);
-			else
-				sprintf(tmp1, "%s%s", pleft, tb[FRACTION].ex);
-			if (tr->tright->tleft != NULL && (ADD <= tr->tright->tok_type && tr->tright->tok_type <= POW))
-				sprintf(tmp, "%s%s%s%s", tmp1, tb[PAR_OUVRANT].ex, pright, tb[PAR_FERMANT].ex);
-			else
-				sprintf(tmp, "%s%s", tmp1, pright);
-			rec = push_back_dlist(pop_back_dlist(pop_back_dlist(rec)), tmp);
-			free(tmp); free(tmp1);
-			return rec;
-		}
-		else if (sig == POW)
-		{
-			if (!strcmp(pright, "1"))
-				return pop_back_dlist(rec);
-			string tmp = malloc((strlen(pleft) + strlen(pright) + 7) * sizeof(tmp));
-			string tmp1 = malloc((strlen(pleft) + 3) * sizeof(tmp1));
-			if (tr->tleft->tleft != NULL && ((ADD <= tr->tleft->tok_type && tr->tleft->tok_type <= POW) || tr->tleft->tok_type == NEGATIF))
-				sprintf(tmp1, "%s%s%s%s", tb[PAR_OUVRANT].ex, pleft, tb[PAR_FERMANT].ex, oper);
-			else
-				sprintf(tmp1, "%s%s", pleft, oper);
-			if (tr->tright->tleft != NULL && ((ADD <= tr->tright->tok_type && tr->tright->tok_type <= POW) || tr->tright->tok_type == NEGATIF))
-				sprintf(tmp, "%s%s%s%s", tmp1, tb[PAR_OUVRANT].ex, pright, tb[PAR_FERMANT].ex);
-			else
-				sprintf(tmp, "%s%s", tmp1, pright);
-			rec = push_back_dlist(pop_back_dlist(pop_back_dlist(rec)), tmp);
-			free(tmp); free(tmp1);
+			{
+				if (!strcmp(pright, "1"))
+					return pop_back_dlist(rec);
+				if (sig == DIVID)
+				{
+					cond1 = tr->tleft->tleft != NULL && (ADD <= tr->tleft->tok_type && tr->tleft->tok_type <= PROD);
+					cond2 = tr->tright->tleft != NULL && (ADD <= tr->tright->tok_type && tr->tright->tok_type <= POW);
+				}
+				else if (sig == POW)
+				{
+					cond1 = tr->tleft->tleft != NULL && ((ADD <= tr->tleft->tok_type && tr->tleft->tok_type <= POW) || tr->tleft->tok_type == NEGATIF);
+					cond2 = tr->tright->tleft != NULL && ((ADD <= tr->tright->tok_type && tr->tright->tok_type <= POW) || tr->tright->tok_type == NEGATIF);
+				}
+			}
+			string tmp = post2in_common(pleft, pright, oper, cond1, cond2, tb);
+			rec = push_back(pop_back_dlist(pop_back_dlist(rec)), tmp);
 			return rec;
 		}
 		else
@@ -745,37 +725,26 @@ DList Post2in_rec(Tree* tr, DList rec, struct table_token* tb)
 			token sigt = tr->tleft->tok_type;
 			if (sigt == ADD || sigt == SUB)
 			{
-				string tmp = malloc((strlen(rec->end->value) + 3) * sizeof(tmp));
-				sprintf(tmp, "%s%s%s%s", tb[NEGATIF].ex, tb[PAR_OUVRANT].ex, rec->end->value, tb[PAR_FERMANT].ex);
+				string tmp = malloc((strlen((char*)rec->end->data) + 3) * sizeof(tmp));
+				sprintf(tmp, "%s%s%s%s", tb[NEGATIF].ex, tb[PAR_OUVRANT].ex, (char*)rec->end->data, tb[PAR_FERMANT].ex);
 				rec = push_back_dlist(pop_back_dlist(rec), tmp);
 				free(tmp);
 				return rec;
 			}
 		}
-		string tmp = malloc((strlen(rec->end->value) + 1) * sizeof(tmp));
-		sprintf(tmp, "%s%s", tb[NEGATIF].ex, rec->end->value);
+		string tmp = malloc((strlen((char*)rec->end->data) + 1) * sizeof(tmp));
+		sprintf(tmp, "%s%s", tb[NEGATIF].ex, (char*)rec->end->data);
 		rec = push_back_dlist(pop_back_dlist(rec), tmp);
 		free(tmp);
 		return rec;
 	}
 }
 
-string Post2in(Tree* tr)
+string Post2in(Tree* tr, struct table_token* tb)
 {
-	DList rec = NULL;
-	DList r_str = Post2in_rec(tr, rec, ti_table);
-	static char ex[TAILLE_MAX];
-	strcpy(ex, r_str->end->value);
-	ex[strlen(r_str->end->value)] = '\0';
-	r_str = clear_dlist(r_str);
-	return ex;
-}
-
-string Post2in2(Tree* tr)
-{
-	DList rec = NULL;
-	DList r_str = Post2in_rec(tr, rec, fnc);
-	string ex = strdup(r_str->begin->value);
+	List rec = NULL;
+	List r_str = Post2in_rec(tr, rec, tb);
+	string ex = strdup(r_str->begin->data);
 	r_str = clear_dlist(r_str);
 	return ex;
 }
@@ -797,11 +766,7 @@ double Eval(Tree* tr)
 		if (sig == DIVID)
 			return Eval(tr->tleft) / Eval(tr->tright);
 		if (sig == POW)
-		{
-			if (tr->tleft->gtype == ENT && tr->tright->gtype == ENT)
-				return (int)pow(Eval(tr->tleft), Eval(tr->tright));
 			return pow(Eval(tr->tleft), Eval(tr->tright));
-		}
 	}
 	else if (op == NEGATION)
 		return -Eval(tr->tleft);
@@ -843,14 +808,10 @@ double Eval(Tree* tr)
 
 Tree* remplace_tree(Tree* tr, const char* el, Tree* new_el)
 {
-	if (!strcmp(el, tr->value))
-		return clone(new_el);
-	optype g = tr->gtype;
-	if (g >= OPERAT)
-		return join(remplace_tree(tr->tleft, el, new_el), remplace_tree(tr->tright, el, new_el), tr->value);
-	else if (g == NEGATION || g == FUNCTION)
-		return join(remplace_tree(tr->tleft, el, new_el), NULL, tr->value);
-	return clone(tr);
+    Tree* av = new_tree(el);
+	Tree* rp = substitute(tr, av, new_el);
+    clean_tree(av);
+	return rp;
 }
 
 Tree* remplace_var(Tree* u, const char* v, Tree* w)
@@ -884,7 +845,7 @@ int tree_compare(Tree* tr1, Tree* tr2)
 Tree* clone(Tree* tr)
 {
 	optype op = tr->gtype;
-	if (op >= OPERAT)
+	if (op == OPERAT || op == LOGIC)
 		return join(clone(tr->tleft), clone(tr->tright), tr->value);
 	else if (op == NEGATION || op == FUNCTION)
 		return join(clone(tr->tleft), NULL, tr->value);
@@ -916,7 +877,7 @@ Tree* operand(Tree* tr, int i)
 	return (i == 1) ? tr->tleft : tr->tright;
 }
 
-DList getvars(Tree* tr, DList vrs)
+List getvars(Tree* tr, List vrs)
 {
 	if (tr->tok_type == VARIABLE)
 	{
@@ -925,10 +886,10 @@ DList getvars(Tree* tr, DList vrs)
 			vrs = push_back_dlist(vrs, tr->value);
 			return vrs;
 		}
-		DListCell* tmp = vrs->begin;
+		Cell* tmp = vrs->begin;
 		while (tmp != NULL)
 		{
-			if (!strcmp(tmp->value, tr->value))
+			if (!strcmp((char*)tmp->data, tr->value))
 				return vrs;
 			tmp = tmp->next;
 		}
@@ -947,29 +908,29 @@ DList getvars(Tree* tr, DList vrs)
 
 string variable(Tree* u)
 {
-	DList vrs = NULL;
+	List vrs = NULL;
 	vrs = getvars(u, vrs);
 	if (vrs == NULL)
 		return NULL;
 	if (vrs->length == 1)
 	{
-		string vr = strdup(vrs->begin->value);
+		string vr = strdup(vrs->begin->data);
 		vrs = clear_dlist(vrs);
 		return vr;
 	}
-	DListCell* tmp = vrs->begin;
+	Cell* tmp = vrs->begin;
 	int k = 0, w;
 	bool t = false;
 	string vr = NULL;
 	while (tmp != NULL)
 	{
-		w = found_element(u, tmp->value);
+		w = found_element(u, (char*)tmp->data);
 		if (w > k)
 		{
 			k = w;
 			if (t)
 				free(vr);
-			vr = strdup(tmp->value);
+			vr = strdup((char*)tmp->data);
 			t = true;
 		}
 		tmp = tmp->next;

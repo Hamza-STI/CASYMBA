@@ -1,6 +1,6 @@
 #include "integral.h"
 
-extern DList Error;
+extern List Error;
 
 typedef struct Help
 {

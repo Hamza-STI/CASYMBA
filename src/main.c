@@ -130,10 +130,10 @@ int main(void)
         os_ClrHome();
         if (Error != NULL)
         {
-            DListCell* element = Error->begin;
+            Cell* element = Error->begin;
             while (element != NULL)
             {
-                os_PutStrFull(element->value);
+                os_PutStrFull(element->data);
                 os_NewLine();
                 element = element->next;
             }
@@ -141,13 +141,13 @@ int main(void)
         }
         else
         {
-            os_PutStrFull("Error.");
+            os_PutStrFull("Erreur.");
             os_NewLine();
         }
         while (!(os_GetCSC()));
         return 1;
     }
-    string out_tokens = Post2in(simp);
+    string out_tokens = Post2in(simp, ti_table);
     clean_tree(simp);
     os_NewLine();
 
@@ -174,6 +174,7 @@ int main(void)
         ti_SetVar(OS_TYPE_STR, OS_VAR_Y2, out_str_for_ans);
         free(out_str_for_ans);
     }
+    free(out_tokens);
 
     // todo: add it to the history in mathprint. see with commandz
     return 0;
@@ -185,8 +186,8 @@ int main(int argc, char const* argv[])
 {
     (void)argc;
     (void)argv;
-
-    DList rpn = In2post2("desolve(y''+2*y'+y=0,x,y)");
+    //uint8_t ex[] = { 0x22, 'Y', 0xAE, 0xAE, 0x71, 'Y', 0xAE, 0x71, '2', 0x82, 'Y', 0x6A, '0', 0x2B, 'X', 0x2B, 'Y', 0x11 };
+    List rpn = In2post2("2/4"); // desolve(y''-y'-2*y=sin(2*x),x,y) desolve(y''-y'-2*y=2*exp(~x) and y(0)=~1 and y'(0)=1,x,y)
     if (rpn == NULL)
     {
         printf("Erreur syntaxe\n");
@@ -199,14 +200,15 @@ int main(int argc, char const* argv[])
     printf("\n\n partie simplification :\n");
 
     Tree* simp = analyse(tr);
+
     if (simp == NULL)
     {
         if (Error != NULL)
         {
-            DListCell* element = Error->begin;
+            Cell* element = Error->begin;
             while (element != NULL)
             {
-                puts(element->value);
+                puts(element->data);
                 element = element->next;
             }
             Error = clear_dlist(Error);
@@ -217,7 +219,8 @@ int main(int argc, char const* argv[])
         }
         return 1;
     }
-    string expr = Post2in2(simp);
+    string expr = Post2in(simp, fnc);
+    //print_tree_prefix(simp);
     clean_tree(simp);
     printf("\nla forme simplifiee : %s\n", expr);
     free(expr);

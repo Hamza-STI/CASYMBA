@@ -9,7 +9,7 @@
 #define AMOUNT_INTEGRAL_ALGXN 10
 #define AMOUNT_INTEGRAL_ALGX22 17
 #define AMOUNT_INTEGRAL_SQRT 34
-#define AMOUNT_INTEGRAL_SQRTX2 41
+#define AMOUNT_INTEGRAL_SQRTX2 40
 #define AMOUNT_INTEGRAL_SQRTX22 20
 #define AMOUNT_INTEGRAL_COS 22
 #define AMOUNT_INTEGRAL_SIN 22
@@ -38,7 +38,7 @@ typedef struct FunctionFlags
 
 typedef struct Integral
 {
-    const char* from;
+    const char* from; 
     const char* to;
     const char* condition;
 } Integral;

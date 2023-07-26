@@ -88,7 +88,7 @@ static Number adds(Number left, Number right, int op)
 		else
 			clc[pos++] = '0' + ((op == 1) ? add_cc(new_a[i], new_b[i], &retenue) : sub_cc(new_a[i], new_b[i], &retenue));
 	}
-	if (op == 1 && retenue == 1)
+	if (retenue == 1)
 		clc[pos] = '1';
 	else
 		pos--;
@@ -109,7 +109,7 @@ Number sub(Number left, Number right)
 {
 	if (!strcmp(left.nombre, right.nombre))
 	{
-		Number resultat = { 1,strdup("0") };
+		Number resultat = { 1, strdup("0") };
 		return resultat;
 	}
 	if (greater(right.nombre, left.nombre))
@@ -193,7 +193,7 @@ Number prod(Number left, Number right)
 	return create(1, ret);
 }
 
-static int divid_quot(Number denom, char* tmp)
+int divid_quot(Number denom, char* tmp)
 {
 	int k;
 	for (k = 1; k < 10; k++)

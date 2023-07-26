@@ -20,20 +20,30 @@
 	#define TAILLE_MAX 256
 
 	/* Définition d'un maillon de la liste */
-	typedef struct DListCell
+	typedef struct Cell
 	{
-		char *value;
-		struct DListCell *next;
-		struct DListCell *back;
-	} DListCell;
+		void* data;
+		struct Cell* next;
+		struct Cell* back;
+	} Cell;
 
 	/* Définition d'une liste doublement chaînée */
-	typedef struct DList
+	typedef struct List
 	{
 		int length;
-		struct DListCell *begin;
-		struct DListCell *end;
-	} *DList;
+		struct Cell* begin;
+		struct Cell* end;
+	} *List;
+	
+	typedef List DList;
+
+	/* fonctions génériques */
+
+	List push_back(List li, void* data);
+	List push_front(List li, void* data);
+	List pop_back(List li, void (*free_data)(void*));
+	List pop_front(List li, void (*free_data)(void*));
+	List clear(List li, void (*free_data)(void*));
 
 	/*-----------------------------------*/
 

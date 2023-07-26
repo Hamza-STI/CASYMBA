@@ -39,7 +39,7 @@
 
 	Tree* rationalize_expression(Tree* u);
 
-	int ordre_tree(Tree* u, Tree* v);
+	bool ordre_tree(Tree* u, Tree* v);
 	map map_sort(map li);
 
 	Tree* Contract_pow(Tree* v);
@@ -57,5 +57,7 @@
 	map polycoeffs(Tree* u, const char* x);
 	map poly_gcd(map u, map v);
 	Tree* poly_simp(map u, map v, const char* x);
+
+	typedef Tree* (*TreeOperation)(const char*, const char*);
 
 #endif

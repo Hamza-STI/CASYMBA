@@ -1,63 +1,18 @@
 #include "map.h"
 
-map push_front_map(map li, Tree* tr)
+void free_tree_ptr(void* data)
 {
-	mapCell *element = malloc(sizeof(*element));
-	element->tr = clone(tr);
-	element->next = NULL;
-	element->back = NULL;
-
-	if(li == NULL)
-	{
-		li = malloc(sizeof(*li));
-
-		li->length = 0;
-		li->begin = element;
-		li->end = element;
-	}
-	else
-	{
-		li->begin->back = element;
-		element->next = li->begin;
-		li->begin = element;
-	}
-
-	li->length++;
-
-	return li;
+	clean_tree((Tree*)data);
 }
 
-map push_back_map_s(map li, Tree* arb)
+map push_front_map(map li, Tree* tr)
 {
-	li = push_back_map(li, arb);
-	clean_tree(arb);
-	return li;
+	return push_front(li, clone(tr));
 }
 
 map push_back_map(map li, Tree* arb)
 {
-	mapCell *element = malloc(sizeof(*element));
-	element->tr = clone(arb);
-	element->next = NULL;
-	element->back = NULL;
-
-	if(li == NULL)
-	{
-		li = malloc(sizeof(*li));
-
-		li->length = 0;
-		li->begin = element;
-		li->end = element;
-	}
-	else
-	{
-		li->end->next = element;
-		element->back = li->end;
-		li->end = element;
-	}
-
-	li->length++;
-	return li;
+	return push_back(li, clone(arb));
 }
 
 map push_back_map_if(map li, Tree* arb, Tree* tr)
@@ -70,7 +25,7 @@ map push_back_map_if(map li, Tree* arb, Tree* tr)
 	mapCell* tmp = li->begin;
 	while (tmp != NULL)
 	{
-		if (tree_compare(arb, tmp->tr))
+		if (tree_compare(arb, ((Tree*)tmp->data)))
 			return li;
 		tmp = tmp->next->next;
 	}
@@ -80,91 +35,17 @@ map push_back_map_if(map li, Tree* arb, Tree* tr)
 
 map pop_back_map(map li)
 {
-	if(li == NULL)
-		return NULL;
-
-	if(li->begin == li->end)
-	{
-		clean_tree(li->end->tr);
-		free(li->end);
-		free(li);
-		li = NULL;
-
-		return NULL;
-	}
-
-	mapCell *temp = li->end;
-
-	li->end = li->end->back;
-	li->end->next = NULL;
-	temp->next = NULL;
-	temp->back = NULL;
-
-	clean_tree(temp->tr);
-	free(temp);
-	temp = NULL;
-
-	li->length--;
-
-	return li;
+	return pop_back(li, free_tree_ptr);
 }
 
 map pop_front_map(map li)
 {
-	if(li == NULL)
-		return NULL;
-
-	if(li->begin == li->end)
-	{
-		clean_tree(li->begin->tr);
-		free(li->begin);
-		free(li);
-		li = NULL;
-		return NULL;
-	}
-
-	mapCell *temp = li->begin;
-
-	li->begin = li->begin->next;
-	li->begin->back = NULL;
-	temp->next = NULL;
-	temp->back = NULL;
-
-	clean_tree(temp->tr);
-	free(temp);
-	temp = NULL;
-
-	li->length--;
-
-	return li;
+	return pop_front(li, free_tree_ptr);
 }
 
 map clear_map(map li)
 {
-	if(li == NULL)
-		return li;
-
-	if(li->length == 1 && li->begin == li->end)
-	{
-		clean_tree(li->begin->tr);
-		free(li->begin);
-		free(li);
-	}
-	else
-	{
-		mapCell *tmp = li->begin;
-
-		while(tmp != NULL)
-		{
-			mapCell *del = tmp;
-			tmp = tmp->next;
-			clean_tree(del->tr);
-			free(del);
-		}
-		free(li);
-	}
-
-	return NULL;
+	return clear(li, free_tree_ptr);
 }
 
 map clone_map(map Li)
@@ -173,7 +54,7 @@ map clone_map(map Li)
 	mapCell* tmp = Li->begin;
 	while (tmp != NULL)
 	{
-		new_Li = push_back_map(new_Li, tmp->tr);
+		new_Li = push_back_map(new_Li, (Tree*)tmp->data);
 		tmp = tmp->next;
 	}
 	return new_Li;
@@ -191,6 +72,14 @@ map map_create(Tree* tr)
 	return L;
 }
 
+map process_prod(map li, Tree* tr)
+{
+	Tree* r = join(new_tree("1"), NULL, fnc[NEGATIF].ex);
+	Tree* s = join(clone(tr), r, fnc[POW].ex);
+	li = push_front(li, s);
+	return li;
+}
+
 map map_create_prod(Tree* tr)
 {
 	map li = NULL;
@@ -204,30 +93,40 @@ map map_create_prod(Tree* tr)
 			while (tmp_T != NULL)
 			{
 				if (tmp->tok_type == DIVID)
-				{
-					Tree* r = join(new_tree("1"), NULL, "~");
-					Tree* s = join(clone(tmp_T->tr), r, "^");
-					li = push_front_map(li, s);
-					clean_tree(s);
-				}
+					li = process_prod(li, tmp_T->data);
 				else
-					li = push_front_map(li, tmp_T->tr);
+					li = push_front_map(li, tmp_T->data);
 				tmp_T = tmp_T->next;
 			}
 			T = clear_map(T);
 		}
 		else if (tmp->tok_type == DIVID)
-		{
-			Tree* r =  join(new_tree("1"), NULL, "~" );
-			Tree* s = join( clone(tmp->tright), r, "^" );
-			li = push_front_map(li, s);
-			clean_tree(s);
-		}
+			li = process_prod(li, tmp->tright);
 		else
 			li = push_front_map(li, tmp->tright);
 		tmp = tmp->tleft;
 	}
 	li = push_front_map(li, tmp);
+	return li;
+}
+
+map process_add(map li, Tree* tr)
+{
+	if (tr->tok_type == NEGATIF)
+		li = push_front_map(li, tr->tleft);
+	else if (tr->tleft != NULL && tr->tleft->tok_type == NEGATIF && !strcmp(tr->tleft->tleft->value, "1"))
+		li = push_front_map(li, tr->tright);
+	else if (isconstant(tr) && strcmp(tr->value, "0"))
+	{
+		Tree* r = join(clone(tr), NULL, fnc[NEGATIF].ex);
+		li = push_front(li, r);
+	}
+	else
+	{
+		Tree* r = join(new_tree("1"), NULL, fnc[NEGATIF].ex);
+		Tree* s = join(r, clone(tr), fnc[PROD].ex);
+		li = push_front(li, s);
+	}
 	return li;
 }
 
@@ -243,48 +142,17 @@ map map_create_add(Tree* tr)
 			mapCell* tmp_T = T->begin;
 			while (tmp_T != NULL)
 			{
+				Tree* tr_tmp = (Tree*)tmp_T->data;
 				if (tmp->tok_type == SUB)
-				{
-					if (tmp_T->tr->tok_type == NEGATIF)
-						li = push_front_map(li, tmp_T->tr->tleft);
-					else if (tmp_T->tr->tleft != NULL && tmp_T->tr->tleft->tok_type == NEGATIF && !strcmp(tmp_T->tr->tleft->tleft->value, "1"))
-						li = push_front_map(li, tmp_T->tr->tright);
-					else if (isconstant(tmp_T->tr) && strcmp(tmp_T->tr->value, "0"))
-					{
-						Tree* r = join(clone(tmp_T->tr), NULL, "~");
-						li = push_front_map(li, r);
-						clean_tree(r);
-					}
-					else
-					{
-						Tree* r = join(new_tree("1"), NULL, "~");
-						Tree* s = join(r, clone(tmp_T->tr), "*");
-						li = push_front_map(li, s);
-						clean_tree(s);
-					}
-				}
+					li = process_add(li, tr_tmp);
 				else
-					li = push_front_map(li, tmp_T->tr);
+					li = push_front_map(li, tr_tmp);
 				tmp_T = tmp_T->next;
 			}
 			T = clear_map(T);
 		}
 		else if (tmp->tok_type == SUB)
-		{
-			if (isconstant(tmp->tright) && strcmp(tmp->tright->value, "0"))
-			{
-				Tree* r = join(clone(tmp->tright), NULL, "~");
-				li = push_front_map(li, r);
-				clean_tree(r);
-			}
-			else
-			{
-				Tree* r = join(new_tree("1"), NULL, "~");
-				Tree* s = join(r, clone(tmp->tright), "*");
-				li = push_front_map(li, s);
-				clean_tree(s);
-			}
-		}
+			li = process_add(li, tmp->tright);
 		else
 			li = push_front_map(li, tmp->tright);
 		tmp = tmp->tleft;
@@ -301,17 +169,14 @@ map map_remplace(map L, int pos, Tree* tr)
 	{
 		if (i == pos + 1)
 		{
-			if (!strcmp(tmp->tr->value, "0"))
+			if (!strcmp(((Tree*)tmp->data)->value, "0"))
 			{
-				clean_tree(tmp->tr);
-				tmp->tr = tr;
-				return L;
+				clean_tree(tmp->data);
+				tmp->data = tr;
 			}
 			else
-			{
-				tmp->tr = join(tmp->tr, tr, fnc[ADD].ex);
-				return L;
-			}
+				tmp->data = join(tmp->data, tr, fnc[ADD].ex);
+			return L;
 		}
 		i--;
 		tmp = tmp->back;
