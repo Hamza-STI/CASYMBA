@@ -589,11 +589,6 @@ Tree* evaluate_cc(Tree* left, Tree* right, token tok)
 {
 	Tree* u = numerator_fun(left), * v = denominator_fun(left);
 	Tree* w = numerator_fun(right), * x = denominator_fun(right);
-	if (tok == PROD)
-	{
-		Tree* num = simplify_RNE_rec(join(u, w, fnc[PROD].ex)), * denom = simplify_RNE_rec(join(v, x, fnc[PROD].ex));
-		return simplify_RNE_rec(join(num, denom, fnc[DIVID].ex));
-	}
 	Tree* xx = clone(x), * vv = clone(v);
 	Tree* num1 = simplify_RNE_rec(join(u, x, fnc[PROD].ex)), * num2 = simplify_RNE_rec(join(v, w, fnc[PROD].ex));
 	Tree* denom = simplify_RNE_rec(join(vv, xx, fnc[PROD].ex)), * num = simplify_RNE_rec(join(num1, num2, fnc[tok].ex));
@@ -604,42 +599,55 @@ Tree* evaluate_cc(Tree* left, Tree* right, token tok)
 	return tr;
 }
 
-static Tree* common_evaluation(Tree* left, Tree* right, TreeOperation operation)
+static Tree* evaluate_add(Tree* left, Tree* right)
 {
 	if (!strcmp(left->value, "0"))
 		return clone(right);
 	if (!strcmp(right->value, "0"))
 		return clone(left);
 	if (count_tree_nodes(left) == 1 && count_tree_nodes(right) == 1)
-		return operation(left->value, right->value);
-	if (left->tok_type == NEGATIF && right->tok_type == NEGATIF)
-		return common_evaluation(right->tleft, left->tleft, operation);
-	if (left->tok_type == NEGATIF)
-		return join(common_evaluation(left->tleft, right, operation), NULL, fnc[NEGATIF].ex);
-	if (right->tok_type == NEGATIF)
-		return common_evaluation(left, right->tleft, operation);
-	return evaluate_cc(left, right, operation == (TreeOperation)sumOp ? ADD : (operation == (TreeOperation)diffOp ? SUB : PROD));
-}
-
-static Tree* evaluate_add(Tree* left, Tree* right)
-{
-	return common_evaluation(left, right, (TreeOperation)sumOp);
+		return sumOp(left->value, right->value);
+	else if (left->tok_type == NEGATIF)
+		return evaluate_diff(right, left->tleft);
+	else if (right->tok_type == NEGATIF)
+		return evaluate_diff(left, right->tleft);
+	return evaluate_cc(left, right, ADD);
 }
 
 static Tree* evaluate_diff(Tree* left, Tree* right)
 {
 	if (!strcmp(left->value, "0"))
 		return (!strcmp(right->value, "0")) ? clone(left) : join(clone(right), NULL, fnc[NEGATIF].ex);
-	return common_evaluation(left, right, (TreeOperation)diffOp);
+	if (!strcmp(right->value, "0"))
+		return clone(left);
+	if (count_tree_nodes(left) == 1 && count_tree_nodes(right) == 1)
+		return diffOp(left->value, right->value);
+	else if (left->tok_type == NEGATIF && right->tok_type == NEGATIF)
+		return evaluate_diff(right->tleft, left->tleft);
+	else if (left->tok_type == NEGATIF)
+		return join(evaluate_add(left->tleft, right), NULL, fnc[NEGATIF].ex);
+	else if (right->tok_type == NEGATIF)
+		return evaluate_add(left, right->tleft);
+	return evaluate_cc(left, right, SUB);
 }
 
 static Tree* evaluate_prod(Tree* left, Tree* right)
 {
 	if (!strcmp(left->value, "0") || !strcmp(right->value, "0"))
 		return new_tree("0");
-	return common_evaluation(left, right, (TreeOperation)prodOp);
+	if (count_tree_nodes(left) == 1 && count_tree_nodes(right) == 1)
+		return prodOp(left->value, right->value);
+	else if (left->tok_type == NEGATIF && right->tok_type == NEGATIF)
+		return evaluate_prod(left->tleft, right->tleft);
+	else if (left->tok_type == NEGATIF)
+		return join(simplify_RNE_rec(join(clone(right), clone(left->tleft), fnc[PROD].ex)), NULL, fnc[NEGATIF].ex);
+	else if (right->tok_type == NEGATIF)
+		return join(simplify_RNE_rec(join(clone(left), clone(right->tleft), fnc[PROD].ex)), NULL, fnc[NEGATIF].ex);
+	Tree* u = numerator_fun(left), * v = denominator_fun(left);
+	Tree* w = numerator_fun(right), * x = denominator_fun(right);
+	Tree* num = simplify_RNE_rec(join(u, w, fnc[PROD].ex)), * denom = simplify_RNE_rec(join(v, x, fnc[PROD].ex));
+	return simplify_RNE_rec(join(num, denom, fnc[DIVID].ex));
 }
-
 
 static Tree* simplify_RNE_rec(Tree* u)
 {

@@ -665,6 +665,8 @@ List Post2in_rec(Tree* tr, List rec, struct table_token* tb)
 	else if (op == OPERAT || op == LOGIC)
 	{
 		token sig = tr->tok_type;
+		if (sig == DIVID)
+			sig = FRACTION;
 		rec = Post2in_rec(tr->tright, Post2in_rec(tr->tleft, rec, tb), tb);
 		string pleft = rec->end->back->data, pright = (char*)rec->end->data, oper = tb[sig].ex;
 		if (ADD < sig && sig <= POW)
