@@ -19,7 +19,7 @@
 	int ispoly(Tree* u, const char* vr);
 	int is_int(Tree* u);
 	bool isdemi(Tree* tr);
-	long long int factoriel(long long int a);
+	long long int factoriel(int a);
 	Tree* trigo_identify(const char* s, token tk);
 	Tree* PGCD(Tree* A, Tree* B);
 	Tree* pow_transform(Tree* u);
@@ -31,7 +31,7 @@
 	Tree* base(Tree* u);
 	Tree* exponent(Tree* u);
 	Tree* expand(Tree* tr);
-	Tree* factorn(long long int val);
+	Tree* factorn(int val);
 
 	/* symbolic simplify */
 

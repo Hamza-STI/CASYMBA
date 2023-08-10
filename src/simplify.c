@@ -190,7 +190,7 @@ Tree* exponent(Tree* u)
 	return (u->tok_type == POW) ? clone(u->tright) : new_tree("1");
 }
 
-long long int factoriel(long long int a)
+long long int factoriel(int a)
 {
 	long long int s = 1, i;
 	for (i = 1; i <= a; ++i)
@@ -198,9 +198,9 @@ long long int factoriel(long long int a)
 	return s;
 }
 
-double fpart(double ex)
+float fpart(double ex)
 {
-	return (double)(ex - ((long long int)ex));
+	return (float)(ex - (int)ex);
 }
 
 Tree* expand_product(Tree* r, Tree* s)
@@ -751,7 +751,7 @@ static Tree* simplify_RNE(Tree* u)
 	return tr;
 }
 
-Tree* factorn(long long int val)
+Tree* factorn(int val)
 {
 	Tree* tr = NULL;
 	int f = 2, e = 0;
