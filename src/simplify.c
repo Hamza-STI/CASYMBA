@@ -1069,6 +1069,13 @@ static map simplify_sum_fct(Tree* u1, Tree* u2)
 	clean_tree(fact_com);
 	map_u1 = clear_map(map_u1);
 	map_u2 = clear_map(map_u2);
+	if (found_element(u1, fnc[LN_F].ex) > 0 && found_element(u2, fnc[LN_F].ex) > 0)
+	{
+		v = join(clone(u1), clone(u2), fnc[ADD].ex);
+		Tree* w = contract_ln(v);
+		clean_tree(v);
+		return push_back(NULL, w);
+	}
 	return push_back_map(push_back_map(NULL, u1), u2);
 }
 
