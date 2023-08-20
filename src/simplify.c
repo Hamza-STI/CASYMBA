@@ -385,7 +385,7 @@ bool ordre_tree(Tree* u, Tree* v)
 	if (u->tok_type == POW && v->tok_type != POW)
 		return ordre_tree2(u, v);
 	if (u->tok_type != POW && v->tok_type == POW)
-		return !ordre_tree2(v, u);
+		return ordre_tree2(v, u);
 	return false;
 }
 
@@ -824,6 +824,38 @@ Tree* trigo_simplify(Tree* u, token tk)
 	return join(u, NULL, fnc[tk].ex);
 }
 
+static Tree* log_substitute(Tree* u, token tk, Tree* b)
+{
+	if (u->tok_type == LN_F)
+	{
+		free(u->value);
+		u->value = strdup(fnc[tk].ex);
+		u->tok_type = tk;
+		if (!b && !strcmp(u->tleft->value, "10"))
+		{
+			clean_tree(u);
+			return new_tree("1");
+		}
+		if (b != NULL)
+		{
+			if (tree_compare(b, u->tleft))
+			{
+				clean_tree(u);
+				return new_tree("1");
+			}
+			u->tleft = join(u->tleft, clone(b), fnc[SEPARATEUR].ex);
+		}
+	}
+	if (u->gtype == OPERAT)
+	{
+		u->tleft = log_substitute(u->tleft, tk, b);
+		u->tright = log_substitute(u->tright, tk, b);
+	}
+	if (u->tok_type == NEGATIF)
+		u->tleft = log_substitute(u->tleft, tk, b);
+	return u;
+}
+
 /* symbolic simplify */
 
 Tree* simplify_integer_power(Tree* v, Tree* w)
@@ -1218,7 +1250,7 @@ Tree* simplify(Tree* u)
 			clean_tree(u);
 			if (q == 0)
 				return new_tree("0");
-            Tree* t = new_tree("1");
+			Tree* t = new_tree("1");
 			if (q < 0)
 				t = join(t, NULL, fnc[NEGATIF].ex);
 			return t;
@@ -1255,7 +1287,7 @@ Tree* simplify(Tree* u)
 	if (tk == LOGBASE_F || tk == LOG_F)
 	{
 		bool k = u->tleft->tok_type == SEPARATEUR;
-		Tree* q = join(simplify(clone(k ? u->tleft->tleft : u->tleft)), NULL, fnc[LN_F].ex), * w = join(k ? clone(u->tleft->tright) : new_tree("10"), NULL, fnc[LN_F].ex);
+		Tree* q = join(simplify(clone(k ? u->tleft->tleft : u->tleft)), NULL, fnc[LN_F].ex), * w = k ? clone(u->tleft->tright) : NULL;
 		clean_tree(u);
 		Tree* v = simplify_ln(q);
 		clean_tree(q);
@@ -1264,7 +1296,15 @@ Tree* simplify(Tree* u)
 			clean_tree(w);
 			return v;
 		}
-		return join(v, w, fnc[DIVID].ex);
+		if (tk == LOGBASE_F && !strcmp(w->value, "10"))
+		{
+			tk = LOG_F;
+			clean_tree(w);
+			w = NULL;
+		}
+		q = log_substitute(v, tk, w);
+		clean_tree(w);
+		return q;
 	}
 	if (tk == ABS_F)
 	{
@@ -1551,7 +1591,7 @@ Tree* expand_exp_rules(Tree* u)
 		return new_tree("1");
 	if (tk == ADD || tk == SUB)
 		return join(expand_exp_rules(u->tleft), expand_exp_rules(u->tright), fnc[PROD].ex);
-	if (tk == PROD && u->tleft->gtype == ENT)
+	if (tk == PROD && isconstant(u->tleft))
 		return join(expand_exp_rules(u->tright), clone(u->tleft), fnc[POW].ex);
 	return join(clone(u), NULL, fnc[EXP_F].ex);
 }
@@ -1588,9 +1628,9 @@ static Tree* contract_ln_rules(Tree* v)
 				Tree* w = join(new_tree("1"), clone(q->tleft->tleft), fnc[DIVID].ex);
 				s = (s == NULL) ? w : join(s, w, fnc[PROD].ex);
 			}
-			else if (q->tok_type == PROD && q->tleft->tok_type == NEGATIF && !strcmp(q->tleft->tleft->value, "1") && q->tright->tok_type == LN_F)
+			else if (q->tok_type == PROD && q->tright->tok_type == LN_F)
 			{
-				Tree* w = join(new_tree("1"), clone(q->tright->tleft), fnc[DIVID].ex);
+				Tree* w = join(clone(q->tright->tleft), clone(q->tleft), fnc[POW].ex);
 				s = (s == NULL) ? w : join(s, w, fnc[PROD].ex);
 			}
 			else if (strcmp(q->value, "0"))
@@ -1614,7 +1654,7 @@ static Tree* contract_ln_rules(Tree* v)
 			if (((Tree*)item->data)->tok_type == ADD || ((Tree*)item->data)->tok_type == SUB)
 				s = (s == NULL) ? contract_ln_rules(item->data) : join(s, contract_ln_rules(item->data), fnc[ADD].ex);
 			else
-				s = (s == NULL) ? clone(item->data) : join(s, clone(((Tree*)item->data)), fnc[PROD].ex);
+				s = (s == NULL) ? clone(item->data) : join(s, clone(item->data), fnc[PROD].ex);
 			item = item->next;
 		}
 		L = clear_map(L);
@@ -1647,6 +1687,17 @@ Tree* expand_ln_rules(Tree* u)
 		return join(expand_ln_rules(u->tleft), expand_ln_rules(u->tright), fnc[SUB].ex);
 	if (u->tok_type == POW && is_symbolic(u->tleft))
 		return join(clone(u->tright), expand_ln_rules(u->tleft), fnc[PROD].ex);
+	if (u->gtype == ENT)
+	{
+		Tree* f = Contract_pow(factorn(strtoull(u->value, NULL, 10)));
+		if (f->tok_type == POW)
+		{
+			Tree* ret = join(clone(f->tright), join(clone(f->tleft), NULL, fnc[LN_F].ex), fnc[PROD].ex);
+			clean_tree(f);
+			return ret;
+		}
+		clean_tree(f);
+	}
 	return join(clone(u), NULL, fnc[LN_F].ex);
 }
 
