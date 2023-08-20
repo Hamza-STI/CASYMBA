@@ -799,8 +799,9 @@ Tree* analyse(Tree* tr)
 					t = t->tleft;
 				}
 				Tree* a = coefficient_gpe(t->tleft, var_y, 1), * b = coefficient_gpe(t->tleft, y1, 1);
+				Tree* rt = solve_ode(a, b, clone(t->tright), var_x, var_y, cond1);
 				L = clear_map(L);
-				return solve_ode(a, b, t->tright, var_x, var_y, cond1);
+				return rt;
 			}
 			if (t->tok_type == LOGIC_AND)
 			{
@@ -819,7 +820,8 @@ Tree* analyse(Tree* tr)
 			t = t->tleft;
 			Tree* a = coefficient_gpe(t, y2, 1), * b = coefficient_gpe(t, y1, 1), * c = coefficient_gpe(t, var_y, 1);
 			L = clear_map(L);
-			return pow_transform(solve_ode_2(a, b, c, f, var_x, var_y, cond1, cond2));
+			Tree* rt = pow_transform(solve_ode_2(a, b, c, f, var_x, var_y, cond1, cond2));
+			return rt;
 		}
 		else if (REMAINDER_F <= tk && tk <= POLYSIMP_F && L->length == 3 && ((Tree*)L->end->data)->gtype == VAR)
 		{
