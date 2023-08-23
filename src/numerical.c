@@ -19,7 +19,7 @@ void zero_untile(char* a)
 		i++;
 	if (a[i] == '.')
 		i--;
-	while (k > i && a[k] == '0')
+	while (strchr(a, '.') != NULL && k > i && a[k] == '0')
 		k--;
 	if (a[k] == '.')
 		k--;

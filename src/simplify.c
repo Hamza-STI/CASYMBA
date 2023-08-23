@@ -1990,7 +1990,7 @@ map polynomial_division(map* divd, map* divr, map* rem)
 		}
 		if (z && (*divd) != NULL)
 		{
-			for (int i = 0; i < (*divd)->length; ++i)
+			for (int i = 0; i < (*divd)->length - (*divr)->length; ++i)
 				quot = push_back(quot, new_tree("0"));
 			(*divd) = clear_map(*divd);
 			break;
