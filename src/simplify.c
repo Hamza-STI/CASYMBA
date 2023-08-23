@@ -1951,30 +1951,23 @@ Tree* polyreconstitute(map* Li, const char* x)
 
 map polynomial_division(map* divd, map* divr, map* rem)
 {
-	map tmp = NULL, quot = NULL;
+	map quot = NULL;
 	Tree* a = NULL;
 	if ((*divd)->length < (*divr)->length)
 		return polynomial_division(divr, divd, rem);
-	bool z = true;
 	while ((*divd)->length >= (*divr)->length)
 	{
 		a = simplify(join(clone((*divd)->begin->data), clone((*divr)->begin->data), fnc[DIVID].ex));
-		mapCell* t = (*divr)->begin;
+		mapCell* t = (*divr)->begin, * celdivd = (*divd)->begin;
 		while (t != NULL)
 		{
-			tmp = push_back(tmp, simplify(join(clone(a), clone(t->data), fnc[PROD].ex)));
+			Tree* s = join(clone(a), clone(t->data), fnc[PROD].ex);
+			celdivd->data = simplify(join(celdivd->data, s, fnc[SUB].ex));
 			t = t->next;
-		}
-		mapCell* celdivd = (*divd)->begin, * celtmp = tmp->begin;
-		while (celdivd != NULL && celtmp != NULL)
-		{
-			celdivd->data = simplify(join(celdivd->data, clone(celtmp->data), fnc[SUB].ex));
 			celdivd = celdivd->next;
-			celtmp = celtmp->next;
 		}
 		quot = push_back(quot, a);
-		tmp = clear_map(tmp);
-		z = true;
+		bool z = true;
 		(*divd) = pop_front_map(*divd);
 		if ((*divd) == NULL)
 			break;
