@@ -1173,9 +1173,9 @@ static map simplify_oper_rec(map L, token tk)
 		}
 		if (ordre_tree(u2, u1))
 		{
-			map l = push_back_map(push_back_map(NULL, u2), u1);
-			L = clear_map(L);
-			return l;
+			L->begin->data = u2;
+			L->end->data = u1;
+			return L;
 		}
 		return L;
 	}
@@ -1188,8 +1188,7 @@ static map simplify_oper_rec(map L, token tk)
 	else if (isconstant(u1) && isconstant(L->begin->next->data))
 	{
 		Tree* p = simplify_RNE(join(clone(u1), clone(L->begin->next->data), fnc[tk].ex));
-		L = push_front_map(pop_front_map(pop_front_map(L)), p);
-		clean_tree(p);
+		L = push_front(pop_front_map(pop_front_map(L)), p);
 		return simplify_oper_rec(L, tk);
 	}
 	map k = (tk == PROD) ? map_create_prod(u1) : map_create_add(u1);

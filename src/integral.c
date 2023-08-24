@@ -515,24 +515,7 @@ static Tree* poly_integral(Tree* f, const char* x)
 
 static Tree* linear_priorities(Tree* f, const char* x)
 {
-	if (f->tok_type == PROD)
-	{
-		Tree* u = f->tleft, * v = f->tright;
-		if (!found_element(u, x))
-		{
-			Tree* s = integral(v, x);
-			if (s == NULL)
-				return NULL;
-			return join(clone(u), s, fnc[PROD].ex);
-		}
-		else if (!found_element(v, x))
-		{
-			Tree* s = integral(u, x);
-			if (s != NULL)
-				return join(clone(v), s, fnc[PROD].ex);
-		}
-	}
-	else if (f->tok_type == ADD || f->tok_type == SUB)
+	if (f->tok_type == ADD || f->tok_type == SUB)
 	{
 		Tree* s = integral(f->tleft, x), * t = integral(f->tright, x);
 		if (s == NULL || t == NULL)
@@ -553,6 +536,7 @@ static Tree* integral_table(Tree* f, const char* x)
 	if (f->tok_type == ADD)
 		return linear_priorities(f, x);
 	map integ_sep = separate_factor(f, x);
+	integ_sep->end->data = pow_transform(integ_sep->end->data);
 	Tree* form = to_match(integ_sep->end->data, x);
 	if (form != NULL)
 	{
@@ -600,8 +584,6 @@ Tree* integral(Tree* f, const char* x)
 {
 	Tree* f_x = integral_try_factor(f, x);
 	Tree* F = integral_table(f_x, x);
-	if (!F)
-		F = linear_priorities(f_x, x);
 	if (!F)
 		F = sustitution_method(f_x, x);
 	if (!F)
@@ -660,9 +642,9 @@ struct Integral Integralsqrt_X2[] =
 {
 	/* sqrt(C+A*X^2) */
 	{ "sqrt(A+X^2)", "1/2*(X*sqrt(A+X^2)+A*ln(X+sqrt(A+X^2)))", "" },
-	{ "sqrt(A-X^2)", "1/2*(X*sqrt(A-X^2)+A*asin(X/sqrt(A)))", "" },
+	{ "sqrt(A+~X^2)", "1/2*(X*sqrt(A-X^2)+A*asin(X/sqrt(A)))", "" },
 	{ "1/sqrt(A+X^2)", "ln(X+sqrt(A+X^2))", "" },
-	{ "1/sqrt(A-X^2)", "asin(X/sqrt(A))", "" },
+	{ "1/sqrt(A+~X^2)", "asin(X/sqrt(A))", "" },
 	{ "sqrt(C+~A*X^2)", "X/2*sqrt(C-A*X^2)+C/(2*sqrt(A))*asin(X*sqrt(A/C))", "" },
 	{ "sqrt(C+A*X^2)", "X/2*sqrt(C+A*X^2)+C/(2*sqrt(A))*ln(X*sqrt(A)+sqrt(C+A*X^2))", "" },
 	{ "1/sqrt(C+~A*X^2)", "asin(X*sqrt(A/C))/sqrt(A)", "" },
@@ -674,7 +656,7 @@ struct Integral Integralsqrt_X2[] =
 	{ "X^2/sqrt(C+A*X^2)", "X*sqrt(C+A*X^2)/A-1/A*integral(sqrt(C+A*X^2),X)", "" },
 	{ "sqrt(~C+A*X^2)/X", "sqrt(~C+A*X^2)-sqrt(C)*atan(sqrt(~C+A*X^2)/sqrt(C))", "" },
 	{ "sqrt(C+A*X^2)/X", "sqrt(C+A*X^2)+sqrt(C)*ln((sqrt(C+A*X^2)-sqrt(C))/X)", "" },
-	{ "1/(X*sqrt(C+~1*X^2))", "~ln((sqrt(C)+sqrt(C-X^2))/X)/sqrt(C)", "" },
+	{ "1/(X*sqrt(C+~X^2))", "~ln((sqrt(C)+sqrt(C-X^2))/X)/sqrt(C)", "" },
 	{ "1/(X*sqrt(C+X^2))", "~ln((sqrt(C)+sqrt(C-X^2))/X)/sqrt(C)", "" },
 	{ "1/(X*sqrt(~C+X^2))", "acos(sqrt(C)/X)/sqrt(C)", "" },
 	{ "1/(X*sqrt(~C+A*X^2))", "1/(sqrt(C)*cos(X*sqrt(A/C)))", "" },
@@ -741,11 +723,11 @@ struct Integral Integralcos[] =
 	{ "X/cos(A*X)^2", "X*tan(A*X)/A+1/A^2*ln(cos(A*X))", "" },
 	{ "1/cos(A*X)^N", "sin(A*X)/(A*(N-1)*cos(A*X)^(N-1))+(N-2)/(N-1)*integral(1/cos(A*X)^(N-2),X)", "" },
 	{ "X/cos(A*X)^N", "X*sin(A*X)/(A*(N-1)*cos(A*X)^(N-1))-1/(A^2*(N-1)*(N-2)*cos(A*X)^(N-2))+(N-2)/(N-1)*integral(X/cos(A*X)^(N-2),X)", "" },
-	{ "1/(1+~1*cos(A*X))", "~1/(A*tan(A*X/2))", "" },
-	{ "X/(1+~1*cos(A*X))", "~X/(A*tan(A*X/2))+2/A^2*ln(sin(A*X/2))", "" },
+	{ "1/(1+~cos(A*X))", "~1/(A*tan(A*X/2))", "" },
+	{ "X/(1+~cos(A*X))", "~X/(A*tan(A*X/2))+2/A^2*ln(sin(A*X/2))", "" },
 	{ "1/(1+cos(A*X))", "tan(A*X/2)/A", "" },
 	{ "X/(1+cos(A*X))", "X/A*tan(A*X/2)+2/A^2*ln(cos(A*X/2))", "" },
-	{ "1/(1+~1*cos(A*X))^2", "~1/(2*A*tan(A*X/2))-1/(6*A*tan(A*X/2)^3)", "" },
+	{ "1/(1+~cos(A*X))^2", "~1/(2*A*tan(A*X/2))-1/(6*A*tan(A*X/2)^3)", "" },
 	{ "1/(1+cos(A*X))^2", "tan(A*X/2)/(2*A)+tan(A*X/2)^3/(6*A)", "" },
 	{ "1/(P+Q*cos(A*X))", "2/(A*sqrt(P^2-Q^2))*atan(sqrt((P-Q)/(P+Q)))*tan(A*X/2)", "" },
 	{ "1/(P+Q*cos(A*X))^2", "Q*sin(A*X)/(A*(Q^2-P^2)*(P+Q*cos(A*X)))-P/(Q^2-P^2)*integral(1/(P+Q*cos(A*X)),X)", "" },
@@ -769,11 +751,11 @@ struct Integral Integralsin[] =
 	{ "1/sin(A*X)^N", "~cos(A*X)/(A*(N-1)*sin(A*X)^(N-1))+(N-2)/(N-1)*integral(1/sin(A*X)^(N-2),X)", "" },
 	{ "X/sin(A*X)^N", "~X*cos(A*X)/(A*(N-1)*sin(A*X)^(N-1))-1/(A^2*(N-1)*(N-2)*sin(A*X)^(N-2))+(N-2)/(N-1)*integral(X/sin(A*X)^(N-2),X)", "" },
 	{ "sin(A*X)/(Q+P*sin(A*X))", "X/Q-P/Q*integral(1/(P+Q*sin(A*X)),X)", "" },
-	{ "1/(1+~1*sin(A*X))", "tan(PI/4+A*X/2)/A", "" },
-	{ "X/(1+~1*sin(A*X))", "X/A*tan(PI/4+A*X/2)+2/A^2*ln(sin(PI/4-A*X/2))", "" },
+	{ "1/(1+~sin(A*X))", "tan(PI/4+A*X/2)/A", "" },
+	{ "X/(1+~sin(A*X))", "X/A*tan(PI/4+A*X/2)+2/A^2*ln(sin(PI/4-A*X/2))", "" },
 	{ "1/(1+sin(A*X))", "~tan(PI/4-A*X/2)/A", "" },
 	{ "X/(1+sin(A*X))", "~X/A*tan(PI/4-A*X/2)+2/(A^2)*ln(sin(PI/4+A*X/2))", "" },
-	{ "1/(1+~1*sin(A*X))^2", "tan(PI/4+A*X/2)/(2*A)+tan(PI/4+A*X/2)^3/(6*A)", "" },
+	{ "1/(1+~sin(A*X))^2", "tan(PI/4+A*X/2)/(2*A)+tan(PI/4+A*X/2)^3/(6*A)", "" },
 	{ "1/(1+sin(A*X))^2", "~tan(PI/4-A*X/2)/(2*A)-tan(PI/4-A*X/2)^3/(6*A)", "" },
 	{ "1/(P+Q*sin(A*X))", "2/(A*sqrt(P^2-Q^2))*atan((P*tan(1/2*A*X)+Q)/sqrt(P^2-Q^2))", "" },
 	{ "1/(P+Q*sin(A*X))^2", "Q*cos(A*X)/(A*(P^2-Q^2)*(P+Q*sin(A*X)))+P/(P^2-Q^2)*integral(1/(P+Q*sin(A*X)),X)", "" },
@@ -797,10 +779,10 @@ struct Integral Integraltrig[] =
 	{ "sin(A*X)^N/cos(A*X)^N", "tan(A*X)^(N-1)/((N-1)*A)-integral(sin(A*X)^(N-2)/cos(A*X)^(N-2),X)", "" },
 	/* cot(A*X) */
 	{ "cos(A*X)/sin(A*X)", "ln(sin(A*X))/A", "" },
-	{ "cos(A*X)^2/(1+~1*cos(A*X)^2)", "~1/(A*tan(A*X))-X", "" },
+	{ "cos(A*X)^2/(1+~cos(A*X)^2)", "~1/(A*tan(A*X))-X", "" },
 	{ "cos(A*X)/sin(A*X)^3", "~1/(2*A*sin(A*X)^2)", "" },
 	{ "cos(A*X)^N/sin(A*X)^M", "~1/((N+1)*A*tan(A*X)^(N+1))", "M=N+2" },
-	{ "X*cos(A*X)^2/(1+~1*cos(A*X)^2)", "~X/(A*tan(A*X))+1/A^2*ln(sin(A*X))-X^2/2", "" },
+	{ "X*cos(A*X)^2/(1+~cos(A*X)^2)", "~X/(A*tan(A*X))+1/A^2*ln(sin(A*X))-X^2/2", "" },
 	{ "cos(A*X)^N/sin(A*X)^N", "~1/((N-1)*A*tan(A*X)^(N-1))-integral(cos(A*X)^(N-2)/sin(A*X)^(N-2),X)", "" },
 	{ "sin(A*X)/cos(A*X)^N", "1/(N*A*cos(A*X)^N)", "" },
 	{ "cos(A*X)/sin(A*X)^N", "~1/(N*A*sin(A*X)^N)", "" },
@@ -814,15 +796,15 @@ struct Integral Integraltrig[] =
 	{ "cos(A*X)^M/sin(A*X)^N", "~cos(A*X)^(M-1)/(A*(N-1)*sin(A*X)^(N-1))-(M-1)/(N-1)*integral(cos(A*X)^(M-2)/sin(A*X)^(N-2),X)", "" },
 	{ "1/(sin(A*X)^M*cos(A*X)^N)", "1/(A*(N-1)*sin(A*X)^(M-1)*cos(A*X)^(N-1))+(M+N-2)/(N-1)*integral(1/(sin(A*X)^M*cos(A*X)^(N-2)),X)", "" },
 	{ "1/(cos(A*X)*(1+sin(A*X)))", "((sin(A*X)+1)*ln(sin(A*X)+1)-(sin(A*X)+1)*ln(sin(A*X)-1)-2)/(4*A*(sin(A*X)+1))", "" },
-	{ "1/(cos(A*X)*(1+~1*sin(A*X)))", "((sin(A*X)-1)*ln(sin(A*X)+1)-(sin(A*X)-1)*ln(sin(A*X)-1)-2)/(4*A*(sin(A*X)-1))", "" },
-	{ "1/(sin(A*X)*(1+~1*cos(A*X)))", "~1/(2*A*(1-cos(A*X)))+1/(2*A)*ln(tan(A*X/2))", "" },
+	{ "1/(cos(A*X)*(1+~sin(A*X)))", "((sin(A*X)-1)*ln(sin(A*X)+1)-(sin(A*X)-1)*ln(sin(A*X)-1)-2)/(4*A*(sin(A*X)-1))", "" },
+	{ "1/(sin(A*X)*(1+~cos(A*X)))", "~1/(2*A*(1-cos(A*X)))+1/(2*A)*ln(tan(A*X/2))", "" },
 	{ "1/(sin(A*X)*(1+cos(A*X)))", "1/(2*A*(1+cos(A*X)))+ln(tan(A*X/2))/(2*A)", "" },
 	{ "1/(cos(A*X)+sin(A*X))", "sqrt(2)/(2*A)*ln(tan(A*X/2+PI/8))", "" },
-	{ "1/(~1*cos(A*X)+sin(A*X))", "sqrt(2)/(2*A)*ln(tan(A*X/2-PI/8))", "" },
+	{ "1/(~cos(A*X)+sin(A*X))", "sqrt(2)/(2*A)*ln(tan(A*X/2-PI/8))", "" },
 	{ "sin(A*X)/(cos(A*X)+sin(A*X))", "X/2-ln(cos(A*X)+sin(A*X))/(2*A)", "" },
-	{ "sin(A*X)/(~1*cos(A*X)+sin(A*X))", "X/2+1/(2*A)*ln(~cos(A*X)+sin(A*X))", "" },
+	{ "sin(A*X)/(~cos(A*X)+sin(A*X))", "X/2+1/(2*A)*ln(~cos(A*X)+sin(A*X))", "" },
 	{ "cos(A*X)/(cos(A*X)+sin(A*X))", "X/2+1/(2*A)*ln(cos(A*X)+sin(A*X))", "" },
-	{ "cos(A*X)/(~1*cos(A*X)+sin(A*X))", "~X/2+1/(2*A)*ln(~cos(A*X)+sin(A*X))", "" },
+	{ "cos(A*X)/(~cos(A*X)+sin(A*X))", "~X/2+1/(2*A)*ln(~cos(A*X)+sin(A*X))", "" },
 	{ "sin(A*X)/(P+Q*cos(A*X))", "~ln(P+Q*cos(A*X))/(A*Q)", "" },
 	{ "cos(A*X)/(P+Q*sin(A*X))", "ln(P+Q*sin(A*X))/(A*Q)", "" },
 	{ "sin(A*X)/((P+Q*cos(A*X))^N)", "1/(A*Q*(N-1)*(P+Q*cos(A*X))^(N-1))", "" },
@@ -831,7 +813,7 @@ struct Integral Integraltrig[] =
 	{ "1/(Q+Q*cos(A*X)+P*sin(A*X))", "ln(Q+P*tan(A*X/2))/(A*P)", "" },
 	{ "1/(R+Q*cos(A*X)+P*sin(A*X))", "2/(A*sqrt(R^2-P^2-Q^2))*atan((P+(R-Q)*tan(A*X/2))/sqrt(R^2-P^2-Q^2))", "" },
 	{ "1/(sqrt(R)+Q*cos(A*X)+P*sin(A*X))", "(~1)/(A*sqrt(R))*tan(PI/4-(A*X+tan(Q/P))/2)", "R=P^2+Q^2" },
-	{ "1/(~1*sqrt(R)+Q*cos(A*X)+P*sin(A*X))", "~tan(PI/4+(A*X+tan(Q/P))/2)/(A*sqrt(R))", "R=P^2+Q^2" },
+	{ "1/(~sqrt(R)+Q*cos(A*X)+P*sin(A*X))", "~tan(PI/4+(A*X+tan(Q/P))/2)/(A*sqrt(R))", "R=P^2+Q^2" },
 	{ "1/(~Q*cos(A*X)^2+P*sin(A*X)^2)", "ln((sqrt(P)*tan(A*X)-sqrt(Q))/(sqrt(P)*tan(A*X)+sqrt(Q)))/(2*A*sqrt(P*Q))", "" },
 	{ "1/(Q*cos(A*X)^2+P*sin(A*X)^2)", "atan((sqrt(P)*tan(A*X))/sqrt(Q))/(A*sqrt(P)*sqrt(Q))", "" },
 	{ "cos(A*X)/(P*cos(A*X)+Q*sin(A*X))", "(P*X)/(P^2+Q^2)+Q/(A*(P^2+Q^2))*ln(Q*sin(A*X)+P*cos(A*X))", "" }
@@ -878,7 +860,7 @@ struct Integral Integralexp[] =
 	{ "exp(B+A*X)", "exp(B+A*X)/A", "" },
 	{ "X*exp(A*X)", "exp(A*X)/A*(X-1/A)", "" },
 	{ "X*exp(A*X^2)", "exp(A*X^2)/(2*A)", "" },
-	{ "X^3*exp(C+A*X^2)", "exp(A*X^2)*exp(C)*(X^2/A-1/A^2)/2", "" },
+	{ "X^3*exp(C+A*X^2)", "exp(C+A*X^2)*(X^2/A-1/A^2)/2", "" },
 	{ "X^N*exp(B+A*X)", "X^N*exp(B+A*X)/A-N/A*integral(X^(N-1)*exp(B+A*X),X)", "" },
 	{ "exp(A*X)*sin(A*X)", "exp(A*X)*(sin(A*X)-cos(A*X))/(2*A)", "" },
 	{ "exp(A*X)*sin(B*X)", "exp(A*X)*(A*sin(B*X)-B*cos(B*X))/(A^2+B^2)", "" },
@@ -1161,7 +1143,6 @@ struct Integral IntegralalgxN[] =
 {
 	/* X^N+-A^N */
 	{ "1/(X*(~A+X^N))", "ln((~A+X^N)/X^N)/(N*A)", "" },
-	{ "X^M/(~A+X^N)", "ln(~A+X^N)/N", "M=N-1"},
 	{ "X^M/(~A+X^N)^R", "A*integral(X^(M-N)/(~A+X^N)^R,X)+integral(X^(M-N)/(~A+X^N)^(R-1),X)", "" },
 	{ "1/(X^M*(~A+X^N)^R)", "integral(1/(X^(M-N)*(~A+X^N)^R),X)/A-1/A*integral(1/(X^M*(~A+X^N)^(R-1)),X)", "" },
 	{ "1/(X*sqrt(~A+X^N))", "2/(N*sqrt(A))*acos(sqrt(A/X^N))", "" },
