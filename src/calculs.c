@@ -133,8 +133,8 @@ static Tree* taylor_usuelle(Tree* u, const char* vr, Tree* ordre, Tree* point)
 		Tree* diff_r = simplify(diff(dtr, vr));
 		clean_tree(dtr);
 		dtr = diff_r;
-		Tree* a = join(simplify(remplace_tree(dtr, vr, point)), new_tree(tostr(factoriel(i))), fnc[DIVID].ex);
-		Tree* b = join(simplify(join(new_tree(vr), clone(point), fnc[SUB].ex)), new_tree(tostr(i)), fnc[POW].ex);
+		Tree* a = join(remplace_tree(dtr, vr, point), new_tree(tostr(factoriel(i))), fnc[DIVID].ex);
+		Tree* b = join(join(new_tree(vr), clone(point), fnc[SUB].ex), new_tree(tostr(i)), fnc[POW].ex);
 		Tree* c = simplify(join(a, b, fnc[PROD].ex));
 		if (c->tok_type == UNDEF)
 		{
@@ -212,10 +212,16 @@ static Tree* taylor(Tree* u, Tree* vr, Tree* ordre, Tree* point)
 
 /* équations differentielles linéaires */
 
-static Tree* sub_ode(Tree* tr, const char** vrs, Tree** Li, int size)
+static Tree* sub_ode(Tree* tr, const char** vrs, map Li)
 {
-	for (int i = 0; i < size; i++)
-		tr = remplace_var(tr, vrs[i], Li[i]);
+	mapCell* tmp = Li->begin;
+	int i = 0;
+	while (tmp != NULL)
+	{
+		tr = remplace_var(tr, vrs[i], tmp->data);
+		++i;
+		tmp = tmp->next;
+	}
 	return tr;
 }
 
@@ -416,22 +422,24 @@ static Tree* trig_solution_2(Tree* a, Tree* b, Tree* c, const char* x, Tree* dg,
 		Tree* c_x1 = g ? coefficient_gpe(part, x, 1) : part, * s_x1 = g ? coefficient_gpe(part, x, 1) : part1;
 		Tree* r = coefficient_gpe(trig->tleft, x, 1);
 		const char* vr1[] = { "a", "b", "c", "r", "q", "v" };
-		Tree* Li[] = {a, b, c, r, c_x1, s_x1};
-		Tree* m1 = simplify(sub_ode(to_tree(In2post2("~((a*r^2-c)*q+b*r*v)")), vr1, Li, 6));
-		Tree* m3 = simplify(sub_ode(to_tree(In2post2("~((a*r^2-c)*v+b*r*q)")), vr1, Li, 6));
-		Tree* d = simplify(sub_ode(to_tree(In2post2("a^2*r^4-2*a*c*r^2+b^2*r^2+c^2")), vr1, Li, 6));
+		map Li = push_back(push_back(push_back(push_back(push_back(push_back(NULL, a), b), c), r), c_x1), s_x1);
+		Tree* m1 = simplify(sub_ode(to_tree(In2post2("~((a*r^2-c)*q+b*r*v)")), vr1, Li));
+		Tree* m3 = simplify(sub_ode(to_tree(In2post2("~((a*r^2-c)*v+b*r*q)")), vr1, Li));
+		Tree* d = simplify(sub_ode(to_tree(In2post2("a^2*r^4-2*a*c*r^2+b^2*r^2+c^2")), vr1, Li));
 		m1 = simplify(join(m1, clone(d), fnc[DIVID].ex));
 		m3 = simplify(join(m3, clone(d), fnc[DIVID].ex));
 		if (k)
 		{
 			clean_tree(d);
+			Li = clear_map(Li);
 			return join(join(m1, trig, fnc[PROD].ex), join(m3, trig1, fnc[PROD].ex), fnc[ADD].ex);
 		}
 		Tree* c_x0 = coefficient_gpe(part, x, 0), * s_x0 = coefficient_gpe(part1, x, 0);
 		const char* vr2[] = { "a", "b", "c", "r", "m", "n", "p", "u" };
-		Tree* Li1[] = { a, b, c, r, m1, m3, c_x0, s_x0 };
-		Tree* m2 = simplify(sub_ode(to_tree(In2post2("2*a^2*n*r^3+a*(p-b*m)*r^2+r*(~b*u-2*a*c*n+b^2*n)-b*c*m+c*p")), vr2, Li1, 8));
-		Tree* m4 = simplify(sub_ode(to_tree(In2post2("~2*a^2*m*r^3+r^2*(~a*u-a*b*n)+(2*a*c*m-b^2*m+b*p)*r+c*u-b*c*n")), vr2, Li1, 8));
+		Li = push_back(push_back(push_back_map(push_back_map(pop_back_map(pop_back_map(Li)), m1), m3), c_x0), s_x0);
+		Tree* m2 = simplify(sub_ode(to_tree(In2post2("2*a^2*n*r^3+a*(p-b*m)*r^2+r*(~b*u-2*a*c*n+b^2*n)-b*c*m+c*p")), vr2, Li));
+		Tree* m4 = simplify(sub_ode(to_tree(In2post2("~2*a^2*m*r^3+r^2*(~a*u-a*b*n)+(2*a*c*m-b^2*m+b*p)*r+c*u-b*c*n")), vr2, Li));
+		Li = clear_map(Li);
 		m2 = simplify(join(m2, clone(d), fnc[DIVID].ex));
 		m4 = simplify(join(m4, d, fnc[DIVID].ex));
 		m1 = join(join(m1, new_tree(x), fnc[PROD].ex), m2, fnc[ADD].ex);
@@ -602,13 +610,7 @@ static Tree* solve_ode_2(Tree* a, Tree* b, Tree* c, Tree* f, const char* x, cons
 		Error = push_back_dlist(Error, err_msg[1]);
 		return NULL;
 	}
-	if (strcmp(par_sol->value, "0"))
-		yh = simplify(join(yh, par_sol, fnc[ADD].ex));
-	else
-	{
-		yh = simplify(yh);
-		clean_tree(par_sol);
-	}
+	yh = simplify(join(yh, par_sol, fnc[ADD].ex));
 	if (cond1 != NULL && cond2 != NULL)
 	{
 		Tree* p = NULL, * q = NULL;
