@@ -212,7 +212,7 @@ Tree* expand_product(Tree* r, Tree* s)
 	return join(clone(r), clone(s), fnc[PROD].ex);
 }
 
-Tree* expand_power(Tree* u, double n)
+Tree* expand_power(Tree* u, int n)
 {
 	if (u->tok_type == ADD || u->tok_type == SUB)
 	{
@@ -856,6 +856,21 @@ static Tree* log_substitute(Tree* u, token tk, Tree* b)
 	return u;
 }
 
+static Tree* simp_rules(Tree* u, map* v)
+{
+	map d = map_create(u);
+	mapCell* k = d->begin->next;
+	clean_tree(u);
+	u = clone(d->begin->data);
+	while (k != NULL)
+	{
+		*v = push_back_map(*v, k->data);
+		k = k->next;
+	}
+	d = clear_map(d);
+	return u;
+}
+
 /* symbolic simplify */
 
 Tree* simplify_integer_power(Tree* v, Tree* w)
@@ -975,7 +990,7 @@ static Tree* simplify_power(Tree* v, Tree* w)
 			{
 				if (((Tree*)item->data)->tok_type == POW)
 				{
-					Tree* k = simplify_integer_power(clone(item->data), clone(w));
+					Tree* k = simplify_power(clone(item->data), clone(w));
 					if (k->gtype == ENT)
 						s = simplify(join(s, k, fnc[PROD].ex));
 					else if (k->tok_type == PROD)
@@ -996,7 +1011,7 @@ static Tree* simplify_power(Tree* v, Tree* w)
 			if (strcmp(q->value, "1"))
 			{
 				RT_SIMP = true;
-				s = join(s, Contract_pow(q), fnc[PROD].ex);
+				return join(s, Contract_pow(q), fnc[PROD].ex);
 			}
 			clean_tree(q);
 			return s;
@@ -1115,7 +1130,7 @@ static map simplify_oper_rec(map L, token tk)
 {
 	if (L->length == 1)
 		return L;
-	Tree* u1 = (L->begin->data), * u2 = (L->end->data);
+	Tree* u1 = L->begin->data, * u2 = L->end->data;
 	token tok = (tk == PROD) ? DIVID : SUB, u1tok = u1->tok_type, u2tok = u2->tok_type;
 	const char* nb = (tk == PROD) ? "1" : "0";
 	if (L->length == 2 && (u1tok != tk && u1tok != tok) && (u2tok != tk && u2tok != tok))
@@ -1249,7 +1264,7 @@ Tree* simplify(Tree* u)
 			clean_tree(u);
 			if (q == 0)
 				return new_tree("0");
-			Tree* t = new_tree("1");
+            Tree* t = new_tree("1");
 			if (q < 0)
 				t = join(t, NULL, fnc[NEGATIF].ex);
 			return t;
@@ -1352,15 +1367,15 @@ Tree* simplify(Tree* u)
 		if (vr != NULL && ispoly(u->tleft, vr) && ispoly(u->tright, vr) && !ismonomial(u->tleft, vr) && !ismonomial(u->tright, vr))
 		{
 			Tree* dn = degree_sv(u->tleft, vr), * dd = degree_sv(u->tright, vr);
-			if (strcmp(dn->value, "0") && strcmp(dd->value, "0"))
+			bool a = strcmp(dn->value, "0"), b = strcmp(dd->value, "0");
+			clean_tree(dd); clean_tree(dn);
+			if (a && b)
 			{
-				clean_tree(dd); clean_tree(dn);
 				Tree* tr = poly_simp(polycoeffs(u->tleft, vr), polycoeffs(u->tright, vr), vr);
 				free(vr);
 				clean_tree(u);
 				return tr;
 			}
-			clean_tree(dn); clean_tree(dd);
 		}
 		free(vr);
 	}
@@ -1384,17 +1399,14 @@ Tree* simplify(Tree* u)
 			{
 				tmp->data = simplify(tmp->data);
 				if ((tk == PROD || tk == DIVID) && ((Tree*)tmp->data)->tok_type == PROD)
+					tmp->data = simp_rules(tmp->data, &v);
+				else if ((tk == ADD || tk == SUB) && ((Tree*)tmp->data)->tok_type == PROD)
 				{
-					map d = map_create_prod(tmp->data);
-					mapCell* k = d->begin->next;
+					Tree* r = expand_main_op(tmp->data);
 					clean_tree(tmp->data);
-					tmp->data = clone(d->begin->data);
-					while (k != NULL)
-					{
-						v = push_back_map(v, k->data);
-						k = k->next;
-					}
-					d = clear_map(d);
+					tmp->data = r;
+					if (r->tok_type == ADD || r->tok_type == SUB)
+						tmp->data = simp_rules(tmp->data, &v);
 				}
 			}
 			tmp = tmp->next;
