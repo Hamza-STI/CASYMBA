@@ -1322,8 +1322,9 @@ Tree* simplify(Tree* u)
 	}
 	if (tk == ABS_F)
 	{
-		Tree* t = absolute_value(simplify(u->tleft));
-		clean_noeud(u);
+		u->tleft = simplify(u->tleft);
+		Tree* t = absolute_value(u->tleft);
+		clean_tree(u);
 		return t;
 	}
 	if (tk == COS_F || tk == SIN_F || tk == ACOS_F || tk == ASIN_F)
@@ -1728,7 +1729,7 @@ static Tree* simplify_ln(Tree* u)
 static Tree* absolute_value(Tree* u)
 {
 	if (u->gtype < VAR)
-		return u;
+		return clone(u);
 	if (u->tok_type == DIVID)
 		return join(absolute_value(u->tleft), absolute_value(u->tright), u->value);
 	if (u->tok_type == POW && u->tright->gtype == ENT)
@@ -1755,12 +1756,12 @@ static Tree* absolute_value(Tree* u)
 	}
 	if (u->tok_type == ADD && found_element(u, fnc[IMAGE].ex))
 	{
-		map cf = polycoeffs(u->tright, fnc[IMAGE].ex);
+		map cf = polycoeffs(u, fnc[IMAGE].ex);
 		Tree* a = join(join(clone(cf->begin->data), new_tree("2"), fnc[POW].ex), join(clone(cf->end->data), new_tree("2"), fnc[POW].ex), fnc[ADD].ex);
 		cf = clear_map(cf);
-		return simplify(a);
+		return simplify(join(a, NULL, fnc[SQRT_F].ex));
 	}
-	return join(u, NULL, fnc[ABS_F].ex);
+	return join(clone(u), NULL, fnc[ABS_F].ex);
 }
 
 Tree* Contract_pow(Tree* v)
