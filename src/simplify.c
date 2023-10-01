@@ -79,22 +79,30 @@ bool isdemi(Tree* tr)
 	return tr->tok_type == DIVID && !strcmp(tr->tleft->value, "1") && !strcmp(tr->tright->value, "2");
 }
 
+static Tree* clean_and_return(Tree* u, Tree* result)
+{
+	clean_tree(u);
+	return result;
+}
+
+static Tree* reorder(Tree* a,Tree* c)
+{
+	return (ordre_tree(a, c)) ? join(a, c, fnc[PROD].ex) : join(c, a, fnc[PROD].ex);
+}
+
 Tree* pow_transform(Tree* u)
 {
 	if (u->tok_type == POW && (isdemi(u->tright) || !strcmp(u->tright->value, "1") || u->tright->tok_type == NEGATIF))
 	{
 		u->tleft = pow_transform(u->tleft);
-		Tree* v = clone(u->tleft);
-		if (isdemi(u->tright))
-			v = join(v, NULL, fnc[SQRT_F].ex);
-		else if (u->tright->tok_type == NEGATIF)
-		{
-			Tree* w = clone(u->tright->tleft);
-			v = join(new_tree("1"), pow_transform(join(v, w, fnc[POW].ex)), fnc[DIVID].ex);
-		}
-		v->parent = u->parent;
-		clean_tree(u);
-		return v;
+        Tree* v = clone(u->tleft);
+        if (isdemi(u->tright))
+            v = join(v, NULL, fnc[SQRT_F].ex);
+        else if (u->tright->tok_type == NEGATIF)
+            v = join(new_tree("1"), pow_transform(join(v, clone(u->tright->tleft), fnc[POW].ex)), fnc[DIVID].ex);
+        v->parent = u->parent;
+        clean_tree(u);
+        return v;
 	}
 	else if (u->gtype == OPERAT)
 	{
@@ -103,50 +111,30 @@ Tree* pow_transform(Tree* u)
 		if (u->tok_type == PROD)
 		{
 			if (!strcmp(u->tleft->value, "1"))
-			{
-				Tree* w = clone(u->tright);
-				clean_tree(u);
-				return w;
-			}
+				return clean_and_return(u, clone(u->tright));
 			if (!strcmp(u->tright->value, "1"))
-			{
-				Tree* w = clone(u->tleft);
-				clean_tree(u);
-				return w;
-			}
+				return clean_and_return(u, clone(u->tleft));
 			if (u->tleft->tok_type == DIVID && !strcmp(u->tleft->tleft->value, "1") && u->tright->tok_type != DIVID)
-			{
-				Tree* v = clone(u->tleft->tright), * w = clone(u->tright);
-				clean_tree(u);
-				u = join(w, v, fnc[DIVID].ex);
-			}
+				return clean_and_return(u, join(clone(u->tright), clone(u->tleft->tright), fnc[DIVID].ex));
 			if (u->tright->tok_type == DIVID && !strcmp(u->tright->tleft->value, "1") && u->tleft->tok_type != DIVID)
-			{
-				Tree* v = clone(u->tleft), * w = clone(u->tright->tright);
-				clean_tree(u);
-				u = join(v, w, fnc[DIVID].ex);
-			}
+				return clean_and_return(u, join(clone(u->tleft), clone(u->tright->tright), fnc[DIVID].ex));
 			if (u->tleft->tok_type == DIVID || u->tright->tok_type == DIVID)
 			{
 				Tree* a = numerator_fun(u->tleft), * b = denominator_fun(u->tleft);
 				Tree* c = numerator_fun(u->tright), * d = denominator_fun(u->tright);
 				clean_tree(u);
-				a = (ordre_tree(a, c)) ? join(a, c, fnc[PROD].ex) : join(c, a, fnc[PROD].ex);
+				a = reorder(a, c);
 				bool k = !strcmp(b->value, "1");
 				if (k || !strcmp(d->value, "1"))
 				{
 					clean_tree(k ? b : d);
 					return join(a, k ? d : b, fnc[DIVID].ex);
 				}
-				b = (ordre_tree(b, d)) ? join(b, d, fnc[PROD].ex) : join(d, b, fnc[PROD].ex);
+				b = reorder(b, d);
 				u = join(a, b, fnc[DIVID].ex);
 			}
 			if (u->tleft->tok_type == NEGATIF && !strcmp(u->tleft->tleft->value, "1"))
-			{
-				Tree* w = clone(u->tright);
-				clean_tree(u);
-				return join(w, NULL, fnc[NEGATIF].ex);
-			}
+				return clean_and_return(u, join(clone(u->tright), NULL, fnc[NEGATIF].ex));
 		}
 	}
 	else if (u->gtype == FUNCTION || u->gtype == NEGATION)
@@ -180,12 +168,12 @@ Tree* denominator_fun(Tree* u)
 	return new_tree("1");
 }
 
-Tree* base(Tree* u)
+static Tree* base(Tree* u)
 {
 	return (u->tok_type == POW) ? u->tleft : u;
 }
 
-Tree* exponent(Tree* u)
+static Tree* exponent(Tree* u)
 {
 	return (u->tok_type == POW) ? clone(u->tright) : new_tree("1");
 }
@@ -198,12 +186,12 @@ long long int factoriel(int a)
 	return s;
 }
 
-float fpart(double ex)
+static float fpart(double ex)
 {
 	return (float)(ex - (int)ex);
 }
 
-Tree* expand_product(Tree* r, Tree* s)
+static Tree* expand_product(Tree* r, Tree* s)
 {
 	if (r->tok_type == ADD || r->tok_type == SUB)
 		return join(simplify(expand_product(r->tleft, s)), simplify(expand_product(r->tright, s)), r->value);
@@ -212,7 +200,7 @@ Tree* expand_product(Tree* r, Tree* s)
 	return join(clone(r), clone(s), fnc[PROD].ex);
 }
 
-Tree* expand_power(Tree* u, int n)
+static Tree* expand_power(Tree* u, int n)
 {
 	if (u->tok_type == ADD || u->tok_type == SUB)
 	{
@@ -265,46 +253,42 @@ Tree* expand(Tree* tr)
 	return clone(tr);
 }
 
+static Tree* expand_main_com(map* L, map* M, token tok)
+{
+	mapCell* tmp = (*L)->begin;
+	Tree* tr = NULL;
+	while (tmp != NULL)
+	{
+		mapCell* tmp1 = (*M)->begin;
+		while (tmp1 != NULL)
+		{
+			Tree* w = join(clone(tmp->data), clone(tmp1->data), fnc[tok].ex);
+			tr = (!tr) ? w : join(tr, w, fnc[ADD].ex);
+			tmp1 = tmp1->next;
+		}
+		tmp = tmp->next;
+	}
+	*L = clear_map(*L);
+	*M = clear_map(*M);
+	return tr;
+}
+
 Tree* expand_main_op(Tree* u)
 {
 	if (u->tok_type == DIVID)
 	{
 		Tree* r = u->tleft;
 		if (r->tok_type == ADD || r->tok_type == SUB)
-		{
-			map L = map_create_add(r);
-			mapCell* tmp = L->begin;
-			Tree* tr = NULL;
-			while (tmp != NULL)
-			{
-				Tree* w = join(clone(tmp->data), clone(u->tright), fnc[DIVID].ex);
-				tr = (!tr) ? w : join(tr, w, fnc[ADD].ex);
-				tmp = tmp->next;
-			}
-			L = clear_map(L);
-			return tr;
-		}
+        {
+            map L = map_create_add(r), M = push_back_map(NULL, u->tright);
+            return expand_main_com(&L, &M, DIVID);
+        }
 	}
 	if (u->tok_type == PROD)
-	{
-		map L = map_create_add(u->tleft), M = map_create_add(u->tright);
-		mapCell* tmp = L->begin;
-		Tree* tr = NULL;
-		while (tmp != NULL)
-		{
-			mapCell* tmp1 = M->begin;
-			while (tmp1 != NULL)
-			{
-				Tree* w = join(clone(tmp->data), clone(tmp1->data), fnc[PROD].ex);
-				tr = (!tr) ? w : join(tr, w, fnc[ADD].ex);
-				tmp1 = tmp1->next;
-			}
-			tmp = tmp->next;
-		}
-		L = clear_map(L);
-		M = clear_map(M);
-		return tr;
-	}
+    {
+         map L = map_create_add(u->tleft), M = map_create_add(u->tright);
+        return expand_main_com(&L, &M, PROD);
+    }
 	if (u->tok_type == POW && u->tright->gtype == ENT && ALG_EXPAND)
 	{
 		int d = (int)Eval(u->tright);
@@ -314,7 +298,7 @@ Tree* expand_main_op(Tree* u)
 	return clone(u);
 }
 
-int ordre_tree1(Tree* u, Tree* v)
+static int ordre_tree1(Tree* u, Tree* v)
 {
 	map p = map_create(u), q = map_create(v);
 	if (!tree_compare(p->end->data, q->end->data))
@@ -397,10 +381,10 @@ map map_sort(map li)
 		mapCell* tmp1 = li->begin;
 		while (tmp1 != NULL)
 		{
-			if (ordre_tree(((Tree*)tmp->data), tmp1->data))
+			if (ordre_tree(tmp->data, tmp1->data))
 			{
 				Tree* t = tmp1->data;
-				tmp1->data = (Tree*)tmp->data;
+				tmp1->data = tmp->data;
 				tmp->data = t;
 			}
 			tmp1 = tmp1->next;
@@ -410,16 +394,12 @@ map map_sort(map li)
 	return li;
 }
 
-Tree* trigo_identify(const char* s, token tk)
+static Tree* trigo_identify(const char* s, token tk)
 {
 	for (const Trigo_value* element = Exact_Values; element != Exact_Values + AMONT_VALUE_TRIG; element++)
 	{
 		if ((COS_F <= tk && tk <= TAN_F) && !strcmp(s, element->angle))
-		{
-			if (tk == COS_F)
-				return to_tree(In2post2(element->cos_value));
-			return to_tree(In2post2((tk == SIN_F) ? element->sin_value : element->tan_value));
-		}
+			return to_tree(In2post2((tk == SIN_F) ? element->sin_value : (tk == COS_F) ? element->cos_value : element->tan_value));
 		else if (!strcmp(s, element->cos_value) || !strcmp(s, element->sin_value) || !strcmp(s, element->tan_value))
 			return to_tree(In2post2(element->angle));
 	}
@@ -437,13 +417,12 @@ Tree* PGCD(Tree* A, Tree* B)
 
 /* numerical simplify */
 
-static Tree* fracOp(char* numerator, char* denominator)
+static Tree* fracOp(Tree* numerator, Tree* denominator)
 {
-	if (!strcmp(numerator, "0"))
-		return new_tree(numerator);
-	string in = strchr(numerator, '.'), id = strchr(denominator, '.');
-	Number num = { 1, numerator }, denom = { 1, denominator };
-	if (in == NULL && id == NULL)
+	if (!strcmp(numerator->value, "0"))
+		return clone(numerator);
+	Number num = { 1, numerator->value }, denom = { 1, denominator->value };
+	if (numerator->gtype == ENT && denominator->gtype == ENT)
 	{
 		Number pgcd = gcd(num, denom);
 		Number a = int_divid(num, pgcd, NULL), b = int_divid(denom, pgcd, NULL);
@@ -457,19 +436,10 @@ static Tree* fracOp(char* numerator, char* denominator)
 	return tr;
 }
 
-static Tree* sumOp(char* left, char* right)
+static Tree* perform_operation(char* left, char* right, NumberOperation* oper)
 {
 	Number a = { 1, left }, b = { 1, right };
-	Number ret = add(a, b);
-	Tree* tr = new_tree(ret.nombre);
-	free(ret.nombre);
-	return tr;
-}
-
-static Tree* diffOp(char* left, char* right)
-{
-	Number a = { 1, left }, b = { 1, right };
-	Number ret = sub(a, b);
+	Number ret = oper(a, b);
 	Tree* tr = new_tree(ret.nombre);
 	free(ret.nombre);
 	if (ret.signe != 1)
@@ -477,27 +447,15 @@ static Tree* diffOp(char* left, char* right)
 	return tr;
 }
 
-static Tree* prodOp(char* left, char* right)
-{
-	Number a = { 1, left }, b = { 1, right };
-	Number ret = prod(a, b);
-	Tree* tr = new_tree(ret.nombre);
-	free(ret.nombre);
-	return tr;
-}
-
 static Tree* factOp(const char* left)
 {
-	string in = strchr(left, '.');
-	if (!in)
-		return new_tree(tostr(factoriel(strtoull(left, NULL, 10))));
-	return new_tree(fnc[UNDEF].ex);
+	return new_tree(tostr(factoriel(strtoull(left, NULL, 10))));
 }
 
 static Tree* simplify_rational_number(Tree* u)
 {
 	if (count_tree_nodes(u) == 3 && u->tok_type == DIVID)
-		return fracOp(u->tleft->value, u->tright->value);
+		return fracOp(u->tleft, u->tright);
 	if (u->tok_type == NEGATIF)
 		return join(simplify_rational_number(u->tleft), NULL, fnc[NEGATIF].ex);
 	return clone(u);
@@ -518,13 +476,13 @@ static Tree* evaluate_quotient(Tree* left, Tree* right)
 	int k = count_tree_nodes(i), l = count_tree_nodes(j);
 	Tree* tr = NULL;
 	if (k == 1 && l == 1)
-		tr = fracOp(i->value, j->value);
+		tr = fracOp(i, j);
 	else if (k == 2 && l == 1 && i->tok_type == NEGATIF)
-		tr = join(fracOp(i->tleft->value, j->value), NULL, fnc[NEGATIF].ex);
+		tr = join(fracOp(i->tleft, j), NULL, fnc[NEGATIF].ex);
 	else if (l == 2 && k == 1 && j->tok_type == NEGATIF)
-		tr = join(fracOp(i->value, j->tleft->value), NULL, fnc[NEGATIF].ex);
+		tr = join(fracOp(i, j->tleft), NULL, fnc[NEGATIF].ex);
 	else if (k == 2 && k == l && j->tok_type == NEGATIF && j->tok_type == i->tok_type)
-		tr = fracOp(i->tleft->value, j->tleft->value);
+		tr = fracOp(i->tleft, j->tleft);
 	else
 		tr = join(clone(i), clone(j), fnc[DIVID].ex);
 	clean_tree(i);
@@ -585,7 +543,7 @@ static Tree* evaluate_power(Tree* bas, Tree* exposant)
 	return join(clone(bas), clone(exposant), fnc[POW].ex);
 }
 
-Tree* evaluate_cc(Tree* left, Tree* right, token tok)
+static Tree* evaluate_cc(Tree* left, Tree* right, token tok)
 {
 	Tree* u = numerator_fun(left), * v = denominator_fun(left);
 	Tree* w = numerator_fun(right), * x = denominator_fun(right);
@@ -606,7 +564,7 @@ static Tree* evaluate_add(Tree* left, Tree* right)
 	if (!strcmp(right->value, "0"))
 		return clone(left);
 	if (count_tree_nodes(left) == 1 && count_tree_nodes(right) == 1)
-		return sumOp(left->value, right->value);
+		return perform_operation(left->value, right->value, add);
 	else if (left->tok_type == NEGATIF)
 		return evaluate_diff(right, left->tleft);
 	else if (right->tok_type == NEGATIF)
@@ -621,7 +579,7 @@ static Tree* evaluate_diff(Tree* left, Tree* right)
 	if (!strcmp(right->value, "0"))
 		return clone(left);
 	if (count_tree_nodes(left) == 1 && count_tree_nodes(right) == 1)
-		return diffOp(left->value, right->value);
+		return perform_operation(left->value, right->value, sub);
 	else if (left->tok_type == NEGATIF && right->tok_type == NEGATIF)
 		return evaluate_diff(right->tleft, left->tleft);
 	else if (left->tok_type == NEGATIF)
@@ -636,7 +594,7 @@ static Tree* evaluate_prod(Tree* left, Tree* right)
 	if (!strcmp(left->value, "0") || !strcmp(right->value, "0"))
 		return new_tree("0");
 	if (count_tree_nodes(left) == 1 && count_tree_nodes(right) == 1)
-		return prodOp(left->value, right->value);
+		return perform_operation(left->value, right->value, prod);
 	else if (left->tok_type == NEGATIF && right->tok_type == NEGATIF)
 		return evaluate_prod(left->tleft, right->tleft);
 	else if (left->tok_type == NEGATIF)
@@ -777,7 +735,7 @@ Tree* factorn(int val)
 	return tr;
 }
 
-Tree* trigo_simplify(Tree* u, token tk)
+static Tree* trigo_simplify(Tree* u, token tk)
 {
 	if ((((COS_F <= tk && tk <= TAN_F) || (COSH_F <= tk && tk <= TANH_F)) && tk + 3 == u->tok_type) || (((ACOS_F <= tk && tk <= ATAN_F) || (ACOSH_F <= tk && tk <= ATANH_F)) && tk - 3 == u->tok_type))
 	{
@@ -873,7 +831,7 @@ static Tree* simp_rules(Tree* u, map* v)
 
 /* symbolic simplify */
 
-Tree* simplify_integer_power(Tree* v, Tree* w)
+static Tree* simplify_integer_power(Tree* v, Tree* w)
 {
 	if (v->gtype < VAR || (3 == count_tree_nodes(v) && v->tok_type == DIVID && v->tleft->gtype < VAR && v->tright->gtype < VAR))
 		return simplify_RNE(join(v, w, fnc[POW].ex));
@@ -1060,7 +1018,7 @@ static map merge(map p, map q, token tk)
 		q = pop_front_map(q);
 		map L = push_front_map(merge(p, q, tk), h->begin->data);
 		h = clear_map(h);
-		return (tk == PROD) ? L : simplify_oper_rec(L, tk);
+		return simplify_oper_rec(L, tk);
 	}
 	if (tree_compare(h->begin->data, p1))
 		p = pop_front_map(p);
@@ -1280,6 +1238,12 @@ Tree* simplify(Tree* u)
 			Tree* tr = simplify(join(clone(u->tleft->tleft), join(new_tree("1"), new_tree("2"), fnc[DIVID].ex), fnc[POW].ex));
 			clean_tree(u);
 			return join(tr, new_tree(fnc[IMAGE].ex), fnc[PROD].ex);
+		}
+		if (!strcmp(u->tleft->value, "0"))
+		{
+			Tree* tr = u->tleft;
+			clean_noeud(u);
+			return tr;
 		}
 		Tree* tr = simplify(join(clone(u->tleft), join(new_tree("1"), new_tree((tk == SQRT_F) ? "2" : "3"), fnc[DIVID].ex), fnc[POW].ex));
 		clean_tree(u);
@@ -1523,7 +1487,7 @@ Tree* rationalize_expression(Tree* u)
 	return clone(u);
 }
 
-Tree* contract_exp_rules(Tree* u)
+static Tree* contract_exp_rules(Tree* u)
 {
 	Tree* v = expand_main_op(u);
 	if (v->tok_type == POW && v->tleft->tok_type == EXP_F)
@@ -1594,7 +1558,7 @@ static Tree* contract_exp(Tree* u)
 	return clone(u);
 }
 
-Tree* expand_exp_rules(Tree* u)
+static Tree* expand_exp_rules(Tree* u)
 {
 	token tk = u->tok_type;
 	if (tk == LN_F)
@@ -1685,7 +1649,7 @@ static Tree* contract_ln(Tree* u)
 	return clone(u);
 }
 
-Tree* expand_ln_rules(Tree* u)
+static Tree* expand_ln_rules(Tree* u)
 {
 	if (u->tok_type == EXP_F)
 		return clone(u->tleft);
@@ -1747,17 +1711,21 @@ static Tree* absolute_value(Tree* u)
 		{
 			Tree* tmp = absolute_value(item->data);
 			if (tmp->tok_type == ABS_F)
+			{
 				s = simplify(join(s, tmp->tleft, fnc[PROD].ex));
+				clean_noeud(tmp);
+			}
 			else
 				r = simplify(join(r, tmp, fnc[PROD].ex));
 			item = item->next;
 		}
+		L = clear_map(L);
 		return join(r, join(s, NULL, fnc[ABS_F].ex), fnc[PROD].ex);
 	}
 	if (u->tok_type == ADD && found_element(u, fnc[IMAGE].ex))
 	{
 		map cf = polycoeffs(u, fnc[IMAGE].ex);
-		Tree* a = join(join(clone(cf->begin->data), new_tree("2"), fnc[POW].ex), join(clone(cf->end->data), new_tree("2"), fnc[POW].ex), fnc[ADD].ex);
+		Tree* a = simplify(join(join(clone(cf->begin->data), new_tree("2"), fnc[POW].ex), join(clone(cf->end->data), new_tree("2"), fnc[POW].ex), fnc[ADD].ex));
 		cf = clear_map(cf);
 		return simplify(join(a, NULL, fnc[SQRT_F].ex));
 	}
@@ -1767,14 +1735,14 @@ static Tree* absolute_value(Tree* u)
 Tree* Contract_pow(Tree* v)
 {
 	token tk = v->tok_type;
-	if (tk == ADD || tk == POW)
+	if (tk == ADD || tk == DIVID || tk == POW)
 	{
 		v->tleft = Contract_pow(v->tleft);
 		if (tk != POW)
 			v->tright = Contract_pow(v->tright);
 		return v;
 	}
-	else if (tk == PROD || tk == DIVID)
+	else if (tk == PROD)
 	{
 		map L = map_create(v), q = NULL, s = NULL, p = NULL;
 		clean_tree(v);
@@ -1783,11 +1751,10 @@ Tree* Contract_pow(Tree* v)
 		{
 			if (((Tree*)item->data)->tok_type == POW)
 			{
-				int index = -1;
+				bool found = false;
 				if (q != NULL)
 				{
 					mapCell* tmp = q->begin, * tmp1 = s->begin;
-					index = 1;
 					while (tmp != NULL)
 					{
 						if (tree_compare(tmp->data, ((Tree*)item->data)->tright))
@@ -1795,14 +1762,14 @@ Tree* Contract_pow(Tree* v)
 							tmp1->data = join(tmp1->data, clone(((Tree*)item->data)->tleft), fnc[PROD].ex);
 							if (RT_SIMP)
 								tmp1->data = simplify(tmp1->data);
+							found = true;
 							break;
 						}
-						index++;
 						tmp = tmp->next;
 						tmp1 = tmp1->next;
 					}
 				}
-				if (index == -1 || index > q->length)
+				if (!found)
 				{
 					q = push_back_map(q, ((Tree*)item->data)->tright);
 					s = push_back_map(s, ((Tree*)item->data)->tleft);
@@ -1854,7 +1821,7 @@ bool ismonomial(Tree* u, const char* x)
 	return (!strcmp(u->value, x) || !found_element(u, x));
 }
 
-Tree* degree_monomial_sv(Tree* u, const char* x)
+static Tree* degree_monomial_sv(Tree* u, const char* x)
 {
 	if (!strcmp(u->value, "0"))
 		return join(new_tree("1"), NULL, fnc[NEGATIF].ex);
@@ -1961,6 +1928,32 @@ Tree* polyreconstitute(map* Li, const char* x)
 	return u;
 }
 
+
+static bool iszero(map Li)
+{
+	Cell* celdivd = Li->begin;
+	while (celdivd != NULL)
+	{
+		if (strcmp(((Tree*)celdivd->data)->value, "0"))
+			return false;
+		celdivd = celdivd->next;
+	}
+	return true;
+}
+
+static map remain(map divr, map divd, Tree* a)
+{
+	mapCell* t = divr->begin, * celdivd = divd->begin;
+	while (t != NULL)
+	{
+		Tree* s = join(clone(a), clone(t->data), fnc[PROD].ex);
+		celdivd->data = simplify(join(celdivd->data, s, fnc[SUB].ex));
+		t = t->next;
+		celdivd = celdivd->next;
+	}
+	return divd;
+}
+
 map polynomial_division(map* divd, map* divr, map* rem)
 {
 	map quot = NULL;
@@ -1970,30 +1963,12 @@ map polynomial_division(map* divd, map* divr, map* rem)
 	while ((*divd)->length >= (*divr)->length)
 	{
 		a = simplify(join(clone((*divd)->begin->data), clone((*divr)->begin->data), fnc[DIVID].ex));
-		mapCell* t = (*divr)->begin, * celdivd = (*divd)->begin;
-		while (t != NULL)
-		{
-			Tree* s = join(clone(a), clone(t->data), fnc[PROD].ex);
-			celdivd->data = simplify(join(celdivd->data, s, fnc[SUB].ex));
-			t = t->next;
-			celdivd = celdivd->next;
-		}
+		*divd = remain(*divr, *divd, a);
 		quot = push_back(quot, a);
-		bool z = true;
 		(*divd) = pop_front_map(*divd);
 		if ((*divd) == NULL)
 			break;
-		celdivd = (*divd)->begin;
-		while (celdivd != NULL)
-		{
-			if (strcmp(((Tree*)celdivd->data)->value, "0"))
-			{
-				z = false;
-				break;
-			}
-			celdivd = celdivd->next;
-		}
-		if (z && (*divd) != NULL)
+		if (iszero(*divd))
 		{
 			for (int i = 1; i < (*divd)->length - (*divr)->length; ++i)
 				quot = push_back(quot, new_tree("0"));

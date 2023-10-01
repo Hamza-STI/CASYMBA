@@ -20,7 +20,6 @@
 	int is_int(Tree* u);
 	bool isdemi(Tree* tr);
 	long long int factoriel(int a);
-	Tree* trigo_identify(const char* s, token tk);
 	Tree* PGCD(Tree* A, Tree* B);
 	Tree* pow_transform(Tree* u);
 
@@ -28,8 +27,6 @@
 
 	Tree* numerator_fun(Tree* u);
 	Tree* denominator_fun(Tree* u);
-	Tree* base(Tree* u);
-	Tree* exponent(Tree* u);
 	Tree* expand(Tree* tr);
 	Tree* factorn(int val);
 
@@ -58,6 +55,6 @@
 	map poly_gcd(map u, map v);
 	Tree* poly_simp(map u, map v, const char* x);
 
-	typedef Tree* (*TreeOperation)(const char*, const char*);
+	typedef Number (NumberOperation)(Number, Number);
 
 #endif

@@ -19,7 +19,7 @@
 #define AMOUNT_INTEGRAL_INVTRIG 39
 #define AMOUNT_INTEGRAL_COSH 22
 #define AMOUNT_INTEGRAL_SINH 18
-#define AMOUNT_INTEGRAL_TRIGH 32
+#define AMOUNT_INTEGRAL_TRIGH 31
 #define AMOUNT_INTEGRAL_INVTRIGH 30
 
 typedef struct FunctionFlags
@@ -38,7 +38,7 @@ typedef struct FunctionFlags
 
 typedef struct Integral
 {
-    const char* from; 
+    const char* from;
     const char* to;
     const char* condition;
 } Integral;

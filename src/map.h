@@ -23,5 +23,7 @@
 	map map_remplace(map L, int pos, Tree* tr);
 	map push_back_map_if(map li, Tree* arb, Tree* tr);
 
+    typedef map (ProcessFunction)(map, Tree*);
+
 #endif
 

@@ -34,7 +34,7 @@
 		struct Cell* begin;
 		struct Cell* end;
 	} *List;
-	
+
 	typedef List DList;
 
 	/* fonctions génériques */

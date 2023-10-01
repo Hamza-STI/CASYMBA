@@ -15,24 +15,6 @@ map push_back_map(map li, Tree* arb)
 	return push_back(li, clone(arb));
 }
 
-map push_back_map_if(map li, Tree* arb, Tree* tr)
-{
-	if (li == NULL)
-	{
-		li = push_back_map(push_back_map(li, arb), tr);
-		return li;
-	}
-	mapCell* tmp = li->begin;
-	while (tmp != NULL)
-	{
-		if (tree_compare(arb, ((Tree*)tmp->data)))
-			return li;
-		tmp = tmp->next->next;
-	}
-	li = push_back_map(push_back_map(li, arb), tr);
-	return li;
-}
-
 map pop_back_map(map li)
 {
 	return pop_back(li, free_tree_ptr);
@@ -72,12 +54,29 @@ map map_create(Tree* tr)
 	return L;
 }
 
-map process_prod(map li, Tree* tr)
+static map process_prod(map li, Tree* tr)
 {
-	Tree* r = join(new_tree("1"), NULL, fnc[NEGATIF].ex);
-	Tree* s = join(clone(tr), r, fnc[POW].ex);
-	li = push_front(li, s);
-	return li;
+	if (tr->tok_type == DIVID)
+		return push_front(push_front_map(li, tr->tright), join(clone(tr->tleft), join(new_tree("1"), NULL, fnc[NEGATIF].ex), fnc[POW].ex));
+	return push_front(li, join(clone(tr), join(new_tree("1"), NULL, fnc[NEGATIF].ex), fnc[POW].ex));
+}
+
+static map process_add(map li, Tree* tr)
+{
+	if (tr->tok_type == NEGATIF)
+		return push_front_map(li, tr->tleft);
+	else if (tr->tleft != NULL && tr->tleft->tok_type == NEGATIF && !strcmp(tr->tleft->tleft->value, "1"))
+		return push_front_map(li, tr->tright);
+	else if (isconstant(tr) && strcmp(tr->value, "0"))
+        return push_front(li, join(clone(tr), NULL, fnc[NEGATIF].ex));
+	return push_front(li, join(join(new_tree("1"), NULL, fnc[NEGATIF].ex), clone(tr), fnc[PROD].ex));
+}
+
+static map process_op(map li, Tree* tr, token oper, token tok, ProcessFunction* fprocess)
+{
+	if (oper == tok)
+		return fprocess(li, tr);
+	return push_front_map(li, tr);
 }
 
 map map_create_prod(Tree* tr)
@@ -92,41 +91,16 @@ map map_create_prod(Tree* tr)
 			mapCell* tmp_T = T->begin;
 			while (tmp_T != NULL)
 			{
-				if (tmp->tok_type == DIVID)
-					li = process_prod(li, tmp_T->data);
-				else
-					li = push_front_map(li, tmp_T->data);
+				li = process_op(li, tmp_T->data, tmp->tok_type, DIVID, process_prod);
 				tmp_T = tmp_T->next;
 			}
 			T = clear_map(T);
 		}
-		else if (tmp->tok_type == DIVID)
-			li = process_prod(li, tmp->tright);
 		else
-			li = push_front_map(li, tmp->tright);
+			li = process_op(li, tmp->tright, tmp->tok_type, DIVID, process_prod);
 		tmp = tmp->tleft;
 	}
 	li = push_front_map(li, tmp);
-	return li;
-}
-
-map process_add(map li, Tree* tr)
-{
-	if (tr->tok_type == NEGATIF)
-		li = push_front_map(li, tr->tleft);
-	else if (tr->tleft != NULL && tr->tleft->tok_type == NEGATIF && !strcmp(tr->tleft->tleft->value, "1"))
-		li = push_front_map(li, tr->tright);
-	else if (isconstant(tr) && strcmp(tr->value, "0"))
-	{
-		Tree* r = join(clone(tr), NULL, fnc[NEGATIF].ex);
-		li = push_front(li, r);
-	}
-	else
-	{
-		Tree* r = join(new_tree("1"), NULL, fnc[NEGATIF].ex);
-		Tree* s = join(r, clone(tr), fnc[PROD].ex);
-		li = push_front(li, s);
-	}
 	return li;
 }
 
@@ -142,19 +116,13 @@ map map_create_add(Tree* tr)
 			mapCell* tmp_T = T->begin;
 			while (tmp_T != NULL)
 			{
-				Tree* tr_tmp = (Tree*)tmp_T->data;
-				if (tmp->tok_type == SUB)
-					li = process_add(li, tr_tmp);
-				else
-					li = push_front_map(li, tr_tmp);
+				li = process_op(li, tmp_T->data, tmp->tok_type, SUB, process_add);
 				tmp_T = tmp_T->next;
 			}
 			T = clear_map(T);
 		}
-		else if (tmp->tok_type == SUB)
-			li = process_add(li, tmp->tright);
 		else
-			li = push_front_map(li, tmp->tright);
+			li = process_op(li, tmp->tright, tmp->tok_type, SUB, process_add);
 		tmp = tmp->tleft;
 	}
 	li = push_front_map(li, tmp);

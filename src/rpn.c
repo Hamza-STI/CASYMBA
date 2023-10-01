@@ -609,17 +609,17 @@ string tostr(double t)
 string post2in_common(const char* pleft, const char* pright, const char* oper, bool a, bool b, struct table_token* tb)
 {
 	string tmp = malloc((strlen(pleft) + strlen(pright) + 7) * sizeof(tmp));
-	string tmp1 = malloc((strlen(pleft) + 3) * sizeof(tmp1));
-	if (a)
-		sprintf(tmp1, "%s%s%s%s", tb[PAR_OUVRANT].ex, pleft, tb[PAR_FERMANT].ex, oper);
-	else
-		sprintf(tmp1, "%s%s", pleft, oper);
-	if (b)
-		sprintf(tmp, "%s%s%s%s", tmp1, tb[PAR_OUVRANT].ex, pright, tb[PAR_FERMANT].ex);
-	else
-		sprintf(tmp, "%s%s", tmp1, pright);
-	free(tmp1);
-	return tmp;
+    string tmp1 = malloc((strlen(pleft) + 3) * sizeof(tmp1));
+    if (a)
+        sprintf(tmp1, "%s%s%s%s", tb[PAR_OUVRANT].ex, pleft, tb[PAR_FERMANT].ex, oper);
+    else
+        sprintf(tmp1, "%s%s", pleft, oper);
+    if (b)
+        sprintf(tmp, "%s%s%s%s", tmp1, tb[PAR_OUVRANT].ex, pright, tb[PAR_FERMANT].ex);
+    else
+        sprintf(tmp, "%s%s", tmp1, pright);
+    free(tmp1);
+    return tmp;
 }
 
 List Post2in_rec(Tree* tr, List rec, struct table_token* tb)
@@ -629,9 +629,9 @@ List Post2in_rec(Tree* tr, List rec, struct table_token* tb)
 	{
 		if (tr->tok_type == PI || tr->tok_type == IMAGE)
 			rec = push_back_dlist(rec, tb[tr->tok_type].ex);
-		else if (op == DECIMAL)
+		else
 		{
-			if (tb[EXP_F].length == ti_table[EXP_F].length)
+			if (op == DECIMAL && tb[EXP_F].length == ti_table[EXP_F].length)
 			{
 				size_t t = strlen(tr->value);
 				for (unsigned int i = 0; i < t; ++i)
@@ -640,8 +640,6 @@ List Post2in_rec(Tree* tr, List rec, struct table_token* tb)
 			}
 			rec = push_back_dlist(rec, tr->value);
 		}
-		else
-			rec = push_back_dlist(rec, tr->value);
 		return rec;
 	}
 	if (op == FUNCTION)
@@ -649,7 +647,7 @@ List Post2in_rec(Tree* tr, List rec, struct table_token* tb)
 		rec = Post2in_rec(tr->tleft, rec, tb);
 		if (tr->tok_type == FACTORIEL_F)
 		{
-			string tmp = malloc((strlen((char*)rec->end->data) + tb[tr->tok_type].length + 1) * sizeof(tmp));
+			string tmp = malloc((strlen((char*)rec->end->data) + 3) * sizeof(tmp));
 			if (tr->tleft->gtype == OPERAT)
 				sprintf(tmp, "%s%s%s%s", tb[PAR_OUVRANT].ex, (char*)rec->end->data, tb[PAR_FERMANT].ex, tb[tr->tok_type].ex);
 			else
@@ -666,7 +664,7 @@ List Post2in_rec(Tree* tr, List rec, struct table_token* tb)
 	{
 		token sig = tr->tok_type;
 		rec = Post2in_rec(tr->tright, Post2in_rec(tr->tleft, rec, tb), tb);
-		string pleft = rec->end->back->data, pright = (char*)rec->end->data, oper = tb[(sig == DIVID) ? FRACTION : sig].ex;
+		string pleft = rec->end->back->data, pright = (char*)rec->end->data, oper = tb[(sig == DIVID)? FRACTION : sig].ex;
 		if (ADD < sig && sig <= POW)
 		{
 			bool cond1 = false, cond2 = false;
@@ -808,9 +806,9 @@ double Eval(Tree* tr)
 
 Tree* remplace_tree(Tree* tr, const char* el, Tree* new_el)
 {
-	Tree* av = new_tree(el);
+    Tree* av = new_tree(el);
 	Tree* rp = substitute(tr, av, new_el);
-	clean_tree(av);
+    clean_tree(av);
 	return rp;
 }
 

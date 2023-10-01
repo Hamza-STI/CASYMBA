@@ -947,7 +947,7 @@ struct Integral Integralcosh[] =
 	{ "1/(P+Q*cosh(A*X))^2", "Q*sinh(A*X)/(A*(Q^2-P^2)*(P+Q*cosh(A*X)))-P/(Q^2-P^2)*integral(1/(P+Q*cosh(A*X)),X)", "" },
 	{ "1/(P+Q*cosh(A*X)^2)", "ln((sqrt(P)*tanh(A*X)+sqrt(P+Q))/(sqrt(P)*tanh(A*X)-sqrt(P+Q)))/(2*A*sqrt(P*(P+Q)))", "" },
 	{ "cosh(A*X)/(Q+P*cosh(A*X))", "X/Q-P/Q*integral(1/(P+Q*cosh(A*X)),X)", "" },
-	{ "cosh(C*ln(A*x+B))", "1/(2*A)*(exp((C+1)*ln(A*x+B))/(C+1)+exp((1-C)*ln(A*x+B))/(1-C))", "" }
+	{ "cosh(C*ln(A*X+B))", "1/(2*A)*(exp((C+1)*ln(A*X+B))/(C+1)+exp((1-C)*ln(A*X+B))/(1-C))", "" }
 };
 
 struct Integral Integralsinh[] =
@@ -996,17 +996,16 @@ struct Integral Integraltrigh[] =
 	{ "sinh(A*X)^3/cosh(A*X)^3", "ln(cosh(A*X))/A-sinh(A*X)^2/(2*A*cosh(A*X))", "" },
 	{ "sinh(A*X)/cosh(A*X)^2", "ln(tanh(A*X))/A", "" },
 	{ "X*sinh(A*X)^2/cosh(A*X)^2", "X^2/2-(X*tanh(A*X))/A+1/A^2*ln(cosh(A*X))", "" },
-	{ "1/(P+Q*tanh(A*X))", "(P*X)/(P^2-Q^2)-Q/(A*(P^2-Q^2))*ln(Q*sinh(A*X)+P*cosh(A*X))", "" },
+	{ "cosh(A*X)/(P*cosh(A*X)+Q*sinh(A*X))", "(P*X)/(P^2-Q^2)-Q/(A*(P^2-Q^2))*ln(Q*sinh(A*X)+P*cosh(A*X))", "" },
 	{ "sinh(A*X)^N/cosh(A*X)^N", "~tanh(A*X)^(N-1)/(A*(N-1))+integral(sinh(A*X)^(N-2)/cosh(A*X)^(N-2),X)", "" },
 	/* coth(A*X) */
 	{ "cosh(A*X)/sinh(A*X)", "ln(sinh(A*X))/A", "" },
 	{ "cosh(A*X)^2/sinh(A*X)^2", "X-1/(A*tanh(A*X))", "" },
 	{ "cosh(A*X)/sinh(A*X)^3", "~tanh(A*X)^2/(2*A)", "" },
-	{ "cosh(A*X)^2/sinh(A*X)^4", "~tanh(A*X)^3/(3*A)", "" },
 	{ "cosh(A*X)^N/sinh(A*X)^(N+2)", "~tanh(A*X)^(N+1)/((N+1)*A)", "" },
 	{ "sinh(A*X)^3/cosh(A*X)", "~ln(1/tanh(A*X))/A", "" },
 	{ "X*cosh(A*X)^2/sinh(A*X)^2", "X^2/2-(X/tanh(A*X))/A+1/A^2*ln(sinh(A*X))", "" },
-	{ "cosh(A*X)/(P*cosh(A*X)+Q*sinh(A*X))", "(P*X)/(P^2-Q^2)-Q/(A*(P^2-Q^2))*ln(P*sinh(A*X)+Q*cosh(A*X))", "" },
+	{ "sinh(A*X)/(P*sinh(A*X)+Q*cosh(A*X))", "(P*X)/(P^2-Q^2)-Q/(A*(P^2-Q^2))*ln(P*sinh(A*X)+Q*cosh(A*X))", "" },
 	{ "cosh(A*X)^N/sinh(A*X)^N", "~1/(A*(N-1)*tanh(A*X)^(N-1))+integral(cosh(A*X)^(N-2)/sinh(A*X)^(N-2),X)", "" },
 	{ "sinh(A*X)/cosh(A*X)^N", "~1/(N*A*cosh(A*X)^N)", "" },
 	{ "cosh(A*X)/sinh(A*X)^N", "~1/(N*A*sinh(A*X)^N)", "" }
