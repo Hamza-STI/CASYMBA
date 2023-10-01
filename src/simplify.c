@@ -1697,7 +1697,7 @@ static Tree* absolute_value(Tree* u)
 	if (u->tok_type == DIVID)
 		return join(absolute_value(u->tleft), absolute_value(u->tright), u->value);
 	if (u->tok_type == POW && u->tright->gtype == ENT)
-		return join(absolute_value(u->tleft), u->tright, fnc[POW].ex);
+		return join(absolute_value(u->tleft), clone(u->tright), fnc[POW].ex);
 	if (u->tok_type == IMAGE)
 		return new_tree("1");
 	if (u->tok_type == NEGATIF)
