@@ -536,7 +536,7 @@ static Tree* evaluate_power(Tree* bas, Tree* exposant)
 		tr = new_tree(r.nombre);
 		free(r.nombre);
 		int k = exposant->value[strlen(exposant->value) - 1] - '0';
-		if (k / 2 == (int)(k / 2))
+		if ((double)k / 2 == k / 2)
 			return tr;
 		return join(tr, NULL, fnc[NEGATIF].ex);
 	}
@@ -1927,7 +1927,6 @@ Tree* polyreconstitute(map* Li, const char* x)
 	(*Li) = clear_map(*Li);
 	return u;
 }
-
 
 static bool iszero(map Li)
 {
