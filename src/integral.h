@@ -66,4 +66,4 @@ extern struct Integral Integraltrigh[];
 Tree* diff(Tree* u, const char* x);
 map polycoeffs(Tree* u, const char* x);
 Tree* integral(Tree* f, const char* x);
-Tree* square_free_factor(Tree* u, const char* x);
+Tree* pfactor(map coefs, const char* x);

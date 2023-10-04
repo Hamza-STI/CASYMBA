@@ -169,10 +169,7 @@ static Tree* integral_try_factor(Tree* u, const char* x)
 				clean_tree(a); clean_tree(b); clean_tree(c);
 			}
 			if (coefs->length == 3)
-			{
-				coefs = clear_map(coefs);
-				return square_free_factor(u, x);
-			}
+                return pfactor(coefs, x);
 		}
 		coefs = clear_map(coefs);
 	}
