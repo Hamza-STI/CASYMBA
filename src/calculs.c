@@ -3,52 +3,73 @@
 const char* err_msg[] = { "Err: Args", "Err: No solution", "Err: Args Conditions" };
 List Error = NULL;
 
-static Tree* roots(map coefs, int n, int j)
+static Tree* roots(map coefs, int* n, int i, int* d, int j)
 {
-	int* l = malloc(j * sizeof(int)), pos = 0;
+	int* l = malloc(coefs->length * sizeof(int)), k = 0;
+	Cell* tmp = coefs->begin;
+	while (tmp != NULL)
+	{
+		l[k++] = Eval(tmp->data);
+		tmp = tmp->next;
+	}
+	for (int a = 0; a < i; a++)
+	{
+		double r = 0.0, s = 0.0;
+		for (int b = 0; b < j; b++)
+		{
+			int p = coefs->length - 1;
+			for (int c = 0; c < coefs->length; c++)
+			{
+				r += (double)(l[c] * pow((double)(n[a] / d[b]), p));
+				s += (double)(l[c] * pow((double)(-n[a] / d[b]), p));
+				p--;
+			}
+			if (fabs(r) <= 0.0001 || fabs(s) <= 0.0001)
+			{
+				Tree* sol = simplify(join(new_tree(tostr(n[a])), new_tree(tostr(d[b])), fnc[DIVID].ex));
+				free(n); free(d); free(l);
+				if (r == 0)
+					sol = join(sol, NULL, fnc[NEGATIF].ex);
+				return sol;
+			}
+		}
+	}
+	free(n); free(d); free(l);
+	return  NULL;
+}
+
+static int* factor_list(int n, int* len)
+{
+	int* l = malloc(n * sizeof(int)), pos = 0;
 	for (int i = 1; i <= n; i++)
 		if (n % i == 0)
 			l[pos++] = i;
-	for (int i = 0; i < pos; i++)
-	{
-		Tree* v = new_tree(tostr(l[i])), * w = join(new_tree(tostr(l[i])), NULL, fnc[NEGATIF].ex);
-		Tree* r = new_tree("0"), * s = new_tree("0");
-		Cell* tmp = coefs->begin;
-		int k = coefs->length - 1;
-		while (tmp != NULL)
-		{
-			r = simplify(join(r, join(clone(tmp->data), join(clone(v), new_tree(tostr(k)), fnc[POW].ex), fnc[PROD].ex), fnc[ADD].ex));
-			s = simplify(join(s, join(clone(tmp->data), join(clone(w), new_tree(tostr(k)), fnc[POW].ex), fnc[PROD].ex), fnc[ADD].ex));
-			k--;
-			tmp = tmp->next;
-		}
-		bool a = !strcmp(s->value, "0"), t = !strcmp(r->value, "0");
-		clean_tree(s); clean_tree(r);
-		if (t || a)
-		{
-			free(l);
-			s = clone((a) ? v : w);
-			clean_tree(v); clean_tree(w);
-			return s;
-		}
-		clean_tree(v); clean_tree(w);
-	}
-	free(l);
-	return  NULL;
+	*len = pos;
+	return l;
 }
 
 Tree* pfactor(map coefs, const char* x)
 {
-	Tree* f = simplify(join(clone(coefs->end->data), clone(coefs->begin->data), fnc[DIVID].ex));
-	if (is_int(f) && coefs->length > 2)
+	if (coefs->length > 2)
 	{
-		int k = abs((int)Eval(f));
-		int j = sqrt(k) * 2;
-		Tree* s = roots(coefs, k, j);
-		clean_tree(f);
+		int n = abs((int)Eval(coefs->end->data)), d = abs((int)Eval(coefs->begin->data)), i = 0, j = 0;
+		int* list_n = factor_list(n, &i), * list_d = factor_list(d, &j);
+		Tree* s = roots(coefs, list_n, i, list_d, j);
 		if (s != NULL)
 		{
-			map S = push_back(push_back(NULL, new_tree("1")), s);
+			Tree* denom_s = denominator_fun(s);
+			map S = push_back(NULL, new_tree("1"));
+			if (!strcmp(denom_s->value, "1"))
+			{
+				clean_tree(denom_s);
+				S = push_back(S, s);
+				denom_s = NULL;
+			}
+			else
+			{
+				S = push_back(S, numerator_fun(s));
+				clean_tree(s);
+			}
 			j = 0;
 			map rem = NULL, quot = NULL;
 			map cS = clone_map(S);
@@ -69,6 +90,8 @@ Tree* pfactor(map coefs, const char* x)
 			Tree* w = pfactor(quot, x), * v = polyreconstitute(&S, x);
 			if (j > 1)
 				v = join(v, new_tree(tostr(j)), fnc[POW].ex);
+			if (denom_s != NULL)
+				v = join(denom_s, v, fnc[PROD].ex);
 			if (!strcmp(w->value, "0"))
 			{
 				clean_tree(w);

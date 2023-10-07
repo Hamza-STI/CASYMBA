@@ -1928,6 +1928,7 @@ Tree* polyreconstitute(map* Li, const char* x)
 	return u;
 }
 
+
 static bool iszero(map Li)
 {
 	Cell* celdivd = Li->begin;
