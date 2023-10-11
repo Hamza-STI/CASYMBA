@@ -1,11 +1,5 @@
 #include "rpn.h"
 
-/* private functions */
-static int opless(const char* a, const char* b);
-static int prior(const char* s);
-static int nparts(List rpn);
-static List Parts(List rpn, int nb);
-
 struct table_token ti_table[AMOUNT_TOKEN] =
 {
 	{{0}, 0}, {{0}, 0}, {{0}, 0}, {{0x2C}, 1}, {{0xAC}, 1},  {{0x0C}, 1}, {{0x0D}, 1}, {{0x0F}, 1},
@@ -64,22 +58,22 @@ bool is_negation(Tree* u)
 	return false;
 }
 
-int isconstant(Tree* tr)
+bool isconstant(Tree* tr)
 {
 	optype op = tr->gtype;
 	if (op == ENT || op == DECIMAL)
-		return 1;
+		return true;
 	if (tr->tok_type == FACTORIEL_F || op == NEGATION || tr->tok_type == ABS_F)
 		return isconstant(tr->tleft);
 	if (op == VAR || op == FUNCTION)
-		return 0;
+		return false;
 	if (tr->tok_type == POW)
 	{
 		if (is_negation(tr->tleft) && tr->tright->gtype != ENT)
-			return 0;
+			return false;
 		if (tr->tright->gtype <= ENT || (tr->tright->tok_type == NEGATIF && tr->tright->tleft->gtype == ENT))
 			return isconstant(tr->tleft);
-		return 0;
+		return false;
 	}
 	return isconstant(tr->tleft) && isconstant(tr->tright);
 }
@@ -96,7 +90,20 @@ bool is_symbolic(Tree* tr)
 	return is_symbolic(tr->tleft) && is_symbolic(tr->tright);
 }
 
-List Parts(List rpn, int nb)
+bool isfn(const char* s)
+{
+	return ((isvar(s[0]) && s[strlen(s) - 1] == '(') || s[0] == '!');
+}
+
+static int nparts(List rpn)
+{
+	token tk = tokens(rpn->end->data, fnc);
+	if (ADD <= tk && tk <= LOGIC_OR)
+		return 2;
+	return (NEGATIF <= tk && tk < AMOUNT_TOKEN) || isfn(rpn->end->data);
+}
+
+static List Parts(List rpn, int nb)
 {
 	int i = 1, n = rpn->length;
 	int k = n;
@@ -112,20 +119,7 @@ List Parts(List rpn, int nb)
 	return dlist_sub(rpn, k, n - k);
 }
 
-int isfn(const char* s)
-{
-	return ((isvar(s[0]) && s[strlen(s) - 1] == '(') || s[0] == '!');
-}
-
-int nparts(List rpn)
-{
-	token tk = tokens(rpn->end->data, fnc);
-	if (ADD <= tk && tk <= LOGIC_OR)
-		return 2;
-	return (NEGATIF <= tk && tk < AMOUNT_TOKEN) || isfn(rpn->end->data);
-}
-
-int prior(const char* s)
+static int prior(const char* s)
 {
 	token ch = tokens(s, fnc);
 	if ((NEGATIF < ch && ch < AMOUNT_TOKEN) || isfn(s))
@@ -149,26 +143,26 @@ int prior(const char* s)
 	return (ch == PAR_FERMANT || ch == PAR_OUVRANT);
 }
 
-int cisop(char ch)
+static bool cisop(char ch)
 {
 	return strchr("+-/*^=><()~,!", ch) != NULL && ch != '\0';
 }
 
-int isop(const char* s)
+static bool isop(const char* s)
 {
 	if (!strcmp(s, "and") || !strcmp(s, "or"))
-		return 1;
+		return true;
 	return cisop(s[0]);
 }
 
-int opless(const char* a, const char* b)
+static bool opless(const char* a, const char* b)
 {
 	if (a[0] != '~' && a[0] != '^')
 		return prior(a) <= prior(b);
 	return prior(a) < prior(b);
 }
 
-List parse(const uint8_t* ex, unsigned k, bool ce_parse)
+static List parse(const uint8_t* ex, unsigned k, bool ce_parse)
 {
 	List result = NULL;
 	char temp[TAILLE_MAX] = { 0 }, chr[3] = { 0 };
@@ -606,7 +600,7 @@ string tostr(double t)
 	return ex;
 }
 
-string post2in_common(const char* pleft, const char* pright, const char* oper, bool a, bool b, struct table_token* tb)
+static string post2in_common(const char* pleft, const char* pright, const char* oper, bool a, bool b, struct table_token* tb)
 {
 	string tmp = malloc((strlen(pleft) + strlen(pright) + 7) * sizeof(tmp));
     string tmp1 = malloc((strlen(pleft) + 3) * sizeof(tmp1));
@@ -622,7 +616,7 @@ string post2in_common(const char* pleft, const char* pright, const char* oper, b
     return tmp;
 }
 
-List Post2in_rec(Tree* tr, List rec, struct table_token* tb)
+static List Post2in_rec(Tree* tr, List rec, struct table_token* tb)
 {
 	optype op = tr->gtype;
 	if (op <= VAR)
@@ -819,10 +813,10 @@ Tree* remplace_var(Tree* u, const char* v, Tree* w)
 	return y;
 }
 
-int tree_compare(Tree* tr1, Tree* tr2)
+bool tree_compare(Tree* tr1, Tree* tr2)
 {
 	if (count_tree_nodes(tr1) != count_tree_nodes(tr2))
-		return 0;
+		return false;
 	token op1 = tr1->tok_type, op2 = tr2->tok_type;
 	if (op1 == op2)
 	{
@@ -837,7 +831,7 @@ int tree_compare(Tree* tr1, Tree* tr2)
 			return tree_compare(tr1->tleft, tr2->tleft) && tree_compare(tr1->tright, tr2->tright);
 		}
 	}
-	return 0;
+	return false;
 }
 
 Tree* clone(Tree* tr)

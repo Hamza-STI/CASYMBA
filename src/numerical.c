@@ -11,7 +11,7 @@ void free_Number(Number nbr)
 	free(nbr.nombre);
 }
 
-void zero_untile(char* a)
+static void zero_untile(char* a)
 {
 	int len_a = strlen(a);
 	int i = 0, k = len_a - 1, pos = 0;
@@ -44,7 +44,7 @@ static bool greater(const char* a, const char* b)
 	return false;
 }
 
-char* new_value(const char* a, unsigned size_int_a, unsigned size_dec_a, unsigned new_size_int, unsigned new_size_dec)
+static char* new_value(const char* a, unsigned size_int_a, unsigned size_dec_a, unsigned new_size_int, unsigned new_size_dec)
 {
 	int k = strlen(a);
 	if (k == (int)(new_size_int + new_size_dec))
@@ -193,7 +193,7 @@ Number prod(Number left, Number right)
 	return create(1, ret);
 }
 
-int divid_quot(Number denom, char* tmp)
+static int divid_quot(Number denom, char* tmp)
 {
 	int k;
 	for (k = 1; k < 10; k++)
@@ -361,7 +361,7 @@ Number Exponentiel(Number x)
 		Number a = divid(puissance, denom), b = prod(puissance, x);
 		memset(terme, 0, 50 * sizeof(char));
 		strcpy(terme, b.nombre);
-		Number c = (x.signe == -1 && (int)(i / 2) != (i / 2)) ? sub(rst, a) : add(rst, a);
+		Number c = (x.signe == -1 && (i % 2)) ? sub(rst, a) : add(rst, a);
 		memset(resultat, 0, 50 * sizeof(char));
 		strcpy(resultat, c.nombre);
 		free_Number(a); free_Number(b); free_Number(c); free_Number(rst); free_Number(denom); free_Number(puissance);
@@ -384,7 +384,7 @@ Number Logarithme(Number x)
 		Number a = divid(puissance, c);
 		free_Number(c);
 		c = create(1, resultat);
-		Number s = (i / 2 == (int)(i / 2)) ? add(c, a) : sub(c, a);
+		Number s = (!(i % 2)) ? add(c, a) : sub(c, a);
 		memset(resultat, 0, 50 * sizeof(char));
 		strcpy(resultat, s.nombre);
 		free_Number(a); free_Number(c); free_Number(s); free_Number(puissance);

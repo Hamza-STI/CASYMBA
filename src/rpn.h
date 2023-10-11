@@ -74,14 +74,13 @@
 	Tree* to_tree(List list);
 	int found_element(Tree* tr, const char* elt);
 
-	int isop(const char* s);
 	List In2post2(const char* ex);
 	List In2post(const uint8_t* ex, unsigned str_len);
 	string Post2in(Tree* tr, struct table_token* tb);
 	int tokens(const char* s, struct table_token* w);
 
 	double Eval(Tree* tr);
-	int isconstant(Tree* tr);
+	bool isconstant(Tree* tr);
 	bool is_negation(Tree* u);
     bool is_symbolic(Tree* tr);
 	double tonumber(const char* ex);
@@ -90,7 +89,7 @@
 	Tree* remplace_tree(Tree* tr, const char* el, Tree* new_el);
 	Tree* remplace_var(Tree* tr, const char* el, Tree* new_el);
 	Tree* substitute(Tree* tr, Tree* av, Tree* ap);
-	int   tree_compare(Tree* tr1, Tree* tr2);
+	bool   tree_compare(Tree* tr1, Tree* tr2);
 	Tree* clone(Tree* tr);
 	int nb_operand(Tree* tr);
 	Tree* operand(Tree* tr, int i);

@@ -42,7 +42,7 @@ static int* factor_list(int n, int* len)
 {
 	int* l = malloc(n * sizeof(int)), pos = 0;
 	for (int i = 1; i <= n; i++)
-		if (n % i == 0)
+		if (!(n % i))
 			l[pos++] = i;
 	*len = pos;
 	return l;
@@ -348,7 +348,7 @@ static Tree* poly_solution_2(Tree* a, Tree* b, Tree* c, Tree* part, const char* 
 
 static Tree* exp_solution_2(Tree* a, Tree* b, Tree* c, const char* x, Tree* dg, Tree* part, Tree* part_exp, Tree* r)
 {
-	Tree* u = NULL, * v = NULL, * Pl = NULL;
+	Tree* u = NULL, * v = NULL;
 	if (!strcmp(a->value, "0"))
 	{
 		u = b;
@@ -359,8 +359,7 @@ static Tree* exp_solution_2(Tree* a, Tree* b, Tree* c, const char* x, Tree* dg, 
 		u = simplify(join(join(join(new_tree("2"), clone(a), fnc[PROD].ex), clone(r), fnc[PROD].ex), clone(b), fnc[ADD].ex));
 		v = simplify(join(join(join(clone(a), join(clone(r), new_tree("2"), fnc[POW].ex), fnc[PROD].ex), join(b, r, fnc[PROD].ex), fnc[ADD].ex), c, fnc[ADD].ex));
 	}
-	Pl = poly_solution_2(a, u, v, part, x, dg);
-	return join(Pl, part_exp, fnc[PROD].ex);
+	return join(poly_solution_2(a, u, v, part, x, dg), part_exp, fnc[PROD].ex);
 }
 
 static Tree* trig_solution_2(Tree* a, Tree* b, Tree* c, const char* x, Tree* dg, Tree* part, Tree* part1, Tree* trig, Tree* trig1)
@@ -404,9 +403,8 @@ static Tree* solve_exact_2(Tree* a, Tree* b, Tree* c, Tree* f, map S, const char
 {
 	if (!found_element(f, x))
 	{
-		Tree* q = simplify(join(f, c, fnc[DIVID].ex));
 		clean_tree(a); clean_tree(b);
-		return q;
+		return simplify(join(f, c, fnc[DIVID].ex));
 	}
 	if (ispoly(f, x))
 	{
@@ -453,9 +451,9 @@ static Tree* solve_exact_2(Tree* a, Tree* b, Tree* c, Tree* f, map S, const char
 			if (f->tok_type == PROD && (f->tleft->tok_type == ADD || f->tleft->tok_type == SUB || f->tright->tok_type == ADD || f->tright->tok_type == SUB))
 			{
 				TRIG_EXPAND = false;
-				Tree* F = expand(f), * p = f->parent;
+				Tree* F = simplify(expand(f)), * p = f->parent;
 				clean_tree(f);
-				f = simplify(F);
+				f = F;
 				f->parent = p;
 			}
 			if (f->tok_type == ADD || f->tok_type == SUB)

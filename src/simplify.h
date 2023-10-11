@@ -16,8 +16,8 @@
 		const char* tan_value;
 	} Trigo_value;
 
-	int ispoly(Tree* u, const char* vr);
-	int is_int(Tree* u);
+	bool ispoly(Tree* u, const char* vr);
+	bool is_int(Tree* u);
 	bool isdemi(Tree* tr);
 	long long int factoriel(int a);
 	Tree* PGCD(Tree* A, Tree* B);

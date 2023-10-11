@@ -51,7 +51,7 @@ static Tree* expand_ln(Tree* u);
 static map merge(map p, map q, token tk);
 static Tree* absolute_value(Tree* u);
 
-int ispoly(Tree* u, const char* vr)
+bool ispoly(Tree* u, const char* vr)
 {
 	token tk = u->tok_type;
 	if (tk == NEGATIF)
@@ -67,7 +67,7 @@ int ispoly(Tree* u, const char* vr)
 	return (u->gtype <= VAR);
 }
 
-int is_int(Tree* u)
+bool is_int(Tree* u)
 {
 	if (u->tok_type == NEGATIF)
 		return is_int(u->tleft);
@@ -298,33 +298,27 @@ Tree* expand_main_op(Tree* u)
 	return clone(u);
 }
 
-static int ordre_tree1(Tree* u, Tree* v)
+static bool clear_and_return(map* p, map* q, bool k)
+{
+    *p = clear_map(*p);
+    *q = clear_map(*q);
+    return k;
+}
+
+static bool ordre_tree1(Tree* u, Tree* v)
 {
 	map p = map_create(u), q = map_create(v);
 	if (!tree_compare(p->end->data, q->end->data))
-	{
-		int k = ordre_tree(p->end->data, q->end->data);
-		p = clear_map(p);
-		q = clear_map(q);
-		return k;
-	}
+        return clear_and_return(&p, &q, ordre_tree(p->end->data, q->end->data));
 	mapCell* tmp = p->end, * tmp1 = q->end;
 	while (tmp != NULL && tmp1 != NULL)
 	{
 		if (!tree_compare(tmp->data, tmp1->data))
-		{
-			int k = ordre_tree(tmp->data, tmp1->data);
-			p = clear_map(p);
-			q = clear_map(q);
-			return k;
-		}
+            return clear_and_return(&p, &q, ordre_tree(tmp->data, tmp1->data));
 		tmp = tmp->back;
 		tmp1 = tmp1->back;
 	}
-	int k = p->length < q->length;
-	p = clear_map(p);
-	q = clear_map(q);
-	return k;
+    return clear_and_return(&p, &q, p->length < q->length);
 }
 
 static bool ordre_tree2(Tree* u, Tree* v)

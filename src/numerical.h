@@ -10,7 +10,6 @@ typedef struct Number
 
 Number create(int signe, const char* nbr);
 void free_Number(Number nbr);
-void zero_untile(char* a);
 Number sub(Number left, Number right);
 Number add(Number left, Number right);
 Number prod(Number left, Number right);
