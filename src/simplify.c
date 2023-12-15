@@ -1119,7 +1119,8 @@ static map simplify_oper_rec(map L, token tk)
 			}
 			if (u1->tok_type == EXP_F && u2->tok_type == EXP_F)
 			{
-				L = push_back(clear_map(L), simplify(join(join(clone(u1->tleft), clone(u2->tleft), fnc[ADD].ex), NULL, fnc[EXP_F].ex)));
+				Tree* s = simplify(join(join(clone(u1->tleft), clone(u2->tleft), fnc[ADD].ex), NULL, fnc[EXP_F].ex));
+				L = push_back(clear_map(L), s);
 				return L;
 			}
 		}
