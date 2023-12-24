@@ -1030,6 +1030,17 @@ static map simplify_sum_fct(Tree* u1, Tree* u2)
 	clean_tree(v); clean_tree(x);
 	if (ALG_EXPAND && (i || k))
 		return push_back(NULL, rationalize_sum(u1, u2, fnc[ADD].ex));
+	token tok_u1 = u1->tok_type, tok_u2 = u2->tok_type;
+	if (tok_u1 == tok_u2 && (LN_F == tok_u1 || LOG_F == tok_u1))
+	{
+		Tree* w = join(simplify(join(clone(u1->tleft), clone(u2->tleft), fnc[PROD].ex)), NULL, u2->value);
+		return push_back(NULL, w);
+	}
+	if (tok_u1 == tok_u2 && tok_u1 == LOGBASE_F && tree_compare(u1->tleft->tright, u2->tleft->tright))
+	{
+		Tree* w = join(join(simplify(join(clone(u1->tleft->tleft), clone(u2->tleft->tleft), fnc[PROD].ex)), clone(u1->tleft->tright), fnc[SEPARATEUR].ex), NULL, u2->value);
+		return push_back(NULL, w);
+	}
 	map map_u1 = map_create_prod(u1), map_u2 = map_create_prod(u2);
 	Tree* fact_com = new_tree("1");
 	mapCell* tmp0 = map_u1->begin, * tmp1 = NULL;
@@ -1068,13 +1079,6 @@ static map simplify_sum_fct(Tree* u1, Tree* u2)
 	clean_tree(fact_com);
 	map_u1 = clear_map(map_u1);
 	map_u2 = clear_map(map_u2);
-	if (found_element(u1, fnc[LN_F].ex) > 0 && found_element(u2, fnc[LN_F].ex) > 0)
-	{
-		v = join(clone(u1), clone(u2), fnc[ADD].ex);
-		Tree* w = contract_ln(v);
-		clean_tree(v);
-		return push_back(NULL, w);
-	}
 	return push_back_map(push_back_map(NULL, u1), u2);
 }
 
