@@ -363,7 +363,7 @@ bool ordre_tree(Tree* u, Tree* v)
 	if (u->tok_type == POW && v->tok_type != POW)
 		return ordre_tree2(u, v);
 	if (u->tok_type != POW && v->tok_type == POW)
-		return ordre_tree2(v, u);
+		return !ordre_tree2(v, u);
 	return false;
 }
 
@@ -1030,17 +1030,17 @@ static map simplify_sum_fct(Tree* u1, Tree* u2)
 	clean_tree(v); clean_tree(x);
 	if (ALG_EXPAND && (i || k))
 		return push_back(NULL, rationalize_sum(u1, u2, fnc[ADD].ex));
-	token tok_u1 = u1->tok_type, tok_u2 = u2->tok_type;
-	if (tok_u1 == tok_u2 && (LN_F == tok_u1 || LOG_F == tok_u1))
-	{
-		Tree* w = join(simplify(join(clone(u1->tleft), clone(u2->tleft), fnc[PROD].ex)), NULL, u2->value);
-		return push_back(NULL, w);
-	}
-	if (tok_u1 == tok_u2 && tok_u1 == LOGBASE_F && tree_compare(u1->tleft->tright, u2->tleft->tright))
-	{
-		Tree* w = join(join(simplify(join(clone(u1->tleft->tleft), clone(u2->tleft->tleft), fnc[PROD].ex)), clone(u1->tleft->tright), fnc[SEPARATEUR].ex), NULL, u2->value);
-		return push_back(NULL, w);
-	}
+    token tok_u1 = u1->tok_type, tok_u2 = u2->tok_type;
+    if (tok_u1 == tok_u2 && (LN_F == tok_u1 || LOG_F == tok_u1))
+    {
+        Tree* w = join(simplify(join(clone(u1->tleft), clone(u2->tleft), fnc[PROD].ex)), NULL, u2->value);
+        return push_back(NULL, w);
+    }
+    if (tok_u1 == tok_u2 && tok_u1 == LOGBASE_F && tree_compare(u1->tleft->tright, u2->tleft->tright))
+    {
+        Tree* w = join(join(simplify(join(clone(u1->tleft->tleft), clone(u2->tleft->tleft), fnc[PROD].ex)), clone(u1->tleft->tright), fnc[SEPARATEUR].ex), NULL, u2->value);
+        return push_back(NULL, w);
+    }
 	map map_u1 = map_create_prod(u1), map_u2 = map_create_prod(u2);
 	Tree* fact_com = new_tree("1");
 	mapCell* tmp0 = map_u1->begin, * tmp1 = NULL;
@@ -1103,17 +1103,19 @@ static map simplify_oper_rec(map L, token tk)
 			L = push_back(L, p);
 			return L;
 		}
-		if (!strcmp(u1->value, nb) || !strcmp(u2->value, nb))
+		if (!strcmp(u1->value, nb))
 		{
-			if (!strcmp(u1->value, nb))
-				L = pop_front_map(L);
-			else
-				L = pop_back_map(L);
+			L = pop_front_map(L);
 			return L;
 		}
+        if (!strcmp(u2->value, nb))
+        {
+            L = pop_back_map(L);
+			return L;
+        }
 		if (tk == PROD)
 		{
-			if (tree_compare(base(u1), base(u2)))
+			if (tree_compare(base(u1), base(u2)) && !isconstant(u1) && !isconstant(u2))
 			{
 				Tree* s = simplify(join(clone(base(u1)), join(exponent(u1), exponent(u2), fnc[ADD].ex), fnc[POW].ex));
 				L = clear_map(L);
@@ -1123,7 +1125,12 @@ static map simplify_oper_rec(map L, token tk)
 			}
 			if (u1->tok_type == EXP_F && u2->tok_type == EXP_F)
 			{
-				Tree* s = simplify(join(join(clone(u1->tleft), clone(u2->tleft), fnc[ADD].ex), NULL, fnc[EXP_F].ex));
+				L = push_back(clear_map(L), s);
+				return L;
+			}
+			if (u1->tok_type == POW && u2->tok_type == POW && tree_compare(u1->tright, u2->tright) && isconstant(u1->tleft) && isconstant(u2->tleft))
+			{
+				Tree* s = simplify(join(join(clone(u1->tleft), clone(u2->tleft), fnc[PROD].ex), clone(u1->tright), fnc[POW].ex));
 				L = push_back(clear_map(L), s);
 				return L;
 			}

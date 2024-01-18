@@ -250,25 +250,62 @@ static bool isMatchNode(Tree* Node, Tree* toMatch, const char* x, map* w)
 		clean_tree(c);
 		return a;
 	}
-	if (Node->gtype == toMatch->gtype)
+	if (Node->tok_type == tk && Node->gtype <= VAR)
 		return !strcmp(Node->value, toMatch->value);
+	if (Node->tok_type == tk)
+	{
+		bool a = isMatchNode(Node->tleft, toMatch->tleft, x, w);
+		if (Node->gtype >= OPERAT)
+			return a && isMatchNode(Node->tright, toMatch->tright, x, w);
+	}
 	return false;
 }
 
 static bool toMatchExpression(Tree* e, Tree* id, const char* x, map* w)
 {
-	if (!isMatchNode(e, id, x, w))
-		return false;
-	if (id->gtype == VAR)
+	if (isMatchNode(e, id, x, w))
 		return true;
-	if (e->gtype > VAR)
+	if (id->gtype == VAR && !found_element(e, x))
+		return true;
+	if ((e->tok_type == ADD || e->tok_type == PROD) && e->tok_type == id->tok_type)
+	{
+		map p = map_create(e), q = map_create(id);
+		if (p->length != q->length)
+		{
+			p = clear_map(p);
+			q = clear_map(q);
+			return false;
+		}
+		Cell* tmp = p->begin;
+		int k = 0, n = p->length;
+		while (tmp != NULL)
+		{
+			Cell* tmp1 = q->begin;
+			bool is_match = false;
+			while (tmp1 != NULL)
+			{
+				is_match = toMatchExpression(tmp->data, tmp1->data, x, w);
+				if (is_match)
+				{
+					k++;
+					break;
+				}
+				tmp1 = tmp1->next;
+			}
+			tmp = tmp->next;
+		}
+		p = clear_map(p);
+		q = clear_map(q);
+		return k == n;
+	}
+	if (e->gtype > VAR && e->tok_type == id->tok_type)
 	{
 		bool t = toMatchExpression(e->tleft, id->tleft, x, w);
 		if (e->gtype >= OPERAT)
 			t = t && toMatchExpression(e->tright, id->tright, x, w);
 		return t;
 	}
-	return true;
+	return false;
 }
 
 static bool search_match(const char* ex, List* oper)

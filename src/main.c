@@ -147,6 +147,7 @@ int main(void)
         while (!(os_GetCSC()));
         return 1;
     }
+    simp = pow_transform(simp);
     string out_tokens = Post2in(simp, ti_table);
     clean_tree(simp);
     os_NewLine();
