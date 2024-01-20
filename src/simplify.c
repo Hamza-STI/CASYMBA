@@ -1140,8 +1140,8 @@ static map simplify_oper_rec(map L, token tk)
 		{
 			if (tree_compare(u1, u2))
 			{
-				L = push_back(clear_map(L), simplify(join(new_tree("2"), clone(u1), fnc[PROD].ex)));
-				return L;
+				Tree* s = simplify(join(new_tree("2"), clone(u1), fnc[PROD].ex));
+				return push_back(clear_map(L), s);
 			}
 			map li = simplify_sum_fct(u1, u2);
 			if (li == NULL || li->length == 1)
