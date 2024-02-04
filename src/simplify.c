@@ -665,9 +665,9 @@ static Tree* simplify_RNE_rec(Tree* u)
 	else
 	{
 		Tree* v = simplify_RNE(u->tleft), * w = simplify_RNE(u->tright);
+		clean_noeud(u);
 		if (v->tok_type == UNDEF || w->tok_type == UNDEF)
 		{
-			clean_tree(u);
 			clean_tree(v);
 			clean_tree(w);
 			return new_tree(fnc[UNDEF].ex);
@@ -687,7 +687,6 @@ static Tree* simplify_RNE_rec(Tree* u)
 				tr = evaluate_quotient(v, w);
 			clean_tree(v);
 			clean_tree(w);
-			clean_noeud(u);
 			return tr;
 		}
 	}
