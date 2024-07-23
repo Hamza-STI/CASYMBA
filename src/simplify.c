@@ -1361,6 +1361,13 @@ Tree* simplify(Tree* u)
 			tk = u->tok_type;
 		}
 		bool cplx = (tk == DIVID && found_element(u->tright, fnc[IMAGE].ex));
+		if (tk == ADD || tk == SUB)
+		{
+			Tree* f = rationalize_expression(u);
+			clean_tree(u);
+			u = f;
+			tk = u->tok_type;
+		}
 		map v = map_create(u);
 		clean_tree(u);
 		mapCell* tmp = v->begin;
@@ -1454,14 +1461,11 @@ static Tree* rationalize_sum(Tree* u, Tree* v, const char* op)
 		{
 			Tree* pt = new_tree(p.nombre);
 			free(p.nombre);
-			if (strcmp(r->value, s->value) > 0)
-			{
-				clean_tree(s);
-				n = simplify(join(pt, n, fnc[PROD].ex));
-				return join(join(m, n, op), r, fnc[DIVID].ex);
-			}
-			clean_tree(r);
-			m = simplify(join(pt, m, fnc[PROD].ex));
+			r = simplify(join(r, clone(pt), fnc[DIVID].ex));
+			s = simplify(join(s, clone(pt), fnc[DIVID].ex));
+			n = simplify(join(clone(r), n, fnc[PROD].ex));
+			m = simplify(join(clone(s), m, fnc[PROD].ex));
+			s = simplify(join(pt, join(r, s, fnc[PROD].ex), fnc[PROD].ex));
 			return join(join(m, n, op), s, fnc[DIVID].ex);
 		}
 		free(p.nombre);
