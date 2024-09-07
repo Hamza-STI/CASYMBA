@@ -351,12 +351,17 @@ static map solve_system(map* L, map* R)
 			v_ps = push_back_dlist(v_ps, vrs->end->data);
 			rt = push_back(rt, q);
 		}
-		else if (vrs == NULL)
+		else if (vrs == NULL && ((rt != NULL && rt->length < (*R)->length) || rt == NULL))
 			rt = push_back_map(rt, t);
 		vrs = clear_dlist(vrs);
 		clean_tree(t);
 		tmp_L = tmp_L->next;
 		tmp_R = tmp_R->next;
+		if (tmp_L == NULL && (rt == NULL || rt->length < (*R)->length))
+		{
+			tmp_L = (*L)->begin;
+			tmp_R = (*R)->begin;
+		}
 	}
 	v_ps = clear_dlist(v_ps);
 	*L = clear_map(*L); *R = clear_map(*R);
@@ -698,22 +703,32 @@ static Tree* solve_ode(Tree* M, Tree* N, Tree* f, const char* x, const char* y, 
 	return join(new_tree(y), s, fnc[EGAL].ex);
 }
 
+static List eqd_extract(Tree* eq, char* y2, char* y1, char* y0)
+{
+	Tree* tr = simplify(join(clone(eq->tleft), clone(eq->tright), fnc[SUB].ex));
+	List cf = push_back(push_back(push_back(NULL, coefficient_gpe(tr, y2, 1)), coefficient_gpe(tr, y1, 1)), coefficient_gpe(tr, y0, 1));
+	Tree* o = coefficient_gpe(tr, y2, 0);
+	clean_tree(tr);
+	Tree* p = coefficient_gpe(o, y1, 0);
+	clean_tree(o);
+	cf = push_back(cf, simplify(join(coefficient_gpe(p, y0, 0), NULL, fnc[NEGATIF].ex)));
+	clean_tree(p);
+	return cf;
+}
+
 /* analyse */
 
 static map analyse_separe(Tree* tr)
 {
 	map L = NULL;
-	Tree* t = tr;
-	while (t->tok_type == SEPARATEUR)
-	{
+	Tree* t;
+	for (t = tr; t->tok_type == SEPARATEUR; t = t->tleft)
 		L = push_front_map(L, t->tright);
-		t = t->tleft;
-	}
 	L = push_front_map(L, t);
 	return L;
 }
 
-Tree* analyse(Tree* tr)
+Tree* analyse_rules(Tree* tr)
 {
 	token tk = tr->tok_type;
 	if (tk == EXPAND_F)
@@ -729,10 +744,10 @@ Tree* analyse(Tree* tr)
 	{
 		if (tr->tleft->tok_type == SEPARATEUR && tr->tleft->tright->gtype == VAR && ispoly(tr->tleft->tleft, tr->tleft->tright->value))
 		{
-            map coefs = polycoeffs(tr->tleft->tleft, tr->tleft->tright->value);
+			map coefs = polycoeffs(tr->tleft->tleft, tr->tleft->tright->value);
 			Tree* s = pfactor(coefs, tr->tleft->tright->value);
 			clean_tree(tr);
-			return pow_transform(s);
+			return s;
 		}
 		tr->tleft = simplify(tr->tleft);
 		if (tr->tleft->gtype == ENT)
@@ -763,19 +778,19 @@ Tree* analyse(Tree* tr)
 			else
 				res = simplify(diff_partial(L->begin->data, ((Tree*)L->end->back->data)->value, ((Tree*)L->end->data)->value));
 			L = clear_map(L);
-			return pow_transform(res);
+			return res;
 		}
 		else if (tk == TAYLOR_F && L->length == 4 && ((Tree*)L->begin->next->data)->gtype == VAR && ((Tree*)L->end->back->data)->gtype == ENT)
 		{
 			Tree* res = taylor(L->begin->data, L->begin->next->data, L->end->back->data, L->end->data);
 			L = clear_map(L);
-			return pow_transform(res);
+			return res;
 		}
 		else if (tk == TANG_F && L->length == 3 && ((Tree*)L->begin->next->data)->gtype == VAR)
 		{
 			Tree* res = tangline(L->begin->data, ((Tree*)L->begin->next->data)->value, L->end->data);
 			L = clear_map(L);
-			return pow_transform(simplify(res));
+			return simplify(res);
 		}
 		else if (tk == INTEGRAL_F && L->length >= 2 && ((Tree*)L->begin->next->data)->gtype == VAR)
 		{
@@ -787,7 +802,7 @@ Tree* analyse(Tree* tr)
 				Error = push_back_dlist(Error, err_msg[1]);
 				return NULL;
 			}
-			return pow_transform(simplify(res));
+			return simplify(res);
 		}
 		else if (tk == DESOLVE_F && L->length == 3 && ((Tree*)L->begin->next->data)->gtype == VAR && ((Tree*)L->end->data)->gtype == VAR)
 		{
@@ -804,9 +819,10 @@ Tree* analyse(Tree* tr)
 					cond1 = clone(t->tright);
 					t = t->tleft;
 				}
-				Tree* a = coefficient_gpe(t->tleft, var_y, 1), * b = coefficient_gpe(t->tleft, y1, 1);
-				Tree* rt = solve_ode(a, b, clone(t->tright), var_x, var_y, cond1);
+				List cfs = eqd_extract(t, y2, y1, y->value);
 				L = clear_map(L);
+				Tree* rt = solve_ode(clone(cfs->begin->next->data), clone(cfs->end->back->data), clone(cfs->end->data), var_x, var_y, cond1);
+				cfs = clear_map(cfs);
 				return rt;
 			}
 			if (t->tok_type == LOGIC_AND)
@@ -822,11 +838,10 @@ Tree* analyse(Tree* tr)
 				cond1 = clone(t->tright);
 				t = t->tleft;
 			}
-			Tree* f = clone(t->tright);
-			t = t->tleft;
-			Tree* a = coefficient_gpe(t, y2, 1), * b = coefficient_gpe(t, y1, 1), * c = coefficient_gpe(t, var_y, 1);
+			List cfs = eqd_extract(t, y2, y1, y->value);
 			L = clear_map(L);
-			Tree* rt = pow_transform(solve_ode_2(a, b, c, f, var_x, var_y, cond1, cond2));
+			Tree* rt = solve_ode_2(clone(cfs->begin->data), clone(cfs->begin->next->data), clone(cfs->end->back->data), clone(cfs->end->data), var_x, var_y, cond1, cond2);
+			cfs = clear_map(cfs);
 			return rt;
 		}
 		else if (REMAINDER_F <= tk && tk <= POLYSIMP_F && L->length == 3 && ((Tree*)L->end->data)->gtype == VAR)
@@ -852,5 +867,10 @@ Tree* analyse(Tree* tr)
 		return NULL;
 	}
 	ALG_EXPAND = true;
-	return pow_transform(Contract_pow(simplify(tr)));
+	return Contract_pow(simplify(tr));
+}
+
+Tree* analyse(Tree* tr)
+{
+	return pow_transform(analyse_rules(tr));
 }
