@@ -530,7 +530,7 @@ static Tree* evaluate_power(Tree* bas, Tree* exposant)
 		tr = new_tree(r.nombre);
 		free(r.nombre);
 		int k = exposant->value[strlen(exposant->value) - 1] - '0';
-		if ((double)k / 2 == k / 2)
+		if (!(k % 2))
 			return tr;
 		return join(tr, NULL, fnc[NEGATIF].ex);
 	}
@@ -928,7 +928,7 @@ static Tree* simplify_power(Tree* v, Tree* w)
 		{
 			clean_tree(v);
 			f->tright = simplify(join(f->tright, w, fnc[PROD].ex));
-			return f;
+			return simplify(f);
 		}
 		else if (f->tok_type == PROD)
 		{
@@ -1937,7 +1937,6 @@ Tree* polyreconstitute(map* Li, const char* x)
 	(*Li) = clear_map(*Li);
 	return u;
 }
-
 
 static bool iszero(map Li)
 {

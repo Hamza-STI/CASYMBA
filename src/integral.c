@@ -229,6 +229,25 @@ static bool isMatchNode(Tree* Node, Tree* toMatch, const char* x, map* w)
 		return true;
 	if (is_symbolic(Node) && toMatch->gtype == VAR && strlen(toMatch->value) > 0 && strstr("ABCDMNPQR", toMatch->value))
 		return match_var(Node, toMatch, w);
+	if (ispoly(Node, x) && ispoly(toMatch, "X") && Node->tok_type == ADD && toMatch->tok_type == ADD)
+	{
+		List cf = polycoeffs(Node, x), vcf = polycoeffs(toMatch, "X");
+
+		bool ismatch = false;
+		if (cf->length == vcf->length)
+		{
+			for (Cell* i = cf->begin, *k = vcf->begin; i != NULL && k != NULL; i = i->next, k = k->next)
+			{
+				ismatch = match_var(i->data, k->data, w);
+				if (!ismatch)
+					break;
+			}
+		}
+		cf = clear_map(cf);
+		vcf = clear_map(vcf);
+		if (ismatch)
+			return true;
+	}
 	Tree* v = toMatch->tleft;
 	token tk = toMatch->tok_type;
 	if (tk == ADD && v->gtype == VAR && is_symbolic(Node) && is_symbolic(toMatch->tright) && strlen(v->value) > 0 && strstr("ABCDMNPQR", v->value))
@@ -315,7 +334,7 @@ static bool search_match(const char* ex, List* oper)
 	Cell* tmp = (*oper)->begin;
 	while (tmp != NULL)
 	{
-		if (!strstr(ex, (char*)tmp->data))
+		if (!strstr(ex, (char*)tmp->data) && strcmp((char*)tmp->data, fnc[NEGATIF].ex))
 			return false;
 		tmp = tmp->next;
 	}
