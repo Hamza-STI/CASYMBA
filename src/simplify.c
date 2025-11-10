@@ -175,7 +175,7 @@ static Tree* exponent(Tree* u)
 
 char* factoriel(int a)
 {
-	char res[LEN_NUMBER];
+	static char res[LEN_NUMBER];
 	factorialString(a, res);
 	return strdup(res);
 }
