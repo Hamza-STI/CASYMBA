@@ -5,7 +5,7 @@
 // Description: symbolic simplify
 ////////////////////////////////////////
 
-#include "calculs.h"
+#include "includes.h"
 
 #ifdef _EZ80
 
@@ -20,7 +20,7 @@ static const Help use_function[] =
     { "gcd 2 Poly", "poly1,poly2,var)", "X^3-6X^2+11X-6,X^2-6X+8,X)", "" },
     { "simplify 2 Poly", "poly1,poly2,var)", "X^3-6X^2+11X-6,X^2-6X+8,X)", "" },
     { "Dev. / expand", "Expr1)", "(A+B)^2)", ""},
-    { "facteur premier/prime factorization", "POSITIVE_INTEGER)", "45)", "" },
+    { "factor", "POSITIVE_INTEGER or poly,x)", "45)", "X^5+6X^4+10X^3-4X^2-24X-16,X)" },
     { "Dev. limite / Taylor", "Expr1,var,ordre,point)", "sin(X),X,3,0)", "" }
 };
 
@@ -119,7 +119,7 @@ int main(void)
     if (rpn == NULL)
     {
         os_ClrHome();
-        os_PutStrFull("syntax error");
+        os_PutStrFull("Syntax error");
         while (!(os_GetCSC()));
         return 1;
     }
@@ -130,18 +130,16 @@ int main(void)
         os_ClrHome();
         if (Error != NULL)
         {
-            Cell* element = Error->begin;
-            while (element != NULL)
+            for (Cell* element = Error->begin; element != NULL; element = element->next)
             {
                 os_PutStrFull(element->data);
                 os_NewLine();
-                element = element->next;
             }
             Error = clear_dlist(Error);
         }
         else
         {
-            os_PutStrFull("Erreur.");
+            os_PutStrFull("Err");
             os_NewLine();
         }
         while (!(os_GetCSC()));
@@ -187,7 +185,7 @@ int main(int argc, char const* argv[])
     (void)argc;
     (void)argv;
     //uint8_t ex[] = { 0x22, 'Y', 0xAE, 0xAE, 0x71, 'Y', 0xAE, 0x71, '2', 0x82, 'Y', 0x6A, '0', 0x2B, 'X', 0x2B, 'Y', 0x11 };
-    List rpn = In2post2("2/4"); // desolve(y''-y'-2*y=sin(2*x),x,y) desolve(y''-y'-2*y=2*exp(~x) and y(0)=~1 and y'(0)=1,x,y)
+    List rpn = In2post2("101!"); // desolve(y''-y'-2*y=sin(2*x),x,y) desolve(y''-y'-2*y=2*exp(~x) and y(0)=~1 and y'(0)=1,x,y)
     if (rpn == NULL)
     {
         printf("Erreur syntaxe\n");
@@ -195,7 +193,7 @@ int main(int argc, char const* argv[])
     }
     Tree* tr = to_tree(rpn);
 
-    print_tree_prefix(tr);
+    //print_tree_prefix(tr);
 
     printf("\n\n partie simplification :\n");
 

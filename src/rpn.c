@@ -1,4 +1,4 @@
-#include "rpn.h"
+#include "includes.h"
 
 struct table_token ti_table[AMOUNT_TOKEN] =
 {
@@ -46,9 +46,6 @@ struct table_token fnc[AMOUNT_TOKEN] =
 	{ "polyquot(", 9}, {"polygcd(", 8}, {"polysimp(", 9}, { "expand(", 7}, {"factor(", 7}, { "taylor(", 7}
 };
 
-bool isnumeric(uint8_t b) { return ((0x30 <= b && b <= 0x3A) || b == '.'); }
-bool isvar(uint8_t b) { return ((0x41 <= b && b < 0x5B) || ('a' <= b && b <= 'z') || b == 0xAE || b == '@' || b == '\''); }
-
 bool is_negation(Tree* u)
 {
 	if (u->tok_type == NEGATIF)
@@ -92,7 +89,7 @@ bool is_symbolic(Tree* tr)
 
 bool isfn(const char* s)
 {
-	return ((isvar(s[0]) && s[strlen(s) - 1] == '(') || s[0] == '!');
+	return ((IS_VAR((uint8_t)s[0]) && s[strlen(s) - 1] == '(') || s[0] == '!');
 }
 
 static int nparts(List rpn)
@@ -180,7 +177,6 @@ static List parse(const uint8_t* ex, unsigned k, bool ce_parse)
 			if (sl)
 				result = push_back_dlist(result, temp);
 			memset(temp, 0, sl * sizeof(char));
-			sl = 0;
 		}
 		else if (UNDEF < tk && tk <= PI)
 		{
@@ -201,7 +197,6 @@ static List parse(const uint8_t* ex, unsigned k, bool ce_parse)
 				}
 				result = push_back_dlist(result, fnc[tk].ex);
 			}
-			sl = 0;
 		}
 		else if (ch == 0xBB || ch == 0xEF)
 		{
@@ -229,7 +224,6 @@ static List parse(const uint8_t* ex, unsigned k, bool ce_parse)
 					p++;
 				}
 				memset(temp, 0, sl * sizeof(char));
-				sl = 0;
 			}
 			else
 			{
@@ -250,10 +244,14 @@ static List parse(const uint8_t* ex, unsigned k, bool ce_parse)
 			else
 				result = push_back_dlist(result, "3");
 			memset(temp, 0, sl * sizeof(char));
-			sl = 0;
 		}
 		else if (tk == TOK_10_POWER)
+		{
+			if (sl)
+				result = push_back_dlist(push_back_dlist(result, temp), fnc[PROD].ex);
 			result = push_back_dlist(push_back_dlist(push_back_dlist(result, "10"), fnc[POW].ex), fnc[PAR_OUVRANT].ex);
+			memset(temp, 0, sl * sizeof(char));
+		}
 		else if (tk == ROOT_F)
 		{
 			uint8_t root_chars[TAILLE_MAX] = { 0 };
@@ -275,19 +273,15 @@ static List parse(const uint8_t* ex, unsigned k, bool ce_parse)
 			--i;
 			List rtl = parse(root_chars, pos, ce_parse);
 			result = push_back_dlist(push_back_dlist(result, fnc[tk].ex), fnc[PAR_OUVRANT].ex);
-			Cell* tmp = rtl->begin;
-			while (tmp != NULL)
-			{
+			for (Cell* tmp = rtl->begin; tmp != NULL; tmp = tmp->next)
 				result = push_back_dlist(result, (char*)tmp->data);
-				tmp = tmp->next;
-			}
 			rtl = clear_dlist(rtl);
 			result = push_back_dlist(push_back_dlist(push_back_dlist(result, fnc[SEPARATEUR].ex), (sl) ? temp : "2"), fnc[PAR_FERMANT].ex);
 			memset(temp, 0, sl * sizeof(char));
 		}
 		else if (tk == TOKEN_INVALID && !isop(chr))
 		{
-			if (!isvar(ch) && !isnumeric(ch))
+			if (!IS_VAR(ch) && !IS_NUMERIC(ch))
 			{
 				if (result != NULL)
 					result = clear_dlist(result);
@@ -306,7 +300,7 @@ static List parse(const uint8_t* ex, unsigned k, bool ce_parse)
 			}
 			else
 			{
-				if ((isvar(temp[0]) && isnumeric(ch)) || (isvar(ch) && isnumeric(temp[0])))
+				if ((IS_VAR((uint8_t)temp[0]) && IS_NUMERIC(ch)) || (IS_VAR(ch) && IS_NUMERIC(temp[0])))
 				{
 					result = push_back_dlist(push_back_dlist(result, temp), fnc[PROD].ex);
 					memset(temp, 0, sl * sizeof(char));
@@ -322,13 +316,11 @@ static List parse(const uint8_t* ex, unsigned k, bool ce_parse)
 				{
 					result = push_back_dlist(result, temp);
 					memset(temp, 0, sl * sizeof(char));
-					sl = 0;
 				}
 				else if (!strcmp(temp, "pi"))
 				{
 					result = push_back_dlist(result, fnc[PI].ex);
 					memset(temp, 0, sl * sizeof(char));
-					sl = 0;
 				}
 			}
 		}
@@ -340,7 +332,7 @@ static List parse(const uint8_t* ex, unsigned k, bool ce_parse)
 				p--;
 			if (sl != 0)
 			{
-				if (tk == PAR_OUVRANT && isvar(temp[0]) && !ce_parse)
+				if (tk == PAR_OUVRANT && IS_VAR((uint8_t)temp[0]) && !ce_parse)
 				{
 					temp[sl] = ch;
 					temp[sl + 1] = '\0';
@@ -405,8 +397,7 @@ static List to_rpn(List* result)
 {
 	int stklen = 0;
 	List rlt = NULL, opstack = NULL;
-	Cell* tmp = (*result)->begin;
-	while (tmp != NULL)
+	for (Cell* tmp = (*result)->begin; tmp != NULL; tmp = tmp->next)
 	{
 		if (!isop((char*)tmp->data) && !isfn((char*)tmp->data))
 			rlt = push_back_dlist(rlt, (char*)tmp->data);
@@ -438,7 +429,6 @@ static List to_rpn(List* result)
 				stklen++;
 			}
 		}
-		tmp = tmp->next;
 	}
 	while (opstack != NULL)
 	{
@@ -498,7 +488,7 @@ Tree* new_tree(const char* x)
 			tr->gtype = VAR;
 		tr->tok_type = tk;
 	}
-	else if (isnumeric(x[0]))
+	else if (IS_NUMERIC(x[0]))
 	{
 		tr->gtype = (strchr(tr->value, '.') == NULL) ? ENT : DECIMAL;
 		tr->tok_type = NUMBER;
@@ -874,17 +864,10 @@ List getvars(Tree* tr, List vrs)
 	if (tr->tok_type == VARIABLE)
 	{
 		if (vrs == NULL)
-		{
-			vrs = push_back_dlist(vrs, tr->value);
-			return vrs;
-		}
-		Cell* tmp = vrs->begin;
-		while (tmp != NULL)
-		{
+			return push_back_dlist(vrs, tr->value);
+		for (Cell* tmp = vrs->begin; tmp != NULL; tmp = tmp->next)
 			if (!strcmp((char*)tmp->data, tr->value))
 				return vrs;
-			tmp = tmp->next;
-		}
 		return push_back_dlist(vrs, tr->value);
 	}
 	if (tr->tok_type == NUMBER)
@@ -910,11 +893,10 @@ string variable(Tree* u)
 		vrs = clear_dlist(vrs);
 		return vr;
 	}
-	Cell* tmp = vrs->begin;
 	int k = 0, w;
 	bool t = false;
 	string vr = NULL;
-	while (tmp != NULL)
+	for (Cell* tmp = vrs->begin; tmp != NULL; tmp = tmp->next)
 	{
 		w = found_element(u, (char*)tmp->data);
 		if (w > k)
@@ -925,7 +907,6 @@ string variable(Tree* u)
 			vr = strdup((char*)tmp->data);
 			t = true;
 		}
-		tmp = tmp->next;
 	}
 	vrs = clear_dlist(vrs);
 	return vr;

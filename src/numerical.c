@@ -1,9 +1,8 @@
-#include "numerical.h"
+﻿#include "includes.h"
 
 Number create(int signe, const char* nbr)
 {
-	Number number = { signe, strdup(nbr) };
-	return number;
+	return (Number) { signe, strdup(nbr) };
 }
 
 void free_Number(Number nbr)
@@ -11,423 +10,699 @@ void free_Number(Number nbr)
 	free(nbr.nombre);
 }
 
-static void zero_untile(char* a)
-{
-	int len_a = strlen(a);
-	int i = 0, k = len_a - 1, pos = 0;
-	while (i < len_a && a[i] == '0')
-		i++;
-	if (a[i] == '.')
-		i--;
-	while (strchr(a, '.') != NULL && k > i && a[k] == '0')
-		k--;
-	if (a[k] == '.')
-		k--;
-	for (int j = i; j <= k; j++)
-		a[pos++] = a[j];
-	if (pos == 0)
-		a[pos++] = '0';
-	a[pos] = '\0';
-}
+#define BUF 256
+#define MAX_PREC 11
+#define ITER 15
 
-static bool greater(const char* a, const char* b)
-{
-	char* c = strchr(a, '.'), * d = strchr(b, '.');
-	int len_c = (c == NULL) ? 0 : strlen(c), len_d = (d == NULL) ? 0 : strlen(d);
-	int len_a = strlen(a) - len_c, len_b = strlen(b) - len_d;
-	int n = (len_c < len_d) ? len_c : len_d;
-	if (len_a != len_b)
-		return len_a > len_b;
-	for (int i = 0; i < len_a + n; i++)
-		if (a[i] != b[i])
-			return a[i] > b[i];
-	return false;
-}
+static void expStrings(const char* x, char* result);
+static void lnStrings(const char* x, char* result);
 
-static char* new_value(const char* a, unsigned size_int_a, unsigned size_dec_a, unsigned new_size_int, unsigned new_size_dec)
-{
-	int k = strlen(a);
-	if (k == (int)(new_size_int + new_size_dec))
-		return strdup(a);
-	int length = new_size_int - size_int_a, s = new_size_int + new_size_dec;
-	char* ret = malloc(s + 1);
-	memset(ret, '0', s * sizeof(char));
-	memcpy(ret + length, a, k);
-	if (new_size_dec && !size_dec_a)
-		ret[length + k] = '.';
-	ret[s] = '\0';
-	return ret;
-}
-
-static int sub_cc(char a, char b, int* retenue)
-{
-	int r = a - '0', s = b - '0' + *retenue;
-	*retenue = (r < s) ? 1 : 0;
-	return (r - s + 10) % 10;
-}
-
-static int add_cc(char a, char b, int* retenue)
-{
-	int w = a - '0' + b - '0' + *retenue;
-	*retenue = (w >= 10) ? 1 : 0;
-	return w % 10;
-}
-
-static Number adds(Number left, Number right, int op)
-{
-	char* c = strchr(left.nombre, '.'), * d = strchr(right.nombre, '.');
-	int len_c = (c == NULL) ? 0 : strlen(c), len_d = (d == NULL) ? 0 : strlen(d);
-	int len_a = strlen(left.nombre) - len_c, len_b = strlen(right.nombre) - len_d;
-	int m = max(len_a, len_b), n = max(len_c, len_d), pos = 0, retenue = 0;
-	char clc[50] = { 0 };
-	char* new_a = new_value(left.nombre, len_a, len_c, m, n), * new_b = new_value(right.nombre, len_b, len_d, m, n);
-	for (int i = m + n - 1; i >= 0; --i)
-	{
-		if (new_a[i] == '.')
-			clc[pos++] = '.';
-		else
-			clc[pos++] = '0' + ((op == 1) ? add_cc(new_a[i], new_b[i], &retenue) : sub_cc(new_a[i], new_b[i], &retenue));
+void trim_str(char* s) {
+	if (!s || !*s) return;
+	while (*s == ' ') memmove(s, s + 1, strlen(s));
+	int i = 0;
+	while (s[i] == '0' && s[i + 1] != '\0' && s[i + 1] != '.') i++;
+	if (i) memmove(s, s + i, strlen(s + i) + 1);
+	char* dot = strchr(s, '.');
+	if (dot) {
+		int end = strlen(s) - 1;
+		while (end > (dot - s) && s[end] == '0') s[end--] = '\0';
+		if (end == (dot - s)) s[end] = '\0';
 	}
-	if (retenue == 1)
-		clc[pos] = '1';
-	else
-		pos--;
-	while (clc[pos] == '0' && pos > 1)
-		pos--;
-	if (clc[pos] == '.')
-		pos++;
-	char ret[50] = { 0 };
-	for (int i = pos; i >= 0; --i)
-		ret[pos - i] = clc[i];
-	ret[pos + 1] = '\0';
-	free(new_a); free(new_b);
-	zero_untile(ret);
-	return create(1, ret);
+}
+
+static int cmp_intstr(const char* a, const char* b) {
+	while (*a == '0' && *(a + 1) != '\0') a++;
+	while (*b == '0' && *(b + 1) != '\0') b++;
+	int la = strlen(a), lb = strlen(b);
+	if (la < lb) return -1;
+	if (la > lb) return 1;
+	return strcmp(a, b);
+}
+
+static int compareStrings(const char* a, const char* b) {
+	static char ta[BUF], tb[BUF];
+	int pa = 0, pb = 0;
+	for (int i = 0; a[i] && pa < BUF - 1; ++i) if (a[i] != '.') ta[pa++] = a[i];
+	ta[pa] = '\0';
+	for (int i = 0; b[i] && pb < BUF - 1; ++i) if (b[i] != '.') tb[pb++] = b[i];
+	tb[pb] = '\0';
+	trim_str(ta); trim_str(tb);
+	return cmp_intstr(ta, tb);
+}
+
+static void reduceDecimals(char* s, int prec) {
+	if (!s) return;
+	if (prec < 0) { trim_str(s); return; }
+	char* p = s;
+	if (*p == '-') { p++; }
+	char* dot = strchr(p, '.');
+	if (!dot) {
+		return;
+	}
+	int frac_len = strlen(dot + 1);
+	if (frac_len <= prec) {
+		trim_str(s);
+		return;
+	}
+	int cut_idx = (int)(dot - s) + 1 + prec;
+	char next = s[cut_idx];
+	if (next >= '5' && next <= '9') {
+		int i = cut_idx - 1;
+		while (i >= 0) {
+			if (s[i] == '.') { i--; continue; }
+			if (s[i] == '-') break;
+			if (s[i] < '0' || s[i] > '9') { i--; continue; }
+			if (s[i] < '9') { s[i] = s[i] + 1; break; }
+			s[i] = '0';
+			i--;
+		}
+		if (i < 0 || s[i] == '-') {
+			if (s[0] == '-') {
+				int len = strlen(s);
+				if (len + 1 < BUF) {
+					memmove(s + 2, s + 1, len);
+					s[1] = '1';
+				}
+			}
+			else {
+				int len = strlen(s);
+				if (len + 1 < BUF) {
+					memmove(s + 1, s, len + 1);
+					s[0] = '1';
+				}
+			}
+		}
+	}
+	s[cut_idx] = '\0';
+	trim_str(s);
+}
+
+static void addStrings(const char* a, const char* b, char* result) {
+	static char A[BUF], B[BUF], R[BUF];
+	strncpy(A, a, BUF - 1); A[BUF - 1] = '\0';
+	strncpy(B, b, BUF - 1); B[BUF - 1] = '\0';
+	char* dotA = strchr(A, '.');
+	char* dotB = strchr(B, '.');
+	static char intA[BUF], intB[BUF], fracA[BUF], fracB[BUF];
+	if (dotA) {
+		int la = dotA - A;
+		if (la >= BUF) { strcpy(result, "NaN"); return; }
+		strncpy(intA, A, la); intA[la] = '\0';
+		strncpy(fracA, dotA + 1, BUF - 1); fracA[BUF - 1] = '\0';
+	}
+	else { strncpy(intA, A, BUF - 1); intA[BUF - 1] = '\0'; fracA[0] = '\0'; }
+
+	if (dotB) {
+		int lb = dotB - B;
+		if (lb >= BUF) { strcpy(result, "NaN"); return; }
+		strncpy(intB, B, lb); intB[lb] = '\0';
+		strncpy(fracB, dotB + 1, BUF - 1); fracB[BUF - 1] = '\0';
+	}
+	else { strncpy(intB, B, BUF - 1); intB[BUF - 1] = '\0'; fracB[0] = '\0'; }
+	int la_frac = strlen(fracA), lb_frac = strlen(fracB);
+	int fmax = la_frac > lb_frac ? la_frac : lb_frac;
+	if (fmax >= BUF / 2) { strcpy(result, "NaN"); return; }
+	while ((int)strlen(fracA) < fmax) strcat(fracA, "0");
+	while ((int)strlen(fracB) < fmax) strcat(fracB, "0");
+	int carry = 0;
+	int ri = 0;
+	int maxIntLen = (int)strlen(intA) > (int)strlen(intB) ? strlen(intA) : strlen(intB);
+	if (maxIntLen + fmax + 4 >= BUF) { strcpy(result, "NaN"); return; }
+	for (int i = fmax - 1; i >= 0; --i) {
+		int da = (i < (int)strlen(fracA) ? fracA[i] - '0' : 0);
+		int db = (i < (int)strlen(fracB) ? fracB[i] - '0' : 0);
+		int s = da + db + carry;
+		R[ri++] = '0' + (s % 10);
+		carry = s / 10;
+	}
+	int frac_count = ri;
+	int iA = strlen(intA) - 1, iB = strlen(intB) - 1;
+	while (iA >= 0 || iB >= 0 || carry) {
+		int da = (iA >= 0 ? intA[iA] - '0' : 0);
+		int db = (iB >= 0 ? intB[iB] - '0' : 0);
+		int s = da + db + carry;
+		R[ri++] = '0' + (s % 10);
+		carry = s / 10;
+		iA--; iB--;
+	}
+	int pos = 0;
+	int totalDigits = ri;
+	for (int k = totalDigits - 1; k >= frac_count; --k) result[pos++] = R[k];
+	if (frac_count > 0) {
+		result[pos++] = '.';
+		for (int k = frac_count - 1; k >= 0; --k) result[pos++] = R[k];
+	}
+	result[pos] = '\0';
+	trim_str(result);
+}
+
+static void subStrings(const char* a, const char* b, char* result) {
+	static char A[BUF], B[BUF], OUT[BUF];
+	strncpy(A, a, BUF - 1); A[BUF - 1] = '\0';
+	strncpy(B, b, BUF - 1); B[BUF - 1] = '\0';
+
+	static char intA[BUF], intB[BUF], fracA[BUF], fracB[BUF];
+	fracA[0] = fracB[0] = 0;
+	const char* dotA = strchr(A, '.');
+	const char* dotB = strchr(B, '.');
+	if (dotA) { int la = dotA - A; if (la >= BUF) { strcpy(result, "NaN"); return; } strncpy(intA, A, la); intA[la] = 0; strncpy(fracA, dotA + 1, BUF - 1); }
+	else strncpy(intA, A, BUF - 1);
+	if (dotB) { int lb = dotB - B; if (lb >= BUF) { strcpy(result, "NaN"); return; } strncpy(intB, B, lb); intB[lb] = 0; strncpy(fracB, dotB + 1, BUF - 1); }
+	else strncpy(intB, B, BUF - 1);
+	trim_str(intA); trim_str(intB); trim_str(fracA); trim_str(fracB);
+	int la_frac = strlen(fracA), lb_frac = strlen(fracB);
+	int fracLen = la_frac > lb_frac ? la_frac : lb_frac;
+	if (fracLen >= BUF / 2) { strcpy(result, "NaN"); return; }
+	while ((int)strlen(fracA) < fracLen) strcat(fracA, "0");
+	while ((int)strlen(fracB) < fracLen) strcat(fracB, "0");
+	static char fullA[BUF], fullB[BUF];
+	snprintf(fullA, sizeof(fullA), "%s%s", intA, fracA);
+	snprintf(fullB, sizeof(fullB), "%s%s", intB, fracB);
+	trim_str(fullA); trim_str(fullB);
+	int swapped = 0;
+	if (cmp_intstr(fullA, fullB) < 0) {
+		char tmp[BUF];
+		strcpy(tmp, fullA); strcpy(fullA, fullB); strcpy(fullB, tmp);
+		swapped = 1;
+	}
+	int i = strlen(fullA) - 1, j = strlen(fullB) - 1;
+	static char rev[BUF];
+	int p = 0, borrow = 0;
+	while (i >= 0 || j >= 0) {
+		int da = (i >= 0 ? fullA[i] - '0' : 0);
+		int db = (j >= 0 ? fullB[j] - '0' : 0);
+		int d = da - db - borrow;
+		if (d < 0) { d += 10; borrow = 1; }
+		else borrow = 0;
+		rev[p++] = '0' + d;
+		i--; j--;
+	}
+	while (p > 1 && rev[p - 1] == '0') p--;
+	int k;
+	for (k = 0; k < p; k++) OUT[k] = rev[p - 1 - k];
+	OUT[k] = '\0';
+	if (fracLen > 0) {
+		int len = strlen(OUT);
+		if (len <= fracLen) {
+			int need = fracLen + 1 - len;
+			memmove(OUT + need, OUT, len + 1);
+			for (int z = 0; z < need; ++z) OUT[z] = '0';
+			len = strlen(OUT);
+		}
+		memmove(OUT + (len - fracLen) + 1, OUT + (len - fracLen), fracLen + 1);
+		OUT[len - fracLen] = '.';
+	}
+	trim_str(OUT);
+	if (strcmp(OUT, "0") == 0) swapped = 0;
+	if (swapped) {
+		if (strlen(OUT) + 2 >= BUF) { strcpy(result, "NaN"); return; }
+		memmove(result + 1, OUT, strlen(OUT) + 1);
+		result[0] = '-';
+	}
+	else strcpy(result, OUT);
+}
+
+static void mulStrings(const char* a, const char* b, char* result) {
+	if (!a || !b) { strcpy(result, "NaN"); return; }
+	int neg = 0;
+	if (a[0] == '-') { neg = !neg; a++; }
+	if (b[0] == '-') { neg = !neg; b++; }
+	int decA = 0, decB = 0;
+	static char na[BUF], nb[BUF];
+	int j = 0;
+	for (int i = 0; a[i]; i++) {
+		if (a[i] == '.') decA = strlen(a) - i - 1;
+		else na[j++] = a[i];
+	}
+	na[j] = '\0';
+	j = 0;
+	for (int i = 0; b[i]; i++) {
+		if (b[i] == '.') decB = strlen(b) - i - 1;
+		else nb[j++] = b[i];
+	}
+	nb[j] = '\0';
+	int la = strlen(na), lb = strlen(nb);
+	if (la == 0 || lb == 0) { strcpy(result, "0"); return; }
+	static int prod[BUF];
+	for (int i = 0; i < BUF; ++i) prod[i] = 0;
+	for (int i = la - 1; i >= 0; --i) {
+		if (na[i] < '0' || na[i] > '9') continue;
+		for (int j = lb - 1; j >= 0; --j) {
+			if (nb[j] < '0' || nb[j] > '9') continue;
+			prod[i + j + 1] += (na[i] - '0') * (nb[j] - '0');
+		}
+	}
+
+	int n = la + lb;
+	for (int i = n - 1; i > 0; --i) {
+		if (prod[i] >= 10) {
+			prod[i - 1] += prod[i] / 10;
+			prod[i] %= 10;
+		}
+	}
+	int start = 0;
+	while (start < n && prod[start] == 0) start++;
+	if (start == n) { strcpy(result, "0"); return; }
+
+	static char temp[BUF];
+	int pos = 0;
+	for (int i = start; i < n; ++i)
+		temp[pos++] = '0' + prod[i];
+	temp[pos] = '\0';
+	int totalDec = decA + decB;
+	if (totalDec > 0) {
+		int len = strlen(temp);
+		if (totalDec >= len) {
+			char shifted[BUF] = "0.";
+			for (int i = 0; i < totalDec - len; i++) strcat(shifted, "0");
+			strcat(shifted, temp);
+			strcpy(temp, shifted);
+		}
+		else {
+			memmove(temp + (len - totalDec + 1), temp + (len - totalDec), totalDec + 1);
+			temp[len - totalDec] = '.';
+		}
+	}
+	trim_str(temp);
+	reduceDecimals(temp, MAX_PREC);
+	if (neg && strcmp(temp, "0") != 0) {
+		char signedRes[BUF] = "-";
+		strcat(signedRes, temp);
+		strcpy(result, signedRes);
+	}
+	else {
+		strcpy(result, temp);
+	}
+}
+
+static void divEuclidStrings(const char* a, const char* b, char* q, char* r) {
+	if (b == NULL || strcmp(b, "0") == 0) { strcpy(q, "NaN"); strcpy(r, "NaN"); return; }
+	int la = strlen(a);
+	static char current[BUF]; current[0] = '\0';
+	static char tmp[BUF];
+	int qpos = 0;
+	for (int i = 0; i < la; ++i) {
+		int len = strlen(current);
+		if (len + 1 < BUF) { current[len] = a[i]; current[len + 1] = '\0'; }
+		trim_str(current);
+		int count = 0;
+		while (compareStrings(current, b) >= 0) {
+			subStrings(current, b, tmp);
+			strcpy(current, tmp);
+			trim_str(current);
+			++count;
+		}
+		if (qpos + 1 < BUF) q[qpos++] = '0' + count;
+	}
+	if (qpos == 0) { strcpy(q, "0"); }
+	else { q[qpos] = '\0'; trim_str(q); }
+	if (strlen(current) == 0) strcpy(r, "0"); else strcpy(r, current);
+}
+
+static void divStrings(const char* a, const char* b, char* result, int precision) {
+	if (b == NULL || strcmp(b, "0") == 0) { strcpy(result, "NaN"); return; }
+	if (precision < 0) precision = 0;
+	if (precision > MAX_PREC) precision = MAX_PREC;
+
+	static char na[BUF], nb[BUF];
+	int decA = 0, decB = 0;
+	int j = 0;
+	for (int i = 0; a[i]; i++) {
+		if (a[i] == '.') decA = strlen(a) - i - 1;
+		else na[j++] = a[i];
+	}
+	na[j] = '\0';
+
+	j = 0;
+	for (int i = 0; b[i]; i++) {
+		if (b[i] == '.') decB = strlen(b) - i - 1;
+		else nb[j++] = b[i];
+	}
+	nb[j] = '\0';
+
+	int shift = decB - decA;
+	if (shift > 0) {
+		int len = strlen(na);
+		for (int i = 0; i < shift; i++) na[len + i] = '0';
+		na[len + shift] = '\0';
+	}
+	else if (shift < 0) {
+		int len = strlen(nb);
+		for (int i = 0; i < -shift; i++) nb[len + i] = '0';
+		nb[len - shift] = '\0';
+	}
+
+	static char q[BUF], r[BUF], tmp[BUF];
+	divEuclidStrings(na, nb, q, r);
+
+	if (precision == 0) {
+		strcpy(result, q);
+		return;
+	}
+
+	static char res[BUF];
+	snprintf(res, sizeof(res), "%s.", q);
+	static char rem[BUF];
+	strcpy(rem, r);
+
+	for (int i = 0; i < precision; i++) {
+		int rl = strlen(rem);
+		if (rl + 1 < BUF) {
+			rem[rl] = '0';
+			rem[rl + 1] = '\0';
+		}
+		divEuclidStrings(rem, nb, tmp, rem);
+		strncat(res, tmp, 1);
+		if (strcmp(rem, "0") == 0) break;
+	}
+
+	strncpy(result, res, BUF - 1);
+	result[BUF - 1] = '\0';
+
+	trim_str(result);
+}
+
+static void powerStrings(const char* base, const char* exponent, char* result)
+{
+	if (strchr(exponent, '.')) {
+		static char lnBase[BUF], temp[BUF];
+		lnStrings(base, lnBase);
+		if (!strcmp(lnBase, "NaN"))
+		{
+			strcpy(result, lnBase);
+			return;
+		}
+		mulStrings(lnBase, exponent, temp);
+		expStrings(temp, result);
+		return;
+	}
+
+	int exp = atoi(exponent);
+	if (exp == 0) { strcpy(result, "1"); return; }
+	if (exp == 1) { strcpy(result, base); return; }
+
+	static char baseInt[BUF];
+	strcpy(baseInt, base);
+	int decDigits = 0;
+
+	char* dot = strchr(baseInt, '.');
+	if (dot) {
+		decDigits = strlen(dot + 1);
+		memmove(dot, dot + 1, strlen(dot));
+	}
+
+	static char temp[BUF];
+	strcpy(temp, "1");
+	for (int i = 0; i < exp; i++) {
+		char prod[BUF];
+		mulStrings(temp, baseInt, prod);
+		strcpy(temp, prod);
+	}
+
+	if (decDigits > 0) {
+		int totalDec = decDigits * exp;
+		int len = strlen(temp);
+		if (len <= totalDec) {
+			memmove(temp + (totalDec - len) + 2, temp, len + 1);
+			memset(temp, '0', totalDec - len + 2);
+			temp[1] = '.';
+		}
+		else {
+			memmove(temp + len - totalDec + 1, temp + len - totalDec, totalDec + 1);
+			temp[len - totalDec] = '.';
+		}
+	}
+
+	strcpy(result, temp);
+	trim_str(result);
+}
+
+static void gcdStrings(const char* a, const char* b, char* result) {
+	static char A[BUF], B[BUF], q[BUF], r[BUF];
+	strncpy(A, a, BUF - 1); A[BUF - 1] = '\0';
+	strncpy(B, b, BUF - 1); B[BUF - 1] = '\0';
+
+	char* dotA = strchr(A, '.');
+	if (dotA) *dotA = '\0';
+	char* dotB = strchr(B, '.');
+	if (dotB) *dotB = '\0';
+
+	while (strcmp(B, "0") != 0) {
+		divEuclidStrings(A, B, q, r);
+		strncpy(A, B, BUF - 1);
+		strncpy(B, r, BUF - 1);
+	}
+
+	strncpy(result, A, BUF - 1);
+	result[BUF - 1] = '\0';
+	trim_str(result);
+}
+
+void factorialString(int n, char* result) {
+	if (n < 0) {
+		strcpy(result, "NaN");
+		return;
+	}
+	strcpy(result, "1");
+	static char tmp[BUF], mult[24];
+	for (int i = 2; i <= n; ++i) {
+		snprintf(mult, sizeof(mult), "%d", i);
+		mulStrings(result, mult, tmp);
+		if ((int)strlen(tmp) >= BUF - 2) {
+			strcpy(result, "NaN");
+			return;
+		}
+		strcpy(result, tmp);
+	}
+}
+
+static int cmpStrings(const char* a_in, const char* b_in) {
+	while (*a_in == ' ' || *a_in == '\t') a_in++;
+	while (*b_in == ' ' || *b_in == '\t') b_in++;
+	if (*b_in == '-') return 1;
+	const char* a = a_in, * b = b_in;
+	while (*a == '0' && a[1] && a[1] != '.') a++;
+	while (*b == '0' && b[1] && b[1] != '.') b++;
+	const char* pa = strchr(a, '.');
+	const char* pb = strchr(b, '.');
+	int lena = pa ? (int)(pa - a) : (int)strlen(a);
+	int lenb = pb ? (int)(pb - b) : (int)strlen(b);
+	if (lena != lenb) return (lena > lenb) ? 1 : -1;
+	int cmp = strncmp(a, b, lena);
+	if (cmp < 0) return -1;
+	if (cmp > 0) return 1;
+	const char* fa = pa ? pa + 1 : "";
+	const char* fb = pb ? pb + 1 : "";
+	while (*fa || *fb) {
+		char ca = *fa ? *fa++ : '0';
+		char cb = *fb ? *fb++ : '0';
+		if (ca < cb) return -1;
+		if (ca > cb) return 1;
+	}
+	return 0;
+}
+
+static const char* invOdd[] = {
+	"1",               // 1/1
+	"0.3333333333",    // 1/3
+	"0.2",             // 1/5
+	"0.1428571428",    // 1/7
+	"0.1111111111",    // 1/9
+	"0.0909090909",    // 1/11
+	"0.0769230769",    // 1/13
+	"0.0666666666",    // 1/15
+	"0.0588235294",    // 1/17
+	"0.0526315789",    // 1/19
+	"0.0476190476"     // 1/21
+};
+#define LN_ITER 11
+static const char* LN2 = "0.6931471805599453";
+
+static void lnStrings(const char* x_in, char* result)
+{
+	static char x[BUF], y[BUF], yp2[BUF], term[BUF], sum[BUF], tmp[BUF], kln2[BUF];
+	if (!strcmp(x_in, "0") || x_in[0] == '-') { strcpy(result, "NaN"); return; }
+	if (!strcmp(x_in, "1")) { strcpy(result, "0"); return; }
+	// si x < 1 : ln(x)= -ln(1/x)
+	if (x_in[0] == '0' && x_in[1] == '.') {
+		divStrings("1", x_in, tmp, MAX_PREC);
+		lnStrings(tmp, result);
+		if (result[0] == '-') strcpy(result, result + 1);
+		else { tmp[0] = '-'; strcpy(tmp + 1, result); strcpy(result, tmp); }
+		return;
+	}
+	strncpy(x, x_in, BUF - 1); x[BUF - 1] = 0;
+	int k = 0;
+	while (cmpStrings(x, "2") > 0) {
+		divStrings(x, "2", x, MAX_PREC);
+		k++;
+	}
+	// y = (x-1)/(x+1)
+	subStrings(x, "1", tmp);        // tmp = x-1
+	addStrings(x, "1", y);          // y = x+1
+	divStrings(tmp, y, y, MAX_PREC); // y = (x-1)/(x+1)
+	strcpy(sum, y);
+	strcpy(term, y);
+	mulStrings(y, y, yp2);
+	for (int i = 1; i < LN_ITER; i++) {
+		mulStrings(term, yp2, term);     // term *= y²
+		mulStrings(term, invOdd[i], tmp); // tmp = term/(2i+1)
+		addStrings(sum, tmp, sum);
+	}
+	mulStrings(sum, "2", sum);
+	if (k > 0) {
+		char kstr[16];
+		snprintf(kstr, sizeof(kstr), "%d", k);
+		mulStrings(LN2, kstr, kln2);
+		addStrings(sum, kln2, sum);
+	}
+	strncpy(result, sum, BUF - 1); result[BUF - 1] = 0;
+	trim_str(result);
+}
+
+static const char* invFact[] = {
+	"1",
+	"1",
+	"0.5",
+	"0.166666666666667",
+	"0.041666666666667",
+	"0.008333333333333",
+	"0.001388888888889",
+	"0.000198412698413",
+	"0.000024801587302",
+	"0.000002755731922",
+	"0.000000275573192",
+	"0.000000025052108",
+	"0.000000002087676",
+	"0.000000000160590",
+	"0.000000000011471",
+	"0.000000000000765"
+};
+#define EXP_ITER 16
+
+static void expStrings(const char* xin, char* result)
+{
+	if (xin[0] == '-') {
+		static char absx[BUF], exppos[BUF];
+		strcpy(absx, xin + 1);
+		expStrings(absx, exppos);
+		divStrings("1", exppos, result, MAX_PREC);
+		return;
+	}
+	static char x[BUF], t[BUF], term[BUF], sum[BUF], tmp[BUF];
+	strncpy(x, xin, BUF - 1); x[BUF - 1] = 0;
+	if (!strcmp(x, "0")) { strcpy(result, "1"); return; }
+	int k = 0;
+	snprintf(tmp, sizeof(tmp), "1");
+	while (cmpStrings(x, "1") > 0) {
+		divStrings(x, "2", x, MAX_PREC);
+		k++;
+	}
+	strncpy(t, x, BUF - 1);
+	strcpy(sum, "1");
+	strcpy(term, "1");
+	for (int i = 1; i < EXP_ITER; i++) {
+		mulStrings(term, t, term);       // term *= t
+		mulStrings(term, invFact[i], tmp);
+		addStrings(sum, tmp, sum);
+	}
+	while (k-- > 0) {
+		mulStrings(sum, sum, sum);
+	}
+	strncpy(result, sum, BUF - 1); result[BUF - 1] = 0;
+	trim_str(result);
 }
 
 Number sub(Number left, Number right)
 {
 	if (!strcmp(left.nombre, right.nombre))
-	{
-		Number resultat = { 1, strdup("0") };
-		return resultat;
-	}
-	if (greater(right.nombre, left.nombre))
+		return (Number) { 1, strdup("0") };
+	if (compareStrings(right.nombre, left.nombre) > 0)
 	{
 		Number resultat = sub(right, left);
 		resultat.signe *= -1;
 		return resultat;
 	}
-	return adds(left, right, -1);
+	static char res[BUF];
+	subStrings(left.nombre, right.nombre, res);
+	return create(1, res);
 }
 
 Number add(Number left, Number right)
 {
-	return adds(left, right, 1);
+	static char res[BUF];
+	addStrings(left.nombre, right.nombre, res);
+	return create(1, res);
 }
 
 Number prod(Number left, Number right)
 {
-	char* c = strchr(left.nombre, '.'), * d = strchr(right.nombre, '.');
-	int len_a = strlen(left.nombre), len_b = strlen(right.nombre), len_c = (c == NULL) ? 0 : strlen(c) - 1, len_d = (d == NULL) ? 0 : strlen(d) - 1;
-	int pos = 0, retenue = 0, w = 0, s = 0;
-	char clc[50] = { 0 }, n_clc[50] = { 0 }, tmp[50] = { 0 };
-	for (int i = len_a - 1; i >= 0; i--)
-	{
-		if (left.nombre[i] != '.')
-		{
-			pos = 0;
-			retenue = 0;
-			for (int k = 0; k < s; ++k)
-				clc[pos++] = '0';
-			s++;
-			for (int k = len_b - 1; k >= 0; k--)
-			{
-				if (right.nombre[k] != '.')
-				{
-					w = ((left.nombre[i] - '0') * (right.nombre[k] - '0')) + retenue;
-					retenue = w / 10;
-					clc[pos++] = '0' + (w % 10);
-				}
-			}
-			if (retenue > 0)
-				clc[pos] = '0' + retenue;
-			else
-				pos--;
-			for (int k = 0; k <= pos; k++)
-				n_clc[k] = clc[pos - k];
-			if (strlen(tmp) == 0)
-				strcpy(tmp, n_clc);
-			else
-			{
-				Number r = create(1, n_clc), s = create(1, tmp);
-				Number t = add(r, s);
-				strcpy(tmp, t.nombre);
-				free_Number(r); free_Number(s); free_Number(t);
-			}
-		}
-	}
-	pos = 0;
-	s = strlen(tmp);
-	w = len_c + len_d;
-	if (s <= w)
-	{
-		int k = max(s - w, w - s) + 2;
-		char* ch = malloc(k * sizeof(char)), t[50];
-		memset(ch, '0', k * sizeof(char));
-		ch[k - 1] = '\0';
-		snprintf(t, 50, "%s%s", ch, tmp);
-		s = strlen(t);
-		strcpy(tmp, t);
-		free(ch);
-	}
-	char ret[50] = { 0 };
-	for (int i = 0; i < s; ++i)
-	{
-		ret[pos++] = tmp[i];
-		if (s - (i + 1) == w)
-			ret[pos++] = '.';
-	}
-	ret[pos] = '\0';
-	zero_untile(ret);
-	return create(1, ret);
-}
-
-static int divid_quot(Number denom, char* tmp)
-{
-	int k;
-	for (k = 1; k < 10; k++)
-	{
-		char w[2] = { '0' + k, '\0' };
-		Number nbr = create(1, w);
-		Number n = prod(denom, nbr);
-		bool sup = greater(n.nombre, tmp);
-		free_Number(n); free_Number(nbr);
-		if (sup > 0)
-			break;
-	}
-	k--;
-	char u[2] = { '0' + k, '\0' };
-	Number nbr_1 = create(1, u), nbr_2 = create(1, tmp);
-	Number m = prod(denom, nbr_1);
-	Number v = sub(nbr_2, m);
-	memset(tmp, 0, 50 * sizeof(char));
-	strcpy(tmp, v.nombre);
-	free_Number(v); free_Number(m); free_Number(nbr_1); free_Number(nbr_2);
-	return k;
+	static char res[BUF];
+	mulStrings(left.nombre, right.nombre, res);
+	return create(1, res);
 }
 
 Number int_divid(Number num, Number denom, Number* rem)
 {
-	int len_a = strlen(num.nombre), len_b = strlen(denom.nombre), pos = 0, p = 0;
-	char tmp[50] = { 0 }, quot[50] = { 0 };
-	for (int i = 0; i < len_b; ++i)
+	static char res[BUF], quot[BUF];
+	divEuclidStrings(num.nombre, denom.nombre, quot, res);
+	if (!strcmp(res, "NaN"))
 	{
-		if (i == len_a)
-		{
-			++pos;
-			break;
-		}
-		tmp[pos++] = num.nombre[i];
+		(*rem).nombre = strdup("UNDEF");
+		return create(1, "UNDEF");
 	}
-	do {
-		quot[p++] = '0' + divid_quot(denom, tmp);
-		if (pos < len_a)
-			tmp[!strcmp(tmp, "0") ? 0 : strlen(tmp)] = num.nombre[pos];
-		++pos;
-	} while (pos <= len_a);
-	zero_untile(quot);
-	if (strlen(tmp) == 0)
-		tmp[0] = '0';
-	zero_untile(tmp);
 	if (rem != NULL)
-		(*rem).nombre = strdup(tmp);
+		(*rem).nombre = strdup(res);
 	return create(1, quot);
 }
 
 Number divid(Number num, Number denom)
 {
-	char* c = strchr(num.nombre, '.'), * d = strchr(denom.nombre, '.');
-	int len_c = (c == NULL) ? 0 : strlen(c) - 1, len_d = (d == NULL) ? 0 : strlen(d) - 1;
-	int len_a = strlen(num.nombre), len_b = strlen(denom.nombre), pos = 0, prec = 0, p = 0;
-	char new_a[50] = { 0 }, new_b[50] = { 0 }, tmp[50] = { 0 }, quot[50] = { 0 };
-	bool digit = false;
-	if (len_d > 0)
-	{
-		if (!len_c)
-		{
-			strcpy(new_a, num.nombre);
-			for (int i = 0; i < len_d; ++i)
-				new_a[len_a + i] = '0';
-		}
-		else
-		{
-			pos = 0;
-			for (int i = 0; i < len_a; ++i)
-			{
-				if (num.nombre[i] == '.')
-					digit = true;
-				else if (digit)
-				{
-					if (len_d == 0)
-						new_a[pos++] = '.';
-					new_a[pos++] = num.nombre[i];
-					len_d--;
-				}
-				else
-					new_a[pos++] = num.nombre[i];
-			}
-			while (len_d > 0)
-			{
-				new_a[pos++] = '0';
-				len_d--;
-			}
-		}
-		pos = 0;
-		for (int i = 0; i < len_b; ++i)
-			if (denom.nombre[i] != '.')
-				new_b[pos++] = denom.nombre[i];
-	}
-	else
-	{
-		strcpy(new_a, num.nombre);
-		strcpy(new_b, denom.nombre);
-	}
-	zero_untile(new_a); zero_untile(new_b);
-	pos = 0;
-	len_b = strlen(new_b);
-	len_a = strlen(new_a);
-	digit = false;
-	for (int i = 0; i < len_b; ++i)
-	{
-		if (new_a[i] == '.' || i == len_a)
-			break;
-		tmp[pos] = new_a[i];
-		++pos;
-	}
-	while (prec < 15)
-	{
-		Number n_b = create(1, new_b);
-		quot[p++] = '0' + divid_quot(n_b, tmp);
-		free_Number(n_b);
-		if (!strcmp(tmp, "0") && pos >= len_a)
-			break;
-		if (((pos < len_a && new_a[pos] == '.') || pos == len_a) && !digit)
-		{
-			digit = true;
-			++pos;
-			quot[p++] = '.';
-		}
-		else if (digit)
-			prec++;
-		tmp[!strcmp(tmp, "0") ? 0 : strlen(tmp)] = (pos >= len_a) ? '0' : new_a[pos];
-		++pos;
-	}
-	return create(num.signe * denom.signe, quot);
+	static char res[BUF];
+	divStrings(num.nombre, denom.nombre, res, 15);
+	if (!strcmp(res, "NaN"))
+		return create(1, "UNDEF");
+	return create(1, res);
 }
 
 Number gcd(Number num, Number denom)
 {
-	if (!strcmp(num.nombre, "1") || !strcmp(denom.nombre, "1"))
-		return create(1, "1");
-	if (!strcmp(num.nombre, denom.nombre))
-		return create(num.signe, num.nombre);
-	if (greater(denom.nombre, num.nombre))
-		return gcd(denom, num);
-	Number rem, d = create(denom.signe, denom.nombre);
-	Number q = int_divid(num, denom, &rem);
-	free_Number(q);
-	while (strcmp(rem.nombre, "0"))
-	{
-		Number tmp;
-		Number q1 = int_divid(d, rem, &tmp);
-		free_Number(d);
-		d = create(rem.signe, rem.nombre);
-		free_Number(q1); free_Number(rem);
-		rem = tmp;
-	}
-	free_Number(rem);
-	return d;
+	static char res[BUF];
+	gcdStrings(num.nombre, denom.nombre, res);
+	return create(1, res);
 }
 
 Number Exponentiel(Number x)
 {
-	char resultat[50] = "1", terme[50] = { 0 };
-	strcpy(terme, x.nombre);
-	const char* l[] = { "1", "2", "6", "24", "120", "720", "5040", "40320", "362880", "3628800", "39916800", "479001600", "6227020800", "87178291200", "1307674368000" };
-	for (int i = 1; i < 15; i++)
+	static char res[BUF];
+	expStrings(x.nombre, res);
+	if (x.signe == -1)
 	{
-		Number denom = create(1, l[i - 1]), puissance = create(1, terme), rst = create(1, resultat);
-		Number a = divid(puissance, denom), b = prod(puissance, x);
-		memset(terme, 0, 50 * sizeof(char));
-		strcpy(terme, b.nombre);
-		Number c = (x.signe == -1 && (i % 2)) ? sub(rst, a) : add(rst, a);
-		memset(resultat, 0, 50 * sizeof(char));
-		strcpy(resultat, c.nombre);
-		free_Number(a); free_Number(b); free_Number(c); free_Number(rst); free_Number(denom); free_Number(puissance);
+		divStrings("1", res, res, MAX_PREC);
 	}
-	return create(1, resultat);
+	return create(1, res);
 }
 
 Number Logarithme(Number x)
 {
-	char resultat[50] = "0";
-	Number c = create(1, "1");
-	Number terme = sub(x, c);
-	const char* l[] = { "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15" };
-	strcpy(resultat, terme.nombre);
-	free_Number(c);
-	for (int i = 2; i < 14; i++)
-	{
-		c = create(1, l[i - 2]);
-		Number puissance = ExponentiationRapide(terme, c);
-		Number a = divid(puissance, c);
-		free_Number(c);
-		c = create(1, resultat);
-		Number s = (!(i % 2)) ? add(c, a) : sub(c, a);
-		memset(resultat, 0, 50 * sizeof(char));
-		strcpy(resultat, s.nombre);
-		free_Number(a); free_Number(c); free_Number(s); free_Number(puissance);
+	static char res[BUF];
+	int sign = 1;
+	lnStrings(x.nombre, res);
+	if (!strcmp(res, "NaN"))
+		return create(1, "UNDEF");
+	if (res[0] == '-') {
+		memmove(res, res + 1, strlen(res));
+		sign = -1;
 	}
-	Number result = create(terme.signe, resultat);
-	free_Number(terme);
-	return result;
+	return create(sign, res);
 }
 
 Number ExponentiationRapide(Number bas, Number exposant)
 {
-	if (!strcmp(exposant.nombre, "0"))
-		return create(1, "1");
-	if (strchr(exposant.nombre, '.'))
-	{
-		Number cln = Logarithme(bas);
-		Number p = prod(exposant, cln);
-		Number resultat = Exponentiel(p);
-		free_Number(cln); free_Number(p);
-		return resultat;
-	}
-	Number reste, denom = create(1, "2");
-	Number quot = int_divid(exposant, denom, &reste);
-	free_Number(denom);
-	if (!strcmp(reste.nombre, "0"))
-	{
-		Number moitie = ExponentiationRapide(bas, quot);
-		Number resultat = prod(moitie, moitie);
-		free_Number(quot); free_Number(moitie); free_Number(reste);
-		return resultat;
-	}
-	else
-	{
-		denom = create(1, "1");
-		Number s = sub(exposant, denom);
-		free_Number(denom); free_Number(quot); free_Number(reste);
-		denom = create(1, "2");
-		quot = int_divid(s, denom, &reste);
-		free_Number(s); free_Number(denom);
-		Number moitie = ExponentiationRapide(bas, quot);
-		Number p = prod(moitie, moitie);
-		Number resultat = prod(bas, p);
-		free_Number(p); free_Number(quot); free_Number(moitie); free_Number(reste);
-		return resultat;
-	}
+	static char res[BUF];
+	powerStrings(bas.nombre, exposant.nombre, res);
+	if (!strcmp(res, "NaN"))
+		return create(1, "UNDEF");
+	return create(1, res);
 }

@@ -1,4 +1,4 @@
-#include "map.h"
+#include "includes.h"
 
 void free_tree_ptr(void* data)
 {
@@ -33,7 +33,7 @@ map clear_map(map li)
 map clone_map(map Li)
 {
 	map new_Li = NULL;
-	mapCell* tmp = Li->begin;
+	Cell* tmp = Li->begin;
 	while (tmp != NULL)
 	{
 		new_Li = push_back_map(new_Li, (Tree*)tmp->data);
@@ -79,61 +79,43 @@ static map process_op(map li, Tree* tr, token oper, token tok, ProcessFunction* 
 	return push_front_map(li, tr);
 }
 
-map map_create_prod(Tree* tr)
+static map map_create_generic(Tree* tr, token base_op, token derived_op, process_func func_process)
 {
 	map li = NULL;
 	Tree* tmp = tr;
-	while (tmp->tok_type == PROD || tmp->tok_type == DIVID)
+	while (tmp->tok_type == base_op || tmp->tok_type == derived_op)
 	{
-		if (tmp->tright->tok_type == PROD)
+		if (tmp->tright->tok_type == base_op || tmp->tright->tok_type == derived_op)
 		{
-			map T = map_create_prod(tmp->tright);
-			mapCell* tmp_T = T->begin;
-			while (tmp_T != NULL)
-			{
-				li = process_op(li, tmp_T->data, tmp->tok_type, DIVID, process_prod);
-				tmp_T = tmp_T->next;
-			}
+			map T = map_create_generic(tmp->tright, base_op, derived_op, func_process);
+			for (Cell* tmp_T = T->begin; tmp_T != NULL; tmp_T = tmp_T->next)
+				li = process_op(li, tmp_T->data, tmp->tok_type, derived_op, func_process);
 			T = clear_map(T);
 		}
 		else
-			li = process_op(li, tmp->tright, tmp->tok_type, DIVID, process_prod);
+			li = process_op(li, tmp->tright, tmp->tok_type, derived_op, func_process);
 		tmp = tmp->tleft;
 	}
 	li = push_front_map(li, tmp);
 	return li;
+}
+
+
+map map_create_prod(Tree* tr)
+{
+	return map_create_generic(tr, PROD, DIVID, process_prod);
 }
 
 map map_create_add(Tree* tr)
 {
-	map li = NULL;
-	Tree* tmp = tr;
-	while (tmp->tok_type == ADD || tmp->tok_type == SUB)
-	{
-		if (tmp->tright->tok_type == ADD || tmp->tright->tok_type == SUB)
-		{
-			map T = map_create_add(tmp->tright);
-			mapCell* tmp_T = T->begin;
-			while (tmp_T != NULL)
-			{
-				li = process_op(li, tmp_T->data, tmp->tok_type, SUB, process_add);
-				tmp_T = tmp_T->next;
-			}
-			T = clear_map(T);
-		}
-		else
-			li = process_op(li, tmp->tright, tmp->tok_type, SUB, process_add);
-		tmp = tmp->tleft;
-	}
-	li = push_front_map(li, tmp);
-	return li;
+	return map_create_generic(tr, ADD, SUB, process_add);
 }
+
 
 map map_remplace(map L, int pos, Tree* tr)
 {
 	int i = L->length;
-	mapCell* tmp = L->end;
-	while (tmp != NULL)
+	for (Cell* tmp = L->end; tmp != NULL; tmp = tmp->back)
 	{
 		if (i == pos + 1)
 		{
@@ -147,7 +129,6 @@ map map_remplace(map L, int pos, Tree* tr)
 			return L;
 		}
 		i--;
-		tmp = tmp->back;
 	}
 	return L;
 }

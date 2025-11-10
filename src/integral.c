@@ -1,4 +1,4 @@
-#include "integral.h"
+#include "includes.h"
 
 int alg[2] = { 0, 0 }; // degré, membres
 int ipp_loop = 10;
@@ -18,124 +18,6 @@ static map separate_factor(Tree* u, const char* x)
 	return push_back_map(push_back(NULL, new_tree("1")), u);
 }
 
-map polycoeffs(Tree* u, const char* x)
-{
-	int i = 1;
-	map cf = NULL;
-	Tree* z = new_tree("0");
-	Tree* r = simplify(remplace_tree(u, x, z)), * d = diff(u, x);
-	cf = push_back(cf, r);
-	while (strcmp(d->value, "0"))
-	{
-		r = simplify(join(remplace_tree(d, x, z), new_tree(tostr(factoriel(i))), fnc[DIVID].ex));
-		cf = push_front_map(cf, r);
-		clean_tree(r);
-		Tree* tmp = diff(d, x);
-		clean_tree(d);
-		d = tmp;
-		i++;
-	}
-	clean_tree(d);
-	clean_tree(z);
-	return cf;
-}
-
-/* calcul derivee */
-
-static Tree* form_integral(const char* s_form, struct Integral* w, int size)
-{
-	for (const Integral* element = w; element != w + size; element++)
-		if (!strcmp(element->from, s_form))
-			return to_tree(In2post2(element->to));
-	return NULL;
-}
-
-struct Integral Derivtable[] =
-{
-	{ fnc[LN_F].ex, "V/U", "" },
-	{ fnc[LOG_F].ex, "V/(U*ln(10))", "" },
-	{ fnc[EXP_F].ex, "V*exp(U)", "" },
-	{ fnc[ABS_F].ex, "V*sign(U)", "" },
-	{ fnc[SQRT_F].ex, "V/(2*sqrt(U))", "" },
-	{ fnc[COS_F].ex, "~V*sin(U)", "" },
-	{ fnc[SIN_F].ex, "V*cos(U)", "" },
-	{ fnc[TAN_F].ex, "V/cos(U)^2", "" },
-	{ fnc[COSH_F].ex, "V*sinh(U)", "" },
-	{ fnc[SINH_F].ex, "V*cosh(U)", "" },
-	{ fnc[TANH_F].ex, "V/cosh(U)^2", "" },
-	{ fnc[ACOS_F].ex, "~V/sqrt(1-U^2)", "" },
-	{ fnc[ASIN_F].ex, "V/sqrt(1-U^2)", "" },
-	{ fnc[ATAN_F].ex, "V/(U^2+1)", "" },
-	{ fnc[ACOSH_F].ex, "V/sqrt(U^2-1)", "" },
-	{ fnc[ASINH_F].ex, "V/sqrt(1+U^2)", "" },
-	{ fnc[ATANH_F].ex, "V/(1-U^2)", "" },
-	{ fnc[CBRT_F].ex, "V/(3*U^(2/3))", "" }
-};
-
-Tree* diff(Tree* tr, const char* vr)
-{
-	if (!found_element(tr, vr))
-		return new_tree("0");
-	if (!strcmp(tr->value, vr))
-		return new_tree("1");
-	optype op = tr->gtype;
-	string sig = tr->value;
-	token tok = tr->tok_type;
-	if (op == OPERAT)
-	{
-		Tree* dl = diff(tr->tleft, vr), * dr = diff(tr->tright, vr);
-		if (tok == ADD || tok == SUB)
-			return simplify(join(dl, dr, sig));
-		if (tok == PROD || tok == DIVID)
-		{
-			Tree* t = simplify(join(join(dl, clone(tr->tright), fnc[PROD].ex), join(dr, clone(tr->tleft), fnc[PROD].ex), fnc[(tok == PROD) ? ADD : SUB].ex));
-			return (tok == PROD) ? t : join(t, join(clone(tr->tright), new_tree("2"), fnc[POW].ex), fnc[DIVID].ex);
-		}
-		if (tok == POW)
-		{
-			Tree* sol = NULL;
-			bool v = !strcmp(dr->value, "0");
-			if (v || !strcmp(dl->value, "0"))
-			{
-				sol = to_tree(In2post2(v ? "C*V*U^(C-1)" : "V*ln(C)*C^U"));
-				sol = remplace_var(remplace_var(remplace_var(sol, "U", v ? tr->tleft : tr->tright), "V", v ? dl : dr), "C", v ? tr->tright : tr->tleft);
-			}
-			else
-				sol = remplace_var(remplace_var(remplace_var(remplace_var(to_tree(In2post2("(T*V/U+ln(U)*W)*U^V")), "U", tr->tleft), "V", tr->tright), "T", dl), "W", dr);
-			clean_tree(dr); clean_tree(dl);
-			return sol;
-		}
-	}
-	else if (tok == NEGATIF)
-		return join(simplify(diff(tr->tleft, vr)), NULL, sig);
-	if (tok == INTEGRAL_F)
-	{
-		Tree* t = tr;
-		while (t->tleft->tok_type == SEPARATEUR)
-			t = t->tleft;
-		return clone(t->tleft);
-	}
-	if (tok == LOGBASE_F || tok == ROOT_F)
-	{
-		Tree* dl = simplify(diff(tr->tleft->tleft, vr)), * sol = to_tree(In2post2((tok == LOGBASE_F) ? "V/(U*ln(C))" : "V/(C*U^((C-1)/C))"));
-		sol = remplace_var(remplace_var(remplace_var(sol, "U", tr->tleft->tleft), "V", dl), "C", tr->tleft->tright);
-		clean_tree(dl);
-		return sol;
-	}
-	Tree* dl = simplify(diff(tr->tleft, vr));
-	Tree* sol = form_integral(sig, Derivtable, AMOUNT_DERIV);
-	if (sol != NULL)
-	{
-		sol = remplace_var(remplace_var(sol, "U", tr->tleft), "V", dl);
-		clean_tree(dl);
-		return sol;
-	}
-	clean_tree(dl);
-	return join(join(join(clone(tr), new_tree(vr), fnc[SEPARATEUR].ex), new_tree(vr), fnc[SEPARATEUR].ex), NULL, fnc[DERIV_F].ex);
-}
-
-/* primitive */
-
 static Tree* integral_try_factor(Tree* u, const char* x)
 {
 	if (is_symbolic(u))
@@ -149,15 +31,13 @@ static Tree* integral_try_factor(Tree* u, const char* x)
 			{
 				Tree* a = degree_sv(u->tleft, x), * b = degree_sv(u->tright, x), * cf = NULL;
 				Tree* c = simplify(join(new_tree(x), clone(a), fnc[POW].ex));
-				mapCell* coef = coefs->begin->next;
-				while (coef != NULL)
+				for (Cell* coef = coefs->begin->next; coef != NULL; coef = coef->next)
 				{
 					if (strcmp(((Tree*)coef->data)->value, "0"))
 					{
 						cf = coef->data;
 						break;
 					}
-					coef = coef->next;
 				}
 				if (cf != NULL)
 				{
@@ -198,12 +78,8 @@ static Tree* Match_substitute(Tree* u, map Li)
 {
 	if (Li == NULL)
 		return u;
-	mapCell* tmp = Li->begin;
-	while (tmp != NULL)
-	{
+	for (Cell* tmp = Li->begin; tmp != NULL; tmp = tmp->next)
 		u = remplace_var(u, ((Tree*)tmp->data)->tleft->value, ((Tree*)tmp->data)->tright);
-		tmp = tmp->next;
-	}
 	return u;
 }
 
@@ -211,16 +87,19 @@ static bool match_var(Tree* Node, Tree* toMatch, map* w)
 {
 	if ((*w) != NULL)
 	{
-		mapCell* tmp = (*w)->begin;
-		while (tmp != NULL)
-		{
+		for (Cell* tmp = (*w)->begin; tmp != NULL; tmp = tmp->next)
 			if (tree_compare(((Tree*)tmp->data)->tleft, toMatch))
 				return tree_compare(((Tree*)tmp->data)->tright, Node);
-			tmp = tmp->next;
-		}
 	}
 	*w = push_back(*w, join(clone(toMatch), clone(Node), fnc[EGAL].ex));
 	return true;
+}
+
+static bool try_match_var(Tree* c, Tree* v, map* w)
+{
+	bool a = match_var(c, v, w);
+	clean_tree(c);
+	return a;
 }
 
 static bool isMatchNode(Tree* Node, Tree* toMatch, const char* x, map* w)
@@ -250,25 +129,38 @@ static bool isMatchNode(Tree* Node, Tree* toMatch, const char* x, map* w)
 	}
 	Tree* v = toMatch->tleft;
 	token tk = toMatch->tok_type;
+	if (Node->tok_type == DIVID)
+	{
+		if (isMatchNode(Node->tleft, toMatch->tright, x, w) && tk == PROD && v->gtype == VAR && strlen(v->value) > 0 && strstr("ABCDMNPQR", v->value))
+			return try_match_var(join(new_tree("1"), clone(Node->tright), fnc[DIVID].ex), v, w);
+		map li = NULL;
+		bool ismatch = isMatchNode(Node->tleft, toMatch, x, &li);
+		if (ismatch)
+		{
+			for (Cell* i = li->begin; i != NULL; i = i->next)
+			{
+				((Tree*)i->data)->tright = join(((Tree*)i->data)->tright, clone(Node->tright), fnc[DIVID].ex);
+				if (!match_var(((Tree*)i->data)->tright, ((Tree*)i->data)->tleft, w))
+				{
+					li = clear_map(li);
+					return false;
+				}
+			}
+			li = clear_map(li);
+			return true;
+		}
+		li = clear_map(li);
+	}
 	if (tk == ADD && v->gtype == VAR && is_symbolic(Node) && is_symbolic(toMatch->tright) && strlen(v->value) > 0 && strstr("ABCDMNPQR", v->value))
 	{
 		Tree* c = simplify(join(join(clone(Node), clone(toMatch->tright), fnc[SUB].ex), new_tree("2"), fnc[DIVID].ex));
 		if (is_int(c))
-		{
-			bool a = match_var(c, v, w);
-			clean_tree(c);
-			return a;
-		}
+			return try_match_var(c, v, w);
 		clean_tree(c);
 		return false;
 	}
 	if ((tk == PROD || tk == ADD) && isMatchNode(Node, toMatch->tright, x, w) && v->gtype == VAR && strlen(v->value) > 0 && strstr("ABCDMNPQR", v->value))
-	{
-		Tree* c = new_tree((tk == PROD) ? "1" : "0");
-		bool a = match_var(c, v, w);
-		clean_tree(c);
-		return a;
-	}
+		return try_match_var(join(new_tree("1"), NULL, fnc[NEGATIF].ex), v, w);
 	if (Node->tok_type == tk && Node->gtype <= VAR)
 		return !strcmp(Node->value, toMatch->value);
 	if (Node->tok_type == tk)
@@ -295,13 +187,11 @@ static bool toMatchExpression(Tree* e, Tree* id, const char* x, map* w)
 			q = clear_map(q);
 			return false;
 		}
-		Cell* tmp = p->begin;
 		int k = 0, n = p->length;
-		while (tmp != NULL)
+		for (Cell* tmp = p->begin; tmp != NULL; tmp = tmp->next)
 		{
-			Cell* tmp1 = q->begin;
 			bool is_match = false;
-			while (tmp1 != NULL)
+			for (Cell* tmp1 = q->begin; tmp1 != NULL; tmp1 = tmp1->next)
 			{
 				is_match = toMatchExpression(tmp->data, tmp1->data, x, w);
 				if (is_match)
@@ -309,9 +199,7 @@ static bool toMatchExpression(Tree* e, Tree* id, const char* x, map* w)
 					k++;
 					break;
 				}
-				tmp1 = tmp1->next;
 			}
-			tmp = tmp->next;
 		}
 		p = clear_map(p);
 		q = clear_map(q);
@@ -331,13 +219,9 @@ static bool search_match(const char* ex, List* oper)
 {
 	if ((*oper) == NULL)
 		return true;
-	Cell* tmp = (*oper)->begin;
-	while (tmp != NULL)
-	{
+	for (Cell* tmp = (*oper)->begin; tmp != NULL; tmp = tmp->next)
 		if (!strstr(ex, (char*)tmp->data) && strcmp((char*)tmp->data, fnc[NEGATIF].ex))
 			return false;
-		tmp = tmp->next;
-	}
 	return true;
 }
 
@@ -403,13 +287,9 @@ static List getfunction(Tree* tr, const char* x, List list, List* oper)
 				list = getfunction(tr->tleft, x, list, oper);
 			return list;
 		}
-		Cell* tmp = list->begin;
-		while (tmp != NULL)
-		{
+		for (Cell* tmp = list->begin; tmp != NULL; tmp = tmp->next)
 			if (!strcmp((char*)tmp->data, tr->value))
 				return list;
-			tmp = tmp->next;
-		}
 		list = push_back_dlist(list, tr->value);
 		if (tr->tok_type == SQRT_F)
 			list = getfunction(tr->tleft, x, list, oper);
@@ -430,13 +310,9 @@ static List getfunction(Tree* tr, const char* x, List list, List* oper)
 			string v = ((Tree*)cf->begin->next->data)->value;
 			if (k > 2 && (!strcmp(v, "0") || (k == 3 && strcmp(v, "0"))))
 			{
-				mapCell* coef = cf->begin;
-				while (coef != NULL)
-				{
+				for (Cell* coef = cf->begin; coef != NULL; coef = coef->next)
 					if (!strcmp(((Tree*)coef->data)->value, "0"))
 						k--;
-					coef = coef->next;
-				}
 				alg[0] = max(alg[0], cf->length - 1);
 				alg[1] = max(alg[1], k);
 			}
@@ -465,8 +341,7 @@ static Tree* to_match(Tree* u, const char* x)
 			return match(u, IntegralalgxN, &op, x, AMOUNT_INTEGRAL_ALGXN);
 		return match(u, Integraltable, &op, x, AMOUNT_INTEGRAL);
 	}
-	Cell* tmp = list_fnc->begin;
-	while (tmp != NULL)
+	for (Cell* tmp = list_fnc->begin; tmp != NULL; tmp = tmp->next)
 	{
 		token tk = tokens((char*)tmp->data, fnc);
 		switch (tk) {
@@ -502,7 +377,6 @@ static Tree* to_match(Tree* u, const char* x)
 		default:
 			break;
 		}
-		tmp = tmp->next;
 	}
 	list_fnc = clear_dlist(list_fnc);
 	if (flags.i_exp)
@@ -554,13 +428,11 @@ static Tree* poly_integral(Tree* f, const char* x)
 {
 	map coefs = polycoeffs(f, x);
 	int i = coefs->length;
-	mapCell* coef = coefs->begin;
-	while (coef != NULL)
+	for (Cell* coef = coefs->begin; coef != NULL; coef = coef->next)
 	{
 		if (strcmp(((Tree*)coef->data)->value, "0"))
 			coef->data = simplify(join(coef->data, new_tree(tostr(i)), fnc[DIVID].ex));
 		i--;
-		coef = coef->next;
 	}
 	coefs = push_back(coefs, new_tree("0"));
 	return polyreconstitute(&coefs, x);
@@ -590,6 +462,7 @@ static Tree* integral_table(Tree* f, const char* x)
 		return linear_priorities(f, x);
 	map integ_sep = separate_factor(f, x);
 	integ_sep->end->data = pow_transform(integ_sep->end->data);
+	integ_sep->end->data = pow_transform(integ_sep->end->data);
 	Tree* form = to_match(integ_sep->end->data, x);
 	if (form != NULL)
 	{
@@ -615,7 +488,7 @@ static Tree* sustitution_method(Tree* f, const char* x)
 	if (P == NULL)
 		return NULL;
 	Tree* F = NULL, * v = new_tree("XX");
-	mapCell* tmp = P->begin;
+	Cell* tmp = P->begin;
 	while (tmp != NULL && !F)
 	{
 		if (!found_element(tmp->data, x))
@@ -635,6 +508,7 @@ static Tree* sustitution_method(Tree* f, const char* x)
 
 Tree* integral(Tree* f, const char* x)
 {
+	INTEGRATE = true;
 	Tree* f_x = integral_try_factor(f, x);
 	Tree* F = integral_table(f_x, x);
 	if (!F)
@@ -682,13 +556,13 @@ struct Integral Integralsqrt[] =
 	{ "(Q+P*X)^N*sqrt(B+A*X)", "2*(Q+P*X)^(N+1)*sqrt(B+A*X)/((2*N+3)*P)+(B*P-A*Q)/((2*N+3)*P)*integral((Q+P*X)^N/sqrt(B+A*X),X)", "" },
 	{ "1/((Q+P*X)^N*sqrt(B+A*X))", "sqrt(B+A*X)/((N-1)*(A*Q-B*P)*(Q+P*X)^(N-1))+(2*N-3)*A/(2*(N-1)*(A*Q-B*P))*integral(1/((Q+P*X)^(N-1)*sqrt(B+A*X)),X)", "" },
 	{ "(Q+P*X)^N/sqrt(B+A*X)", "2*(Q+P*X)^N*sqrt(B+A*X)/((2*N+1)*A)+2*N*(A*Q-B*P)/((2*N+1)*A)*integral((Q+P*X)^(N-1)/sqrt(B+A*X),X)", "" },
-	{ "sqrt(B+A*X)/(Q+P*X)^N", "~sqrt(B+A*X)/((N-1)*P*(Q+P*X)^(N-1))+A/(2*(N-1)*P)*integral(1/((Q+P*X)^(N-1)*sqrt(B+A*X)),X)", "" },
+	{ "sqrt(B+A*X)/(Q+P*X)^N", "~sqrt(B+A*X)/((N-1)*P*(Q+P*X)^(N-1))+A/(2*(N-1)*P)*integral(1/((Q+P*X)^(N-1)*sqrt(B+A*X)),X)", "" }
 	/* sqrt(B+A*X) & sqrt(Q+P*X) */
-	{ "1/sqrt((B+A*X)*(Q+P*X))", "2/sqrt(A*P)*ln(sqrt(A*(Q+P*X))+sqrt(P*(B+A*X)))", "" },
+	/*{"1/sqrt((B+A*X)*(Q+P*X))", "2/sqrt(A*P)*ln(sqrt(A*(Q+P*X))+sqrt(P*(B+A*X)))", ""},
 	{ "X/sqrt((B+A*X)*(Q+P*X))", "sqrt((B+A*X)*(Q+P*X))/(A*P)-(B*P+A*Q)/(2*A*P)*integral(1/sqrt((B+A*X)*(Q+P*X)),X)", "" },
 	{ "sqrt((B+A*X)*(Q+P*X))", "(2*A*P*X+B*P+A*Q)/(4*A*P)*sqrt((B+A*X)*(Q+P*X))-(B*P-A*Q)^2/(8*A*P)*integral(1/sqrt((B+A*X)*(Q+P*X)),X)", "" },
 	{ "sqrt(Q+P*X)/sqrt(B+A*X)", "sqrt((B+A*X)*(Q+P*X))/A+(A*Q-B*P)/(2*A)*integral(1/sqrt((B+A*X)*(Q+P*X)),X)", "" },
-	{ "1/((Q+P*X)*sqrt((B+A*X)*(Q+P*X)))", "2*sqrt(B+A*X)/((A*Q-B*P)*sqrt(Q+P*X))", "" }
+	{ "1/((Q+P*X)*sqrt((B+A*X)*(Q+P*X)))", "2*sqrt(B+A*X)/((A*Q-B*P)*sqrt(Q+P*X))", "" }*/
 };
 
 struct Integral Integralsqrt_X2[] =
@@ -1050,7 +924,7 @@ struct Integral Integraltrigh[] =
 	{ "sinh(A*X)/cosh(A*X)^2", "ln(tanh(A*X))/A", "" },
 	{ "X*sinh(A*X)^2/cosh(A*X)^2", "X^2/2-(X*tanh(A*X))/A+1/A^2*ln(cosh(A*X))", "" },
 	{ "cosh(A*X)/(P*cosh(A*X)+Q*sinh(A*X))", "(P*X)/(P^2-Q^2)-Q/(A*(P^2-Q^2))*ln(Q*sinh(A*X)+P*cosh(A*X))", "" },
-	{ "sinh(A*X)^N/cosh(A*X)^N", "~tanh(A*X)^(N-1)/(A*(N-1))+integral(sinh(A*X)^(N-2)/cosh(A*X)^(N-2),X)", "" },
+	{ "sinh(A*X)^N/cosh(A*X)^N", "~tanh(A*X)^(N-1)/(A*(N-1))+integral(tanh(A*X)^(N-2),X)", "" },
 	/* coth(A*X) */
 	{ "cosh(A*X)/sinh(A*X)", "ln(sinh(A*X))/A", "" },
 	{ "cosh(A*X)^2/sinh(A*X)^2", "X-1/(A*tanh(A*X))", "" },
