@@ -40,15 +40,87 @@ static int cmp_intstr(const char* a, const char* b) {
 	return strcmp(a, b);
 }
 
-static int compareStrings(const char* a, const char* b) {
-	static char ta[BUF], tb[BUF];
-	int pa = 0, pb = 0;
-	for (int i = 0; a[i] && pa < BUF - 1; ++i) if (a[i] != '.') ta[pa++] = a[i];
-	ta[pa] = '\0';
-	for (int i = 0; b[i] && pb < BUF - 1; ++i) if (b[i] != '.') tb[pb++] = b[i];
-	tb[pb] = '\0';
-	trim_str(ta); trim_str(tb);
-	return cmp_intstr(ta, tb);
+int compareStrings(const char* a_in, const char* b_in) {
+	static char a[BUF], b[BUF];
+	int ia = 0, ib = 0;
+
+	for (int i = 0; a_in[i] && ia < BUF - 1; i++) {
+		if ((a_in[i] >= '0' && a_in[i] <= '9') || a_in[i] == '.' || a_in[i] == '-' || a_in[i] == '+')
+			a[ia++] = a_in[i];
+	}
+	a[ia] = '\0';
+
+	for (int i = 0; b_in[i] && ib < BUF - 1; i++) {
+		if ((b_in[i] >= '0' && b_in[i] <= '9') || b_in[i] == '.' || b_in[i] == '-' || b_in[i] == '+')
+			b[ib++] = b_in[i];
+	}
+	b[ib] = '\0';
+
+	int signA = 1, signB = 1;
+	char* A = a, * B = b;
+
+	if (*A == '-') { signA = -1; A++; }
+	else if (*A == '+') A++;
+
+	if (*B == '-') { signB = -1; B++; }
+	else if (*B == '+') B++;
+
+	if (signA != signB)
+		return (signA < signB) ? -1 : 1;
+
+	static char Ai[BUF], Af[BUF], Bi[BUF], Bf[BUF];
+	int Ai_len = 0, Af_len = 0, Bi_len = 0, Bf_len = 0;
+
+	char* dotA = strchr(A, '.');
+	if (dotA) {
+		Ai_len = dotA - A;
+		memcpy(Ai, A, Ai_len);
+		Ai[Ai_len] = '\0';
+		strcpy(Af, dotA + 1);
+		Af_len = strlen(Af);
+	}
+	else {
+		strcpy(Ai, A);
+		Ai_len = strlen(Ai);
+		Af[0] = '\0';
+		Af_len = 0;
+	}
+
+	char* dotB = strchr(B, '.');
+	if (dotB) {
+		Bi_len = dotB - B;
+		memcpy(Bi, B, Bi_len);
+		Bi[Bi_len] = '\0';
+		strcpy(Bf, dotB + 1);
+		Bf_len = strlen(Bf);
+	}
+	else {
+		strcpy(Bi, B);
+		Bi_len = strlen(Bi);
+		Bf[0] = '\0';
+		Bf_len = 0;
+	}
+	int ziA = 0; while (Ai[ziA] == '0' && Ai[ziA + 1]) ziA++;
+	if (ziA) memmove(Ai, Ai + ziA, strlen(Ai + ziA) + 1);
+
+	int ziB = 0; while (Bi[ziB] == '0' && Bi[ziB + 1]) ziB++;
+	if (ziB) memmove(Bi, Bi + ziB, strlen(Bi + ziB) + 1);
+	while (Af_len > 0 && Af[Af_len - 1] == '0') Af[--Af_len] = '\0';
+	while (Bf_len > 0 && Bf[Bf_len - 1] == '0') Bf[--Bf_len] = '\0';
+	if (strlen(Ai) < strlen(Bi)) return (signA == 1) ? -1 : 1;
+	if (strlen(Ai) > strlen(Bi)) return (signA == 1) ? 1 : -1;
+
+	int cmp = strcmp(Ai, Bi);
+	if (cmp != 0) return (cmp < 0) ? -1 * signA : 1 * signA;
+	int maxf = (Af_len > Bf_len ? Af_len : Bf_len);
+	for (int i = 0; i < maxf; i++) {
+		char ca = (i < Af_len) ? Af[i] : '0';
+		char cb = (i < Bf_len) ? Bf[i] : '0';
+		if (ca < cb) return (signA == 1) ? -1 : 1;
+		if (ca > cb) return (signA == 1) ? 1 : -1;
+	}
+
+	return 0;
 }
 
 static void reduceDecimals(char* s, int prec) {
