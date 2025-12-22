@@ -242,7 +242,7 @@ static void subStrings(const char* a, const char* b, char* result) {
 	else strncpy(intA, A, BUF - 1);
 	if (dotB) { int lb = dotB - B; if (lb >= BUF) { strcpy(result, "NaN"); return; } strncpy(intB, B, lb); intB[lb] = 0; strncpy(fracB, dotB + 1, BUF - 1); }
 	else strncpy(intB, B, BUF - 1);
-	trim_str(intA); trim_str(intB); trim_str(fracA); trim_str(fracB);
+	
 	int la_frac = strlen(fracA), lb_frac = strlen(fracB);
 	int fracLen = la_frac > lb_frac ? la_frac : lb_frac;
 	if (fracLen >= BUF / 2) { strcpy(result, "NaN"); return; }
