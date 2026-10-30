@@ -116,7 +116,7 @@ Tree* polyreconstitute(map* Li, const char* x)
 	return u;
 }
 
-static bool iszero(map Li)
+static bool map_iszero(map Li)
 {
 	for (Cell* celdivd = Li->begin; celdivd != NULL; celdivd = celdivd->next)
 		if (strcmp(((Tree*)celdivd->data)->value, "0"))
@@ -148,7 +148,7 @@ map polynomial_division(map* divd, map* divr, map* rem)
 		(*divd) = pop_front_map(*divd);
 		if ((*divd) == NULL)
 			break;
-		if (iszero(*divd))
+		if (map_iszero(*divd))
 		{
 			for (int i = 1; i < (*divd)->length - (*divr)->length; ++i)
 				quot = push_back(quot, new_tree("0"));
