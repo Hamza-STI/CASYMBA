@@ -3,14 +3,7 @@
 🇺🇸 A **CAS engine** (symbolic math) for the TI-84 Plus CE / TI-83 Premium CE calculators  
 🇫🇷 *Un moteur de **calcul formel (CAS)** pour les calculatrices TI-84 Plus CE / TI-83 Premium CE*
 
-**Source code**: https://github.com/Hamza-STI/CASYMBA/
-
-**Download**: https://tiplanet.org/forum/archives_voir.php?id=3123911
-
-## License
-<a rel="license" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0<br>
-<img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a>
-
+**Source code**: https://github.com/Wasknijper89/CASYMBA/tree/main/src/src
 
 # Presentation :
 

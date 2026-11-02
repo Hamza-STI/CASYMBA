@@ -914,7 +914,8 @@ static Tree* simplify_power(Tree* v, Tree* w)
 	{
 		v->tleft = simplify_power(v->tleft, clone(w));
 		v->tright = simplify_power(v->tright, w);
-		return v;
+		/* Re-simplify the powered factors (for example, (sqrt(3))^2 = 3). */
+		return simplify(v);
 	}
 	else if (v->tok_type == POW)
 	{

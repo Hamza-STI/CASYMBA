@@ -188,14 +188,14 @@ int main(int argc, char const* argv[])
     List rpn = In2post2("101!"); // desolve(y''-y'-2*y=sin(2*x),x,y) desolve(y''-y'-2*y=2*exp(~x) and y(0)=~1 and y'(0)=1,x,y)
     if (rpn == NULL)
     {
-        printf("Erreur syntaxe\n");
+        printf("Syntax error\n");
         return 1;
     }
     Tree* tr = to_tree(rpn);
 
     //print_tree_prefix(tr);
 
-    printf("\n\n partie simplification :\n");
+    printf("\n\n Simplification section:\n");
 
     Tree* simp = analyse(tr);
 
@@ -213,14 +213,14 @@ int main(int argc, char const* argv[])
         }
         else
         {
-            puts("Erreur.");
+            puts("Error.");
         }
         return 1;
     }
     string expr = Post2in(simp, fnc);
     //print_tree_prefix(simp);
     clean_tree(simp);
-    printf("\nla forme simplifiee : %s\n", expr);
+    printf("\nSimplified form: %s\n", expr);
     free(expr);
     return 0;
 }
